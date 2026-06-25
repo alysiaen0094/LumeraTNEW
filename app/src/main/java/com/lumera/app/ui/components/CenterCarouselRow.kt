@@ -24,15 +24,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
+import androidx.compose.animation.core.snap
 
 @OptIn(ExperimentalFoundationApi::class)
 class CenterPivotSpec : BringIntoViewSpec {
 
     @Deprecated("", level = DeprecationLevel.HIDDEN)
-    override val scrollAnimationSpec = spring<Float>(
-        stiffness = Spring.StiffnessMediumLow,
-        dampingRatio = Spring.DampingRatioNoBouncy
-    )
+    override val scrollAnimationSpec = snap<Float>()
 
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
         val targetOffset = (containerSize / 2f) - (size / 2f)
