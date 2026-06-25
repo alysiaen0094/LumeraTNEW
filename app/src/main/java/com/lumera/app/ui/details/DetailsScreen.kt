@@ -1446,26 +1446,8 @@ private fun playbackIdBelongsToSeries(seriesId: String, playbackId: String): Boo
     return parts.dropLast(2).joinToString(":") == seriesId
 }
 
-private val TORRENT_TRACKERS = listOf(
-    // HTTP trackers (TCP — work even when UDP is blocked)
-    "http://tracker.opentrackr.org:1337/announce",
-    "http://tracker.openbittorrent.com:80/announce",
-    "http://tracker1.bt.moack.co.kr:80/announce",
-    "http://tracker.gbitt.info:80/announce",
-    // UDP trackers (fallback)
-    "udp://tracker.opentrackr.org:1337/announce",
-    "udp://open.stealth.si:80/announce",
-    "udp://tracker.openbittorrent.com:6969/announce",
-    "udp://exodus.desync.com:6969/announce"
-)
-
 private fun resolvePlayableUrl(stream: com.lumera.app.data.model.stremio.Stream): String? {
-    if (!stream.url.isNullOrEmpty()) return stream.url
-    if (!stream.infoHash.isNullOrEmpty()) {
-        val trackerParams = TORRENT_TRACKERS.joinToString("") {
-            "&tr=${java.net.URLEncoder.encode(it, "UTF-8")}"
-        }
-        return "magnet:?xt=urn:btih:${stream.infoHash}&dn=Video${trackerParams}"
-    }
-    return null
+    return stream.url
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
 }
