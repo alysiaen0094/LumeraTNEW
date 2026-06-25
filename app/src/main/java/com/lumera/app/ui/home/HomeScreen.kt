@@ -101,6 +101,15 @@ fun HomeScreen(
     val infoTopPadding = if (isTopNav) 60.dp else 30.dp
     val startPadding = if (isTopNav) 50.dp else 120.dp
 
+    // Avoid rendering heavy rows during navigation transition.
+    var isTransitioning by remember { mutableStateOf(true) }
+
+    LaunchedEffect(tab) {
+        isTransitioning = true
+        delay(250)
+        isTransitioning = false
+    }
+
     val screenName = remember(tab) {
         when (tab) {
             DashboardTab.HOME -> "home"
@@ -145,7 +154,12 @@ fun HomeScreen(
         CompositionLocalProvider(com.lumera.app.ui.components.LocalWatchedIds provides state.watchedIds) {
         // LOGIC: If we are just starting OR the ViewModel is loading, show the Loading Box.
         // This box accepts focus immediately, which forces the NavDrawer to collapse.
-        if (state.isLoading || state.loadedScreen != screenName || state.loadedProfileId != currentProfile?.id) {
+        if (
+            isTransitioning ||
+            state.isLoading ||
+            state.loadedScreen != screenName ||
+            state.loadedProfileId != currentProfile?.id
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
