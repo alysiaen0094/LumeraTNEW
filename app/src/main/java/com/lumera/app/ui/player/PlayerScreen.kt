@@ -30,7 +30,6 @@ import com.lumera.app.ui.player.base.PlayerSourceOption
 import com.lumera.app.ui.player.base.PlayerSubtitleSource
 import com.lumera.app.ui.player.base.SkipSegmentInfo
 import com.lumera.app.data.model.stremio.MetaVideo
-import com.lumera.app.data.torrent.TorrentProgress
 
 data class PlayerSessionResult(
     val positionMs: Long,
@@ -71,8 +70,6 @@ fun PlayerScreen(
     episodeSwitchTitle: String? = null,
     onEpisodeSwitchSourceSelected: ((sourceUrl: String) -> Unit)? = null,
     onEpisodeSwitchDismissed: (() -> Unit)? = null,
-    onMagnetSourceSelected: ((magnetUrl: String, fileIdx: Int, fileName: String, onReady: (localUrl: String) -> Unit) -> Unit)? = null,
-    torrentProgress: TorrentProgress? = null,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -83,18 +80,7 @@ fun PlayerScreen(
     }
     val playbackController = runtime.playbackController
     val renderSurface = runtime.renderSurface
-
-    LaunchedEffect(playbackController, onMagnetSourceSelected) {
-        (playbackController as? ExoPlayerBackend)?.onMagnetSourceSelected = onMagnetSourceSelected
-    }
-
-    // Pre-create ExoPlayer + OkHttpClient while torrent pieces are still downloading.
-    // By the time the URL arrives, the player is ready — prepareSource() just calls prepare().
-    LaunchedEffect(playbackController, videoUrl) {
-        if (videoUrl.isBlank()) {
-            (playbackController as? ExoPlayerBackend)?.warmup()
-        }
-    }
+    
     val uiState by playbackController.uiState.collectAsState()
     val shouldKeepScreenOn = uiState.playWhenReady || uiState.isPlaying || uiState.isBuffering
 
@@ -282,7 +268,6 @@ fun PlayerScreen(
             episodeSwitchTitle = episodeSwitchTitle,
             onEpisodeSwitchSourceSelected = onEpisodeSwitchSourceSelected,
             onEpisodeSwitchDismissed = onEpisodeSwitchDismissed,
-            torrentProgress = torrentProgress,
             isTrailer = movieId.startsWith("trailer_")
         )
     }
