@@ -99,7 +99,6 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.lumera.app.data.model.stremio.MetaVideo
 import com.lumera.app.data.model.stremio.Stream
-import com.lumera.app.data.torrent.TorrentProgress
 import com.lumera.app.ui.details.GlassSidebar
 import com.lumera.app.ui.details.GlassSidebarScaffold
 import com.lumera.app.ui.details.SidebarState
@@ -176,7 +175,6 @@ fun BasePlayerScaffold(
     episodeSwitchTitle: String? = null,
     onEpisodeSwitchSourceSelected: ((sourceUrl: String) -> Unit)? = null,
     onEpisodeSwitchDismissed: (() -> Unit)? = null,
-    torrentProgress: TorrentProgress? = null,
     isTrailer: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -656,7 +654,7 @@ fun BasePlayerScaffold(
             enter = fadeIn(animationSpec = tween(150)),
             exit = fadeOut(animationSpec = tween(120))
         ) {
-            LoadingOverlay(torrentProgress = torrentProgress)
+            LoadingOverlay()
         }
 
         AnimatedVisibility(
@@ -1687,77 +1685,16 @@ private fun PlayerStatusPill(
 }
 
 @Composable
-private fun LoadingOverlay(torrentProgress: TorrentProgress? = null) {
+private fun LoadingOverlay() {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.22f)),
         contentAlignment = Alignment.Center
     ) {
-        // Spinner always centered, text placed below without shifting it
-        val progress = torrentProgress?.progress
-        if (progress != null) {
-            val animatedProgress by animateFloatAsState(
-                targetValue = progress,
-                animationSpec = tween(durationMillis = 300),
-                label = "preload"
-            )
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { animatedProgress },
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = Color.White.copy(alpha = 0.15f),
-                    strokeWidth = 4.dp
-                )
-                Text(
-                    text = "${(animatedProgress * 100).toInt()}%",
-                    color = Color.White.copy(alpha = 0.9f),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        } else {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        if (torrentProgress != null) {
-            Column(
-                modifier = Modifier.align(Alignment.Center).padding(top = 80.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = torrentProgress.status,
-                    color = Color.White.copy(alpha = 0.9f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (torrentProgress.peers > 0 || torrentProgress.downloadSpeed > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val parts = mutableListOf<String>()
-                    if (torrentProgress.downloadSpeed > 0) {
-                        parts.add(formatSpeed(torrentProgress.downloadSpeed))
-                    }
-                    if (torrentProgress.peers > 0) {
-                        parts.add("${torrentProgress.peers} peers")
-                    }
-                    if (torrentProgress.seeds > 0) {
-                        parts.add("${torrentProgress.seeds} seeds")
-                    }
-                    Text(
-                        text = parts.joinToString("  \u2022  "),
-                        color = Color.White.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun formatSpeed(bytesPerSec: Long): String {
-    return when {
-        bytesPerSec >= 1_048_576 -> "${"%.1f".format(bytesPerSec / 1_048_576.0)} MB/s"
-        bytesPerSec >= 1_024 -> "${"%.0f".format(bytesPerSec / 1_024.0)} KB/s"
-        else -> "$bytesPerSec B/s"
+        CircularProgressIndicator(
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
