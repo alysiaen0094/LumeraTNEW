@@ -143,16 +143,19 @@ fun HomeScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(top = 22.dp)
-            .onFocusChanged {
-                isContentFocused = it.hasFocus
-                if (it.hasFocus) focusEverSet = true
-            }
+    modifier = Modifier
+        .fillMaxSize()
+        .onFocusChanged {
+            isContentFocused = it.hasFocus
+            if (it.hasFocus) focusEverSet = true
+        }
     ) {
         LumeraBackground {
+            Box(
+                modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 24.dp)
+            ) {
         CompositionLocalProvider(com.lumera.app.ui.components.LocalWatchedIds provides state.watchedIds) {
         // LOGIC: If we are just starting OR the ViewModel is loading, show the Loading Box.
         // This box accepts focus immediately, which forces the NavDrawer to collapse.
@@ -238,6 +241,8 @@ fun HomeScreen(
             }
         }
         } // CompositionLocalProvider
+        } // top padding Box
+
     }
 }
 }
