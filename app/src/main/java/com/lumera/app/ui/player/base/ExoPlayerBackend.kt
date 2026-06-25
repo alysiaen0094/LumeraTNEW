@@ -54,10 +54,6 @@ import androidx.media3.exoplayer.source.SingleSampleMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
-import io.github.assrender.AssExtractorsFactory
-import io.github.assrender.AssHandler
-import io.github.assrender.AssRenderersFactory
-import io.github.assrender.SubtitleOverlayView
 import java.util.Locale
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicLong
@@ -126,63 +122,6 @@ class ExoPlayerBackend(
     private var exoPlayer: ExoPlayer? = null
     private var progressJob: Job? = null
     private var audioSwitchRecoveryJob: Job? = null
-    private var assHandler: AssHandler? = null
-
-    private fun getOrCreateAssHandler(): AssHandler {
-        assHandler?.let { return it }
-        val overlay = SubtitleOverlayView(appContext)
-        val handler = AssHandler(appContext, overlay)
-        handler.onAssTrackDetected = {
-            // Hide ExoPlayer's subtitle view when ASS track is detected
-            scope.launch(Dispatchers.Main) {
-                playerView?.subtitleView?.visibility = android.view.View.GONE
-            }
-        }
-        assHandler = handler
-        return handler
-    }
-
-    private fun syncAssTrackWithExoPlayer(tracks: Tracks) {
-        val handler = assHandler ?: return
-        // Count ALL text tracks (not just ASS) to match AssTrackOutput numbering
-        var textTrackIndex = 0
-        for (group in tracks.groups) {
-            if (group.type != C.TRACK_TYPE_TEXT) continue
-            for (i in 0 until group.length) {
-                val format = group.getTrackFormat(i)
-                val mime = format.sampleMimeType ?: ""
-                val isAss = mime == "text/x-ssa" || mime == "text/x-ass" || mime == androidx.media3.common.MimeTypes.TEXT_SSA
-                if (group.isTrackSelected(i)) {
-                    if (isAss) {
-                        handler.selectTrack(textTrackIndex)
-                        playerView?.subtitleView?.visibility = android.view.View.GONE
-                    } else {
-                        handler.clearOverlay()
-                        playerView?.subtitleView?.visibility = android.view.View.VISIBLE
-                    }
-                    return
-                }
-                textTrackIndex++
-            }
-        }
-    }
-
-    /** Find the text track index for a given TrackLocator by counting ALL text tracks */
-    private fun findAssTrackIndex(tracks: Tracks, locator: TrackLocator): Int {
-        var textIndex = 0
-        for (group in tracks.groups) {
-            if (group.type != C.TRACK_TYPE_TEXT) continue
-            for (i in 0 until group.length) {
-                if (group.mediaTrackGroup == locator.trackGroup && i == locator.trackIndex) {
-                    val mime = group.getTrackFormat(i).sampleMimeType ?: ""
-                    val isAss = mime == "text/x-ssa" || mime == "text/x-ass" || mime == MimeTypes.TEXT_SSA
-                    return if (isAss) textIndex else -1
-                }
-                textIndex++
-            }
-        }
-        return -1
-    }
 
     private var loadRequest: PlayerLoadRequest? = null
     private var currentSourceId: String? = null
@@ -291,7 +230,6 @@ class ExoPlayerBackend(
         override fun onTracksChanged(tracks: Tracks) {
             refreshTrackOptions(tracks)
             applyPendingTrackSelections()
-            if (playbackSettings.assRendererEnabled) syncAssTrackWithExoPlayer(tracks)
         }
 
         override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) {
@@ -396,15 +334,6 @@ class ExoPlayerBackend(
                             android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                             android.widget.FrameLayout.LayoutParams.MATCH_PARENT
                         ))
-
-                        // ASS subtitle overlay as sibling ON TOP of PlayerView
-                        if (playbackSettings.assRendererEnabled) {
-                            val overlay = assHandler?.overlayView ?: SubtitleOverlayView(context)
-                            addView(overlay, android.widget.FrameLayout.LayoutParams(
-                                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-                            ))
-                        }
                     }
                 },
                 update = { frame ->
@@ -651,8 +580,6 @@ class ExoPlayerBackend(
             pendingSubtitleTrackId = null
             _uiState.update { it.copy(selectedSubtitleTrackId = SUBTITLE_OFF_ID) }
             refreshTrackOptions(player.currentTracks)
-            // Stop ASS rendering when subtitles are turned off
-            if (playbackSettings.assRendererEnabled) assHandler?.clearOverlay()
             return
         }
 
@@ -667,21 +594,6 @@ class ExoPlayerBackend(
             pendingSubtitleTrackId = null
             _uiState.update { it.copy(selectedSubtitleTrackId = id) }
             refreshTrackOptions(player.currentTracks)
-
-            // Switch ASS renderer to matching track, or clear if non-ASS
-            if (playbackSettings.assRendererEnabled) {
-                val format = locator.trackGroup.getFormat(locator.trackIndex)
-                val mime = format.sampleMimeType ?: ""
-                val isAss = mime == "text/x-ssa" || mime == "text/x-ass" || mime == androidx.media3.common.MimeTypes.TEXT_SSA
-                if (isAss) {
-                    val assIndex = findAssTrackIndex(player.currentTracks, locator)
-                    if (assIndex >= 0) assHandler?.selectTrack(assIndex)
-                    playerView?.subtitleView?.visibility = android.view.View.GONE
-                } else {
-                    assHandler?.clearOverlay()
-                    playerView?.subtitleView?.visibility = android.view.View.VISIBLE
-                }
-            }
             return
         }
 
@@ -825,9 +737,6 @@ class ExoPlayerBackend(
     override fun release() {
         released = true
         frameRateManager?.restoreOriginalMode()
-        assHandler?.release()
-        assHandler = null
-
         scopeJob.cancel()
         stopProgressLoop()
         audioSwitchRecoveryJob = null
@@ -929,8 +838,6 @@ class ExoPlayerBackend(
             // Include ALL external subtitles upfront as sidecar sources.
             // SingleSampleMediaSource is lazy — it won't download until the
             // renderer actually selects the track, so this is cheap.
-            // Ensure AssHandler exists before media source creation
-            if (playbackSettings.assRendererEnabled) getOrCreateAssHandler()
 
             val mediaSource = withContext(Dispatchers.Default) {
                 val subtitleConfigs = externalSubtitleSources.map { (_, subtitle) ->
@@ -1025,23 +932,12 @@ class ExoPlayerBackend(
             DefaultLoadControl.Builder().build()
         }
 
-        val renderersFactory = if (playbackSettings.assRendererEnabled) {
-            val handler = getOrCreateAssHandler()
-            AssRenderersFactory(appContext, handler)
-                .setExtensionRendererMode(playbackSettings.decoderPriority)
-                .setMapDV7ToHevc(playbackSettings.mapDV7ToHevc)
-        } else {
+        val renderersFactory =
             SubtitleDelayRenderersFactory(appContext, subtitleDelayUs::get)
-                .setExtensionRendererMode(playbackSettings.decoderPriority)
-                .setMapDV7ToHevc(playbackSettings.mapDV7ToHevc)
-        }
+            .setExtensionRendererMode(playbackSettings.decoderPriority)
+            .setMapDV7ToHevc(playbackSettings.mapDV7ToHevc)
 
-        val mediaSourceFactory = if (playbackSettings.assRendererEnabled) {
-            val handler = getOrCreateAssHandler()
-            DefaultMediaSourceFactory(appContext, AssExtractorsFactory(handler))
-        } else {
-            DefaultMediaSourceFactory(appContext, sharedExtractorsFactory)
-        }
+        val mediaSourceFactory = DefaultMediaSourceFactory(appContext, sharedExtractorsFactory)
 
         val player = ExoPlayer.Builder(appContext, renderersFactory)
             .setTrackSelector(trackSelector)
@@ -1059,7 +955,7 @@ class ExoPlayerBackend(
         if (frameRateManager != null) {
             player.videoChangeFrameRateStrategy = C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
         }
-        assHandler?.player = player
+
         player.addListener(playerListener)
         player.addAnalyticsListener(analyticsListener)
         exoPlayer = player
@@ -1135,12 +1031,7 @@ class ExoPlayerBackend(
         // DefaultMediaSourceFactory handles SubtitleConfigurations natively,
         // so for non-HLS/non-DASH (e.g. MKV) pass the full mediaItem directly.
         if (!isHls && !isDash) {
-            val handler = assHandler
-            val factory = if (playbackSettings.assRendererEnabled && handler != null) {
-                DefaultMediaSourceFactory(okHttpFactory, AssExtractorsFactory(handler))
-            } else {
-                DefaultMediaSourceFactory(okHttpFactory)
-            }
+            val factory = DefaultMediaSourceFactory(okHttpFactory, sharedExtractorsFactory)
             return factory.createMediaSource(mediaItem)
         }
 
