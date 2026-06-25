@@ -30,7 +30,7 @@ class CenterPivotSpec : BringIntoViewSpec {
 
     @Deprecated("", level = DeprecationLevel.HIDDEN)
     override val scrollAnimationSpec = spring<Float>(
-        stiffness = Spring.StiffnessLow,
+        stiffness = Spring.StiffnessMediumLow,
         dampingRatio = Spring.DampingRatioNoBouncy
     )
 
