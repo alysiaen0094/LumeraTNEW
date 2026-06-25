@@ -16,8 +16,6 @@ val localProperties = Properties().apply {
     val localPropsFile = rootProject.file("local.properties")
     if (localPropsFile.exists()) load(localPropsFile.inputStream())
 }
-val acraUrl: String = localProperties.getProperty("acra.url", "")
-val acraToken: String = localProperties.getProperty("acra.token", "")
 val tmdbApiKey: String = localProperties.getProperty("tmdb.api_key", "")
 val traktClientId: String = localProperties.getProperty("TRAKT_CLIENT_ID", "")
 val traktClientSecret: String = localProperties.getProperty("TRAKT_CLIENT_SECRET", "")
@@ -36,10 +34,6 @@ android {
         // GitHub repository for auto-update system
         buildConfigField("String", "GITHUB_OWNER", "\"LumeraD3v\"")
         buildConfigField("String", "GITHUB_REPO", "\"Lumera\"")
-
-        // ACRA crash reporting (loaded from local.properties)
-        buildConfigField("String", "ACRA_URL", "\"$acraUrl\"")
-        buildConfigField("String", "ACRA_TOKEN", "\"$acraToken\"")
 
         // TMDB API (loaded from local.properties)
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
