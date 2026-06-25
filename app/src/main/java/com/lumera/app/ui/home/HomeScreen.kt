@@ -145,6 +145,8 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black)
+            .padding(top = 22.dp)
             .onFocusChanged {
                 isContentFocused = it.hasFocus
                 if (it.hasFocus) focusEverSet = true
