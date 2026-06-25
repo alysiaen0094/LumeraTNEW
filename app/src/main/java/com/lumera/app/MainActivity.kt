@@ -2,7 +2,6 @@ package com.lumera.app
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -52,8 +51,6 @@ import com.lumera.app.data.update.AppUpdateManager
 import com.lumera.app.data.update.UpdateInfo
 import com.lumera.app.data.update.UpdateState
 import com.lumera.app.data.player.PlaybackTrackSelectionStore
-import com.lumera.app.data.torrent.TorrentProgress
-import com.lumera.app.data.torrent.TorrentService
 import com.lumera.app.data.player.SourceSelectionStore
 import com.lumera.app.ui.MainViewModel
 import com.lumera.app.ui.components.LumeraBackground
@@ -189,34 +186,10 @@ private fun normalizeSubtitleLanguageTag(rawLang: String?): String? {
     return value.replace('_', '-').lowercase(Locale.ROOT)
 }
 
-private val TORRENT_TRACKERS = listOf(
-    // HTTP trackers (TCP — work even when UDP is blocked)
-    "http://tracker.opentrackr.org:1337/announce",
-    "http://tracker.openbittorrent.com:80/announce",
-    "http://tracker1.bt.moack.co.kr:80/announce",
-    "http://tracker.gbitt.info:80/announce",
-    // UDP trackers (fallback)
-    "udp://tracker.opentrackr.org:1337/announce",
-    "udp://open.stealth.si:80/announce",
-    "udp://tracker.openbittorrent.com:6969/announce",
-    "udp://exodus.desync.com:6969/announce"
-)
-
 private fun resolvePlayableSourceUrl(stream: Stream): String? {
-    val directUrl = stream.url?.trim()?.takeIf { it.isNotEmpty() }
-    if (directUrl != null) return directUrl
-
-    val infoHash = stream.infoHash?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    // Combine hardcoded trackers with addon-provided tracker URLs
-    val addonTrackers = stream.sources
-        ?.filter { it.startsWith("tracker:") }
-        ?.map { it.removePrefix("tracker:") }
-        ?: emptyList()
-    val allTrackers = (addonTrackers + TORRENT_TRACKERS).distinct()
-    val trackerParams = allTrackers.joinToString("") {
-        "&tr=${java.net.URLEncoder.encode(it, "UTF-8")}"
-    }
-    return "magnet:?xt=urn:btih:${infoHash}&dn=Video${trackerParams}"
+    return stream.url
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
 }
 
 private fun sourceDisplayLabel(stream: Stream): String {
@@ -867,7 +840,6 @@ class MainActivity : ComponentActivity() {
             var selectedMovieType by rememberSaveable { mutableStateOf("movie") }
             var selectedVideoUrl by rememberSaveable { mutableStateOf("") }
             var selectedTrailerAudioUrl by rememberSaveable { mutableStateOf("") }
-            var torrentProgress by remember { mutableStateOf<TorrentProgress?>(null) }
             var selectedMovieTitle by rememberSaveable { mutableStateOf("") }
             var selectedMoviePoster by rememberSaveable { mutableStateOf("") }
             var selectedMovieBackground by rememberSaveable { mutableStateOf("") }
@@ -1503,54 +1475,20 @@ class MainActivity : ComponentActivity() {
                                     launchedStream = stream,
                                     candidateStreams = sourcePayloadInput
                                 )
-                                if (url.startsWith("magnet:")) {
-                                    uiScope.launch {
-                                        mainViewModel.persistActiveProfileState()
-                                        selectedPlaybackId = playbackId
-                                        selectedPlaybackType = playbackType
-                                        selectedPlaybackTitle = resolvedPlaybackTitle
-                                        selectedPlaybackPoster = selectedMoviePoster
-                                        selectedTrailerAudioUrl = ""
-                                        playerState.selectedPlayerSubtitles = subtitlePayload
-                                        playerState.selectedPlayerSources = sourcePayload
-                                        selectedVideoUrl = ""
-                                        torrentProgress = TorrentProgress("Connecting to peers...")
-                                        activeView = "player"
-                                        TorrentService.onStreamReady = { localUrl ->
-                                            torrentProgress = null
-                                            selectedVideoUrl = localUrl
-                                        }
-                                        TorrentService.onStreamError = { error ->
-                                            torrentProgress = null
-                                            if (BuildConfig.DEBUG) Log.e("LumeraTorrent", "Stream error: $error")
-                                        }
-                                        TorrentService.onStreamProgress = { progress ->
-                                            torrentProgress = progress
-                                        }
-                                        val intent = Intent(this@MainActivity, TorrentService::class.java).apply {
-                                            putExtra("MAGNET_LINK", url)
-                                            putExtra("FILE_IDX", stream.fileIdx ?: -1)
-                                            putExtra("FILE_NAME", stream.behaviorHints?.filename ?: "")
-                                        }
-                                        startService(intent)
-                                    }
-                                } else {
-                                    stopService(Intent(this@MainActivity, TorrentService::class.java))
-                                    uiScope.launch {
-                                        mainViewModel.persistActiveProfileState()
-                                        selectedPlaybackId = playbackId
-                                        selectedPlaybackType = playbackType
-                                        selectedPlaybackTitle = resolvedPlaybackTitle
-                                        selectedPlaybackPoster = selectedMoviePoster
-                                        selectedTrailerAudioUrl = ""
-                                        playerState.selectedPlayerSubtitles = subtitlePayload
-                                        playerState.selectedPlayerSources = sourcePayload
-                                        selectedVideoUrl = url
-                                        when (currentProfile?.playerPreference) {
-                                            "external" -> launchExternalPlayer(this@MainActivity, url)
-                                            "ask" -> playerState.showPlayerChoiceDialog = true
-                                            else -> activeView = "player"
-                                        }
+                                uiScope.launch {
+                                    mainViewModel.persistActiveProfileState()
+                                    selectedPlaybackId = playbackId
+                                    selectedPlaybackType = playbackType
+                                    selectedPlaybackTitle = resolvedPlaybackTitle
+                                    selectedPlaybackPoster = selectedMoviePoster
+                                    selectedTrailerAudioUrl = ""
+                                    playerState.selectedPlayerSubtitles = subtitlePayload
+                                    playerState.selectedPlayerSources = sourcePayload
+                                    selectedVideoUrl = url
+                                    when (currentProfile?.playerPreference) {
+                                        "external" -> launchExternalPlayer(this@MainActivity, url)
+                                        "ask" -> playerState.showPlayerChoiceDialog = true
+                                        else -> activeView = "player"
                                     }
                                 }
                             }
@@ -1669,7 +1607,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         if (view == "player") {
-                            if (selectedVideoUrl.isBlank() && torrentProgress == null) {
+                            if (selectedVideoUrl.isBlank()) {
                                 LaunchedEffect(Unit) { activeView = "details" }
                             } else {
                             val rememberedTrackSelection = remember(selectedPlaybackId) {
@@ -1902,40 +1840,13 @@ class MainActivity : ComponentActivity() {
                                             )
                                             playerState.currentStream = streamToPlay
 
-                                            if (nextUrl.startsWith("magnet:")) {
-                                                selectedPlaybackId = nextPlaybackId
-                                                selectedPlaybackType = "series"
-                                                selectedPlaybackTitle = nextPlaybackTitle
-                                                playerState.selectedPlayerSubtitles = subtitlePayload
-                                                playerState.selectedPlayerSources = sourcePayload
-                                                torrentProgress = TorrentProgress("Connecting to peers...")
-                                                TorrentService.onStreamReady = { localUrl ->
-                                                    torrentProgress = null
-                                                    selectedVideoUrl = localUrl
-                                                }
-                                                TorrentService.onStreamError = { error ->
-                                                    torrentProgress = null
-                                                    if (BuildConfig.DEBUG) Log.e("LumeraTorrent", "Stream error: $error")
-                                                }
-                                                TorrentService.onStreamProgress = { progress ->
-                                                    torrentProgress = progress
-                                                }
-                                                val intent = Intent(this@MainActivity, TorrentService::class.java).apply {
-                                                    putExtra("MAGNET_LINK", nextUrl)
-                                                    putExtra("FILE_IDX", streamToPlay.fileIdx ?: -1)
-                                                    putExtra("FILE_NAME", streamToPlay.behaviorHints?.filename ?: "")
-                                                }
-                                                startService(intent)
-                                            } else {
-                                                stopService(Intent(this@MainActivity, TorrentService::class.java))
-                                                selectedPlaybackId = nextPlaybackId
-                                                selectedPlaybackType = "series"
-                                                selectedPlaybackTitle = nextPlaybackTitle
-                                                playerState.selectedPlayerSubtitles = subtitlePayload
-                                                playerState.selectedPlayerSources = sourcePayload
-                                                selectedVideoUrl = nextUrl
-                                                // PlayerScreen will recompose due to movieId/videoUrl key change
-                                            }
+                                            selectedPlaybackId = nextPlaybackId
+                                            selectedPlaybackType = "series"
+                                            selectedPlaybackTitle = nextPlaybackTitle
+                                            playerState.selectedPlayerSubtitles = subtitlePayload
+                                            playerState.selectedPlayerSources = sourcePayload
+                                            selectedVideoUrl = nextUrl
+                                            // PlayerScreen will recompose due to movieId/videoUrl key change
                                         }
                                     }
                                 } else null,
@@ -2069,39 +1980,12 @@ class MainActivity : ComponentActivity() {
                                             )
                                             playerState.currentStream = streamToPlay
 
-                                            if (epUrl.startsWith("magnet:")) {
-                                                selectedPlaybackId = epPlaybackId
-                                                selectedPlaybackType = "series"
-                                                selectedPlaybackTitle = epTitle
-                                                playerState.selectedPlayerSubtitles = subtitlePayload
-                                                playerState.selectedPlayerSources = sourcePayload
-                                                torrentProgress = TorrentProgress("Connecting to peers...")
-                                                TorrentService.onStreamReady = { localUrl ->
-                                                    torrentProgress = null
-                                                    selectedVideoUrl = localUrl
-                                                }
-                                                TorrentService.onStreamError = { error ->
-                                                    torrentProgress = null
-                                                    if (BuildConfig.DEBUG) Log.e("LumeraTorrent", "Stream error: $error")
-                                                }
-                                                TorrentService.onStreamProgress = { progress ->
-                                                    torrentProgress = progress
-                                                }
-                                                val intent = Intent(this@MainActivity, TorrentService::class.java).apply {
-                                                    putExtra("MAGNET_LINK", epUrl)
-                                                    putExtra("FILE_IDX", streamToPlay.fileIdx ?: -1)
-                                                    putExtra("FILE_NAME", streamToPlay.behaviorHints?.filename ?: "")
-                                                }
-                                                startService(intent)
-                                            } else {
-                                                stopService(Intent(this@MainActivity, TorrentService::class.java))
-                                                selectedPlaybackId = epPlaybackId
-                                                selectedPlaybackType = "series"
-                                                selectedPlaybackTitle = epTitle
-                                                playerState.selectedPlayerSubtitles = subtitlePayload
-                                                playerState.selectedPlayerSources = sourcePayload
-                                                selectedVideoUrl = epUrl
-                                            }
+                                            selectedPlaybackId = epPlaybackId
+                                            selectedPlaybackType = "series"
+                                            selectedPlaybackTitle = epTitle
+                                            playerState.selectedPlayerSubtitles = subtitlePayload
+                                            playerState.selectedPlayerSources = sourcePayload
+                                            selectedVideoUrl = epUrl
                                         }
                                     }
                                 } else null,
@@ -2160,65 +2044,16 @@ class MainActivity : ComponentActivity() {
                                         playerState.currentStream = streamToPlay
                                         playerState.pendingEpisodeSwitch = null
 
-                                        if (sourceUrl.startsWith("magnet:")) {
-                                            selectedPlaybackId = pending.playbackId
-                                            selectedPlaybackType = "series"
-                                            selectedPlaybackTitle = pending.playbackTitle
-                                            playerState.selectedPlayerSubtitles = subtitlePayload
-                                            playerState.selectedPlayerSources = sourcePayload
-                                            torrentProgress = TorrentProgress("Connecting to peers...")
-                                            TorrentService.onStreamReady = { localUrl ->
-                                                torrentProgress = null
-                                                selectedVideoUrl = localUrl
-                                            }
-                                            TorrentService.onStreamError = { error ->
-                                                torrentProgress = null
-                                                if (BuildConfig.DEBUG) Log.e("LumeraTorrent", "Stream error: $error")
-                                            }
-                                            TorrentService.onStreamProgress = { progress ->
-                                                torrentProgress = progress
-                                            }
-                                            val intent = Intent(this@MainActivity, TorrentService::class.java).apply {
-                                                putExtra("MAGNET_LINK", sourceUrl)
-                                                putExtra("FILE_IDX", streamToPlay.fileIdx ?: -1)
-                                                putExtra("FILE_NAME", streamToPlay.behaviorHints?.filename ?: "")
-                                            }
-                                            startService(intent)
-                                        } else {
-                                            stopService(Intent(this@MainActivity, TorrentService::class.java))
-                                            selectedPlaybackId = pending.playbackId
-                                            selectedPlaybackType = "series"
-                                            selectedPlaybackTitle = pending.playbackTitle
-                                            playerState.selectedPlayerSubtitles = subtitlePayload
-                                            playerState.selectedPlayerSources = sourcePayload
-                                            selectedVideoUrl = sourceUrl
-                                        }
+                                        selectedPlaybackId = pending.playbackId
+                                        selectedPlaybackType = "series"
+                                        selectedPlaybackTitle = pending.playbackTitle
+                                        playerState.selectedPlayerSubtitles = subtitlePayload
+                                        playerState.selectedPlayerSources = sourcePayload
+                                        selectedVideoUrl = sourceUrl
                                     }
                                 },
                                 onEpisodeSwitchDismissed = { playerState.pendingEpisodeSwitch = null; playerState.isEpisodeSwitchLoading = false },
-                                onMagnetSourceSelected = { magnetUrl, sourceFileIdx, sourceFileName, onReady ->
-                                    torrentProgress = TorrentProgress("Connecting to peers...")
-                                    TorrentService.onStreamReady = { localUrl ->
-                                        torrentProgress = null
-                                        onReady(localUrl)
-                                    }
-                                    TorrentService.onStreamError = { error ->
-                                        torrentProgress = null
-                                        if (BuildConfig.DEBUG) Log.e("LumeraTorrent", "Source switch error: $error")
-                                    }
-                                    TorrentService.onStreamProgress = { progress ->
-                                        torrentProgress = progress
-                                    }
-                                    val intent = Intent(this@MainActivity, TorrentService::class.java).apply {
-                                        putExtra("MAGNET_LINK", magnetUrl)
-                                        putExtra("FILE_IDX", sourceFileIdx)
-                                        putExtra("FILE_NAME", sourceFileName)
-                                    }
-                                    startService(intent)
-                                },
-                                torrentProgress = torrentProgress,
                                 onBack = { sessionResult ->
-                                    torrentProgress = null
                                     handlePlayerSessionEnd(
                                         sessionResult = sessionResult,
                                         selectedPlaybackId = selectedPlaybackId,
@@ -2229,7 +2064,6 @@ class MainActivity : ComponentActivity() {
                                         onResumeHintResolved = { detailsResumePlaybackHint = it },
                                         rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
                                     )
-                                    stopService(Intent(this@MainActivity, TorrentService::class.java))
                                     if (selectedPlaybackId.startsWith("trailer_")) {
                                         trailerReturnToken++
                                     }
