@@ -91,11 +91,6 @@ class ExoPlayerBackend(
     private val frameRateManager: FrameRateManager? =
         if (playbackSettings.frameRateMatching && activity != null) FrameRateManager(activity) else null
 
-    /**
-     * Called when the user selects a magnet source in the player.
-     * The lambda receives (magnetUrl, fileIdx, fileName, onReady) where onReady should be
-     * called with the localhost proxy URL once the torrent stream is ready.
-     */
 
     override val backendType: PlayerBackendType = PlayerBackendType.EXOPLAYER
 
@@ -143,7 +138,6 @@ class ExoPlayerBackend(
     private var pendingHintTrackRefresh: Boolean = false
     private var hintTrackRefreshJob: Job? = null
     private var pendingStartPositionMs: Long = 0L
-    private var isTorrentStream: Boolean = false
     private var cachedIsTvDevice: Boolean? = null
     private val sharedExtractorsFactory by lazy { createExtractorsFactory() }
     private val subtitleFormatHintsByTrackId = mutableMapOf<String, String>()
@@ -194,10 +188,7 @@ class ExoPlayerBackend(
                 if (pendingSeekMs > 0L) {
                     pendingStartPositionMs = 0L
                     exoPlayer?.let { p ->
-                        p.setSeekParameters(
-                            if (isTorrentStream) SeekParameters.NEXT_SYNC
-                            else SeekParameters.CLOSEST_SYNC
-                        )
+                        p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                         p.seekTo(pendingSeekMs)
                     }
                 }
@@ -414,8 +405,7 @@ class ExoPlayerBackend(
                 .ifEmpty { listOf(defaultSource) }
 
             _sourceOptions.value = normalizedSources
-            // Match by URL first; if no match (e.g. torrent magnet resolved to localhost),
-            // use defaultSource for playback but track the first source as current
+            // Match by URL first; if no match, use defaultSource for playback but track the first source as current.
             val initialSource = normalizedSources.firstOrNull { it.url == normalizedRequest.mediaUrl }
             if (initialSource != null) {
                 currentSourceId = initialSource.id
@@ -425,8 +415,7 @@ class ExoPlayerBackend(
                     autoPlay = request.autoPlay
                 )
             } else {
-                // mediaUrl doesn't match any source (e.g. resolved torrent localhost URL)
-                // Play the mediaUrl directly, mark first source as current
+                // mediaUrl doesn't match any listed source. Play it directly and mark the first source as current.
                 currentSourceId = normalizedSources.firstOrNull()?.id
                 prepareSource(
                     source = defaultSource,
@@ -462,10 +451,7 @@ class ExoPlayerBackend(
         if (released) return
         pendingStartPositionMs = 0L
         val player = exoPlayer ?: return
-        player.setSeekParameters(
-            if (isTorrentStream) SeekParameters.NEXT_SYNC
-            else SeekParameters.CLOSEST_SYNC
-        )
+        player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         player.seekTo(positionMs.coerceAtLeast(0L))
         updateProgressState()
     }
@@ -494,16 +480,6 @@ class ExoPlayerBackend(
         if (released) return
         if (sourceId == currentSourceId) return
         val source = _sourceOptions.value.firstOrNull { it.id == sourceId } ?: return
-
-        if (source.url.startsWith("magnet:")) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = "Torrent sources are not supported in this build.",
-                    isBuffering = false
-                )
-            }
-            return
-        }
 
         switchToSource(sourceId, source)
     }
@@ -747,14 +723,13 @@ class ExoPlayerBackend(
         lastCueGroup = null
         subtitleDelayUs.set(0L)
 
-        listOfNotNull(okHttpClient, torrentOkHttpClient).forEach { client ->
+        listOfNotNull(okHttpClient).forEach { client ->
             Thread {
                 client.connectionPool.evictAll()
                 client.dispatcher.executorService.shutdown()
             }.start()
         }
         okHttpClient = null
-        torrentOkHttpClient = null
 
         _audioTracks.value = emptyList()
         _subtitleTracks.value = emptyList()
@@ -776,18 +751,6 @@ class ExoPlayerBackend(
         hintTrackRefreshJob = null
     }
 
-    /**
-     * Pre-create ExoPlayer and localhost OkHttpClient so they're ready when
-     * the torrent stream URL arrives. Called while pieces are still downloading.
-     */
-    fun warmup() {
-        if (released) return
-        isTorrentStream = true
-        scope.launch {
-            withContext(Dispatchers.IO) { getOrCreateOkHttpClient(isLocalhost = true) }
-            ensurePlayer()
-        }
-    }
 
     private fun prepareSource(
         source: PlayerSourceOption,
@@ -824,7 +787,7 @@ class ExoPlayerBackend(
             val playerPreWarmed = exoPlayer != null
 
             // Yield so Compose can render the loading/buffering state before heavy work.
-            // Skip when player is pre-warmed (torrent) since there's no heavy work.
+            // Skip when player already exists since there's no heavy initialization work.
             if (!playerPreWarmed) yield()
 
             // Initialize OkHttpClient off the main thread to avoid blocking UI
@@ -862,14 +825,14 @@ class ExoPlayerBackend(
             if (loadToken != token || released) return@launch
 
             // Create ExoPlayer inside coroutine so UI can render between yields.
-            // Skip yield when pre-warmed — player already exists, nothing heavy.
+            // Skip yield when player already exists, nothing heavy.
             if (!playerPreWarmed) yield()
             val player = ensurePlayer()
             if (released) return@launch
 
             // Let Compose process _playerReady and create the PlayerView/surface
             // before prepare() starts. Without this, audio auto-starts with no surface.
-            // When pre-warmed, surface is already created — skip the yield.
+            // When player already exists, surface is already created — skip the yield.
             if (!playerPreWarmed) yield()
 
             // If a separate audio URL is provided (YouTube adaptive streams),
@@ -912,20 +875,7 @@ class ExoPlayerBackend(
             )
         }
 
-        val loadControl = if (isTorrentStream) {
-            // Torrent: start playback with minimal buffered data (500ms vs default 2500ms).
-            // Data arrives piece-by-piece so waiting for 2.5s of buffer wastes time.
-            DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                    /* minBufferMs = */ 5_000,
-                    /* maxBufferMs = */ 30_000,
-                    /* bufferForPlaybackMs = */ 500,
-                    /* bufferForPlaybackAfterRebufferMs = */ 1_500
-                )
-                .build()
-        } else {
-            DefaultLoadControl.Builder().build()
-        }
+        val loadControl = DefaultLoadControl.Builder().build()
 
         val renderersFactory =
             SubtitleDelayRenderersFactory(appContext, subtitleDelayUs::get)
@@ -1004,9 +954,7 @@ class ExoPlayerBackend(
         }
 
         val userInfo = sourceUri.userInfo
-        val isLocalhost = sourceUri.host == "127.0.0.1" || sourceUri.host == "localhost"
-        isTorrentStream = isLocalhost
-        val okHttpFactory = OkHttpDataSource.Factory(getOrCreateOkHttpClient(isLocalhost))
+        val okHttpFactory = OkHttpDataSource.Factory(getOrCreateOkHttpClient())
             .setUserAgent(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -1059,18 +1007,7 @@ class ExoPlayerBackend(
         return MergingMediaSource(mainSource, *subtitleSources.toTypedArray())
     }
 
-    private var torrentOkHttpClient: OkHttpClient? = null
-
-    private fun getOrCreateOkHttpClient(isLocalhost: Boolean = false): OkHttpClient {
-        if (isLocalhost) {
-            return torrentOkHttpClient ?: OkHttpClient.Builder()
-                .connectTimeout(8000, TimeUnit.MILLISECONDS)
-                .readTimeout(120_000, TimeUnit.MILLISECONDS)
-                .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
-                .retryOnConnectionFailure(true)
-                .build()
-                .also { torrentOkHttpClient = it }
-        }
+    private fun getOrCreateOkHttpClient(): OkHttpClient {
         return okHttpClient ?: OkHttpClient.Builder()
             .connectTimeout(8000, TimeUnit.MILLISECONDS)
             .readTimeout(8000, TimeUnit.MILLISECONDS)
