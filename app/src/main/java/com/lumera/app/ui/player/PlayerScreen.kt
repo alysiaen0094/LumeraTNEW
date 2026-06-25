@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import com.lumera.app.ui.player.base.BasePlayerScaffold
 import com.lumera.app.ui.player.base.NextEpisodeInfo
 import com.lumera.app.ui.player.base.PlaybackSettings
