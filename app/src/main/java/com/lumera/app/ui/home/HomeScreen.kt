@@ -65,8 +65,8 @@ import kotlinx.coroutines.delay
 
 private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
 private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 120L
-private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 150L
-private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 200L
+private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 90L
+private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 120L
 
 private class HomeFocusTimingTracker {
     var previous: Long = 0L
@@ -346,7 +346,7 @@ fun CinematicLayout(
         FocusPivotSpec(
             customOffset = titleHeadroomPx,
             skipScrollProvider = { skipVerticalScroll },
-            stiffnessProvider = { Spring.StiffnessLow }
+            stiffnessProvider = { Spring.StiffnessMediumLow }
         )
     }
     
@@ -359,18 +359,22 @@ fun CinematicLayout(
     }
 
     fun updatePreviewItem(item: MetaItem?) {
-        if (item == null) return
-        onPreviewItemVisible(item)
-        val now = System.currentTimeMillis()
-        val isRapid = verticalFocusTiming.isRapid(RAPID_VERTICAL_NAV_WINDOW_MS)
-        val allowUpdate = !isRapid || now - previewUpdateGate.lastUpdateMs >= RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS
-        if (allowUpdate && (instantFocusItem?.id != item.id || instantFocusItem?.type != item.type)) {
-            instantFocusItem = item
-            previewUpdateGate.lastUpdateMs = now
-        } else if (allowUpdate) {
-            previewUpdateGate.lastUpdateMs = now
-        }
+    if (item == null) return
+
+    val now = System.currentTimeMillis()
+    val isRapid = verticalFocusTiming.isRapid(RAPID_VERTICAL_NAV_WINDOW_MS)
+    val allowUpdate = !isRapid || now - previewUpdateGate.lastUpdateMs >= RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS
+
+    if (!allowUpdate) return
+
+    onPreviewItemVisible(item)
+
+    if (instantFocusItem?.id != item.id || instantFocusItem?.type != item.type) {
+        instantFocusItem = item
     }
+
+    previewUpdateGate.lastUpdateMs = now
+}
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
@@ -961,7 +965,7 @@ fun SimpleLayout(
         FocusPivotSpec(
             customOffset = verticalPivotPx,
             skipScrollProvider = { skipVerticalScroll },
-            stiffnessProvider = { Spring.StiffnessLow }
+            stiffnessProvider = { Spring.StiffnessMediumLow }
         )
     }
 
