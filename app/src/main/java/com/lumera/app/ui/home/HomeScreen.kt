@@ -409,8 +409,8 @@ fun CinematicLayout(
             ) {
                 AnimatedContent(
                     targetState = renderedPreviewItem,
-                    transitionSpec = { fadeIn(tween(400)).togetherWith(fadeOut(tween(200))) },
-                    label = "Info"
+                    transitionSpec = { fadeIn(tween(0)).togetherWith(fadeOut(tween(0))) },
+                    label = "Info"    
                 ) { item ->
                     if (item != null) {
                         // Hide info content while waiting for TMDB enrichment
