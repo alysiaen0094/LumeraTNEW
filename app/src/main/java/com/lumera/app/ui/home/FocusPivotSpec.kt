@@ -43,7 +43,8 @@ import androidx.compose.foundation.gestures.BringIntoViewSpec
 class FocusPivotSpec(
     private val pivotFraction: Float = 0.1f,
     private val customOffset: Float? = null,
-    private val skipScrollProvider: (() -> Boolean)? = null
+    private val skipScrollProvider: (() -> Boolean)? = null,
+    private val stiffnessProvider: (() -> Float)? = null
 ) : BringIntoViewSpec {
 
     // Dynamic stiffness: StiffnessLow for single presses (premium feel),
