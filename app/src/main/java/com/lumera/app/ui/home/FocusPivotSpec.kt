@@ -1,7 +1,6 @@
 package com.lumera.app.ui.home
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 
@@ -44,19 +43,15 @@ import androidx.compose.foundation.gestures.BringIntoViewSpec
 class FocusPivotSpec(
     private val pivotFraction: Float = 0.1f,
     private val customOffset: Float? = null,
-    private val skipScrollProvider: (() -> Boolean)? = null,
-    private val stiffnessProvider: (() -> Float)? = null
+    private val skipScrollProvider: (() -> Boolean)? = null
 ) : BringIntoViewSpec {
 
     // Dynamic stiffness: StiffnessLow for single presses (premium feel),
     // StiffnessHigh for rapid navigation (keeps up with long-press)
+    // No animation: snap immediately to the focused item position.
     @Deprecated("", level = DeprecationLevel.HIDDEN)
     override val scrollAnimationSpec: androidx.compose.animation.core.AnimationSpec<Float>
-        get() = spring(
-            stiffness = stiffnessProvider?.invoke() ?: Spring.StiffnessLow,
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            visibilityThreshold = 0.1f
-        )
+        get() = snap()
 
     /**
      * CALCULATE SCROLL DISTANCE
