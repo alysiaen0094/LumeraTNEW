@@ -777,7 +777,6 @@ fun BasePlayerScaffold(
             currentPlaybackId = currentPlaybackId,
             onClose = { closePanel() },
             onEpisodeSelected = { episode ->
-                closePanel()
                 onEpisodeSelected?.invoke(episode, currentSourceUrl)
             }
         )
