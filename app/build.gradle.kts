@@ -159,12 +159,8 @@ dependencies {
     implementation(files("../playbackcore/libs/lib-exoplayer-release.aar"))
     implementation(files("../playbackcore/libs/lib-decoder-av1-release.aar"))
     implementation(files("../playbackcore/libs/lib-decoder-ffmpeg-release.aar"))
-    implementation(files("../playbackcore/libs/lib-decoder-iamf-release.aar"))
-    implementation(files("../playbackcore/libs/lib-decoder-mpegh-release.aar"))
 
     // 8. Testing & Debugging
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material:material-icons-extended")
 
@@ -179,9 +175,5 @@ dependencies {
 
     // --- ENCRYPTED SHARED PREFERENCES ---
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-
-    // --- CRASH REPORTING (ACRA) ---
-    implementation("ch.acra:acra-http:5.11.4")
-    implementation("ch.acra:acra-toast:5.11.4")
 
 }
