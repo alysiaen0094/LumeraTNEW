@@ -98,7 +98,7 @@ fun HomeScreen(
     val layoutMode = currentProfile?.layoutFor(tab) ?: "simple"
     val isTopNav = currentProfile?.navPosition == "top"
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
-    val infoTopPadding = if (isTopNav) 60.dp else 30.dp
+    val infoTopPadding = if (isTopNav) 84.dp else 54.dp
     val startPadding = if (isTopNav) 50.dp else 120.dp
 
     // Avoid rendering heavy rows during navigation transition.
@@ -151,12 +151,7 @@ fun HomeScreen(
         }
     ) {
         LumeraBackground {
-            Box(
-                modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 24.dp)
-            ) {
-        CompositionLocalProvider(com.lumera.app.ui.components.LocalWatchedIds provides state.watchedIds) {
+            CompositionLocalProvider(com.lumera.app.ui.components.LocalWatchedIds provides state.watchedIds) {
         // LOGIC: If we are just starting OR the ViewModel is loading, show the Loading Box.
         // This box accepts focus immediately, which forces the NavDrawer to collapse.
         if (
@@ -241,8 +236,6 @@ fun HomeScreen(
             }
         }
         } // CompositionLocalProvider
-        } // top padding Box
-
     }
 }
 }
@@ -1025,7 +1018,7 @@ fun SimpleLayout(
         LazyColumn(
             state = verticalListState,
             modifier = Modifier.fillMaxSize(), // Focus managed by items
-            contentPadding = PaddingValues(top = if (heroItems.isNotEmpty()) 0.dp else if (isTopNav) 60.dp else 40.dp, bottom = 0.dp),
+            contentPadding = PaddingValues(top = if (heroItems.isNotEmpty()) 24.dp else if (isTopNav) 84.dp else 64.dp, bottom = 0.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp)
         ) {
             if (heroItems.isNotEmpty()) {
