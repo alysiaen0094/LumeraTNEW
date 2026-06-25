@@ -1,0 +1,57 @@
+name: Build LumeraT Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout LumeraT
+        uses: actions/checkout@v4
+        with:
+          path: LumeraT
+
+      - name: Checkout assrender
+        uses: actions/checkout@v4
+        with:
+          repository: barlowd55/assrenderT
+          path: assrender
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create local.properties
+        working-directory: LumeraT
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "tmdb.api_key=${{ secrets.TMDB_API_KEY }}" >> local.properties
+          echo "TRAKT_CLIENT_ID=${{ secrets.TRAKT_CLIENT_ID }}" >> local.properties
+          echo "TRAKT_CLIENT_SECRET=${{ secrets.TRAKT_CLIENT_SECRET }}" >> local.properties
+          echo "acra.url=${{ secrets.ACRA_URL }}" >> local.properties
+          echo "acra.token=${{ secrets.ACRA_TOKEN }}" >> local.properties
+
+      - name: Make Gradle executable
+        working-directory: LumeraT
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        working-directory: LumeraT
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumera-debug-apk
+          path: LumeraT/app/build/outputs/apk/debug/*.apk
