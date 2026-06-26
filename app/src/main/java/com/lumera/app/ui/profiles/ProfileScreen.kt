@@ -636,7 +636,7 @@ fun WizardNameStep(initialName: String, onNext: (String) -> Unit, onCancel: () -
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            if(initialName.isEmpty()) "What should we call you?" else "Update your name",
+            "What should we call you?",
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White
         )
