@@ -34,7 +34,7 @@ class ProfileViewModel @Inject constructor(
     // WIZARD DATA
     var tempName = ""
     var tempAvatarRef = "avatar_1"
-    var tempThemeId = "void"  // Changed from tempColor
+    var tempThemeId = "void"
 
     private var editingProfileId: Int? = null
 
@@ -54,6 +54,9 @@ class ProfileViewModel @Inject constructor(
     // --- WIZARD ACTIONS ---
 
     fun startWizard() {
+        // Single-profile Troy build: only allow creating the first profile.
+        if (_profiles.value.isNotEmpty()) return
+
         editingProfileId = null
         tempName = ""
         tempAvatarRef = "avatar_1"
@@ -99,6 +102,13 @@ class ProfileViewModel @Inject constructor(
                 )
                 if (updatedProfile != null) dao.updateProfile(updatedProfile)
             } else {
+                // Single-profile Troy build: block creating a second profile.
+                if (_profiles.value.isNotEmpty()) {
+                    _wizardStep.value = 0
+                    editingProfileId = null
+                    return@launch
+                }
+
                 val profileId = dao.insertProfile(
                     ProfileEntity(
                         name = tempName,
@@ -109,10 +119,12 @@ class ProfileViewModel @Inject constructor(
                         roundCorners = true
                     )
                 ).toInt()
+
                 if (profileId > 0) {
                     profileConfigurationManager.markPendingSetup(profileId)
                 }
             }
+
             _wizardStep.value = 0
             editingProfileId = null
         }
@@ -147,10 +159,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun deleteProfile(id: Int) {
-        viewModelScope.launch(Dispatchers.IO + NonCancellable) {
-            dao.deleteProfile(id)
-            profileConfigurationManager.deleteProfileState(id)
-        }
+        // Single-profile Troy build: profile deletion disabled.
     }
 
     fun goBackStep() {
