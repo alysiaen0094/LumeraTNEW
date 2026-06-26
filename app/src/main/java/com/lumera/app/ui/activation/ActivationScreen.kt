@@ -160,9 +160,6 @@ fun ActivationScreen(
                 showInputDialog = false
                 keyboardController?.hide()
                 focusManager.clearFocus(force = true)
-
-                // Return focus to Activate after keyboard closes.
-                kotlinx.coroutines.GlobalScope
                 activateRequester.requestFocus()
             },
             onDismiss = {
