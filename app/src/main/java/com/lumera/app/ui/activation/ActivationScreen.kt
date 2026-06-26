@@ -22,9 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,18 +43,21 @@ fun ActivationScreen(
     viewModel: ActivationViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    val inputRequester = remember { FocusRequester() }
     val buttonRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BackHandler { onExit() }
 
     LaunchedEffect(Unit) {
         delay(150)
-        inputRequester.requestFocus()
+        buttonRequester.requestFocus()
     }
 
     LaunchedEffect(state.activated) {
         if (state.activated) {
+            keyboardController?.hide()
+            focusManager.clearFocus(force = true)
             onActivated()
         }
     }
@@ -97,9 +103,9 @@ fun ActivationScreen(
                     value = state.authCode,
                     onValueChange = { viewModel.updateAuthCode(it) },
                     placeholder = "Auth Code",
-                    modifier = Modifier.focusRequester(inputRequester),
                     onDone = {
-                        viewModel.validateAuthCode()
+                        keyboardController?.hide()
+                        focusManager.clearFocus(force = true)
                     }
                 )
             }
@@ -119,6 +125,8 @@ fun ActivationScreen(
             VoidButton(
                 text = if (state.isLoading) "Checking..." else "Activate",
                 onClick = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus(force = true)
                     viewModel.validateAuthCode()
                 },
                 isPrimary = true,
