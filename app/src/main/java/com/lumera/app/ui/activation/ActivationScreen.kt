@@ -3,9 +3,6 @@ package com.lumera.app.ui.activation
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lumera.app.ui.addons.VoidButton
+import com.lumera.app.ui.addons.VoidInput
 import kotlinx.coroutines.delay
 
 @Composable
@@ -42,13 +40,14 @@ fun ActivationScreen(
     viewModel: ActivationViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    val activateRequester = remember { FocusRequester() }
+    val inputRequester = remember { FocusRequester() }
+    val buttonRequester = remember { FocusRequester() }
 
     BackHandler { onExit() }
 
     LaunchedEffect(Unit) {
         delay(150)
-        activateRequester.requestFocus()
+        inputRequester.requestFocus()
     }
 
     LaunchedEffect(state.activated) {
@@ -76,8 +75,7 @@ fun ActivationScreen(
             Text(
                 text = "ACTIVATE LUMERAT",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified
+                    fontWeight = FontWeight.Bold
                 ),
                 color = Color.White,
                 textAlign = TextAlign.Center
@@ -86,29 +84,23 @@ fun ActivationScreen(
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "Enter this code on your Troy activation page.",
+                text = "Enter your Troy auth code to continue.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.Gray,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(30.dp))
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
-                    .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
-                    .padding(horizontal = 40.dp, vertical = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = state.activationCode,
-                    style = MaterialTheme.typography.displayMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White,
-                    textAlign = TextAlign.Center
+            Box(modifier = Modifier.width(360.dp)) {
+                VoidInput(
+                    value = state.authCode,
+                    onValueChange = { viewModel.updateAuthCode(it) },
+                    placeholder = "Auth Code",
+                    modifier = Modifier.focusRequester(inputRequester),
+                    onDone = {
+                        viewModel.validateAuthCode()
+                    }
                 )
             }
 
@@ -122,15 +114,17 @@ fun ActivationScreen(
                 )
             }
 
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(30.dp))
 
             VoidButton(
-                text = if (state.isLoading) "Checking..." else "Activate Test",
-                onClick = { viewModel.activateForTest() },
+                text = if (state.isLoading) "Checking..." else "Activate",
+                onClick = {
+                    viewModel.validateAuthCode()
+                },
                 isPrimary = true,
                 enabled = !state.isLoading,
                 modifier = Modifier.width(260.dp),
-                focusRequester = activateRequester
+                focusRequester = buttonRequester
             )
         }
     }
