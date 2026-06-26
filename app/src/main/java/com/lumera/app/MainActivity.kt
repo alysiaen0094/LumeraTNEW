@@ -104,6 +104,8 @@ import android.media.MediaPlayer
 import com.lumera.app.data.local.AddonDao
 import com.lumera.app.data.profile.ProfileConfigurationManager
 import kotlinx.coroutines.runBlocking
+import com.lumera.app.data.activation.ActivationManager
+import com.lumera.app.ui.activation.ActivationScreen
 
 import java.util.Locale
 import javax.inject.Inject
@@ -668,6 +670,8 @@ class MainActivity : ComponentActivity() {
     lateinit var addonDao: AddonDao
     @Inject
     lateinit var streamSortingService: StreamSortingService
+    @Inject
+    lateinit var activationManager: ActivationManager
 
     private var splashPlayer: MediaPlayer? = null
     private var splashOverlay: android.view.View? = null
@@ -833,6 +837,7 @@ class MainActivity : ComponentActivity() {
             val mainViewModel = hiltViewModel<MainViewModel>()
             val themeManager = hiltViewModel<ThemeManager>()
             val currentProfile by mainViewModel.activeProfile.collectAsState()
+            var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var activeView by rememberSaveable { mutableStateOf("menu") }
@@ -903,37 +908,49 @@ class MainActivity : ComponentActivity() {
                     LocalHubRoundCorners provides hubRoundCorners
                 ) {
                 LumeraBackground {
-                    if (currentProfile == null) {
-                        // Double-back-to-exit on profile selection
-                        var lastBackPressMs by remember { mutableStateOf(0L) }
-                        BackHandler {
-                            val now = SystemClock.uptimeMillis()
-                            if (now - lastBackPressMs < DOUBLE_BACK_EXIT_WINDOW_MS) {
-                                finishAffinity()
-                            } else {
-                                lastBackPressMs = now
-                            }
-                        }
+    if (!isActivated) {
+        LumeraTheme(theme = DefaultThemes.VOID) {
+            ActivationScreen(
+                onActivated = {
+                    isActivated = true
+                },
+                onExit = {
+                    finishAffinity()
+                }
+            )
+        }
+    } else if (currentProfile == null) {
+        // Double-back-to-exit on profile selection
+        var lastBackPressMs by remember { mutableStateOf(0L) }
+        BackHandler {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastBackPressMs < DOUBLE_BACK_EXIT_WINDOW_MS) {
+                finishAffinity()
+            } else {
+                lastBackPressMs = now
+            }
+        }
 
-                        val isRestoringSession = sessionProfileId != null
-                        if (!isRestoringSession) {
-                            // PROFILE SELECTION / CREATION
-                            // Always use VOID theme for profile selection (black & white)
-                            LumeraTheme(theme = DefaultThemes.VOID) {
-                                val profileViewModel = hiltViewModel<ProfileViewModel>()
-                                val profiles by profileViewModel.profiles.collectAsState()
+        val isRestoringSession = sessionProfileId != null
+        if (!isRestoringSession) {
+            // PROFILE SELECTION / CREATION
+            // Always use VOID theme for profile selection (black & white)
+            LumeraTheme(theme = DefaultThemes.VOID) {
+                val profileViewModel = hiltViewModel<ProfileViewModel>()
+                val profiles by profileViewModel.profiles.collectAsState()
 
-                                ProfileScreen(
-                                    profiles = profiles,
-                                    onProfileSelected = {
-                                        sessionProfileId = it.id
-                                        sessionRestoreAttemptedProfileId = null
-                                        mainViewModel.login(it.id)
-                                    }
-                                )
-                            }
-                        }
-                    } else {
+                ProfileScreen(
+                    profiles = profiles,
+                    onProfileSelected = {
+                        sessionProfileId = it.id
+                        sessionRestoreAttemptedProfileId = null
+                        mainViewModel.login(it.id)
+                    }
+                )
+            }
+        }
+    } else {
+        // MAIN APP CONTENT
                         // MAIN APP CONTENT
                         var currentNav by remember { mutableStateOf(NavDestination.Home) }
                         
