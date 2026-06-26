@@ -624,6 +624,7 @@ fun DeleteConfirmationDialog(
 fun WizardNameStep(initialName: String, onNext: (String) -> Unit, onCancel: () -> Unit) {
     var name by remember { mutableStateOf(initialName) }
     val focusRequester = remember { FocusRequester() }
+    val isEditing = remember { initialName.isNotEmpty() }
 
     LaunchedEffect(Unit) { delay(100); focusRequester.requestFocus() }
     BackHandler { onCancel() }
@@ -636,7 +637,7 @@ fun WizardNameStep(initialName: String, onNext: (String) -> Unit, onCancel: () -
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "What should we call you?",
+            if (isEditing) "Update your name" else "What should we call you?",
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White
         )
