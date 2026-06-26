@@ -1073,12 +1073,7 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = handleNavigate,
                                         onEnterContent = handleEnterContent,
                                         onLogout = {
-                                            sessionProfileId = null
-                                            sessionRestoreAttemptedProfileId = null
-
-                                            activeView = "menu"
-                                            themeManager.resetTheme()
-                                            mainViewModel.logout()
+                                            currentNav = NavDestination.Home
                                         },
                                         onExit = { finishAffinity() },
                                         content = {
@@ -1178,11 +1173,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 NavDestination.Profile -> {
-                                                    sessionProfileId = null
-                                                    sessionRestoreAttemptedProfileId = null
-                                                    activeView = "menu"
-                                                    themeManager.resetTheme()
-                                                    mainViewModel.logout()
+                                                    currentNav = NavDestination.Home
                                                 }
                                                 NavDestination.Watchlist -> {
                                                     val watchlistHomeVm = hiltViewModel<HomeViewModel>()
@@ -1331,11 +1322,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 NavDestination.Profile -> {
-                                                    sessionProfileId = null
-                                                    sessionRestoreAttemptedProfileId = null
-                                                    activeView = "menu"
-                                                    themeManager.resetTheme()
-                                                    mainViewModel.logout()
+                                                    currentNav = NavDestination.Home
                                                 }
                                                 NavDestination.Watchlist -> {
                                                     val watchlistHomeVm = hiltViewModel<HomeViewModel>()
