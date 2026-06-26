@@ -178,7 +178,66 @@ class ProfileConfigurationManager @Inject constructor(
         }
     }
 
-    private suspend fun createTroyRuntimeSnapshot(): ProfileRuntimeSnapshot {
+    val fallbackCatalogs = listOf(
+        CatalogManifest(type = "movie", id = "top", name = "Top"),
+        CatalogManifest(type = "series", id = "top", name = "Top")
+    )
+
+    val manifest = runCatching {
+        addonRepository.fetchManifest(DEFAULT_CINEMETA_MANIFEST_URL)
+    }.getOrNull()
+
+    val catalogs = manifest?.catalogs
+        ?.filter { it.type == "movie" || it.type == "series" }
+        ?.ifEmpty { fallbackCatalogs }
+        ?: fallbackCatalogs
+
+    val addonName = manifest?.name ?: "Cinemeta"
+
+    val addonEntity = AddonEntity(
+        transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
+        id = manifest?.id ?: "org.stremio.cinemeta",
+        name = addonName,
+        version = manifest?.version ?: "1.0.0",
+        description = manifest?.description ?: "Official Stremio metadata addon",
+        iconUrl = manifest?.logo,
+        isTrusted = false,
+        isEnabled = true,
+        nickname = null,
+        catalogsJson = gson.toJson(catalogs)
+    )
+
+    val configs = catalogs.mapIndexed { index, catalog ->
+        val isMovie = catalog.type == "movie"
+        val isSeries = catalog.type == "series"
+
+        CatalogConfigEntity(
+            uniqueId = "${DEFAULT_CINEMETA_TRANSPORT_URL}/${catalog.type}/${catalog.id}",
+            transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
+            addonName = addonName,
+            catalogType = catalog.type,
+            catalogId = catalog.id,
+            catalogName = catalog.name,
+            customTitle = null,
+            showInHome = true,
+            showInMovies = isMovie,
+            showInSeries = isSeries,
+            homeOrder = index,
+            moviesOrder = if (isMovie) index else 999,
+            seriesOrder = if (isSeries) index else 999
+        )
+    }
+
+    return ProfileRuntimeSnapshot(
+        addons = listOf(addonEntity),
+        catalogConfigs = configs,
+        hubRows = emptyList(),
+        hubRowItems = emptyList(),
+        watchHistory = emptyList()
+    )
+}
+
+private suspend fun createTroyRuntimeSnapshot(): ProfileRuntimeSnapshot {
     val manifestUrls = activationManager.getDefaultAddonManifestUrls()
     if (manifestUrls.isEmpty()) {
         return ProfileRuntimeSnapshot()
@@ -188,8 +247,9 @@ class ProfileConfigurationManager @Inject constructor(
     val configs = mutableListOf<CatalogConfigEntity>()
 
     manifestUrls.forEachIndexed { addonIndex, manifestUrl ->
-        val manifest = runCatching { addonRepository.fetchManifest(manifestUrl) }.getOrNull()
-            ?: return@forEachIndexed
+        val manifest = runCatching {
+            addonRepository.fetchManifest(manifestUrl)
+        }.getOrNull() ?: return@forEachIndexed
 
         val transportUrl = manifestUrl.removeSuffix("/manifest.json")
         val catalogs = manifest.catalogs.orEmpty()
@@ -257,60 +317,6 @@ class ProfileConfigurationManager @Inject constructor(
 
     return ProfileRuntimeSnapshot(
         addons = addons,
-        catalogConfigs = configs,
-        hubRows = emptyList(),
-        hubRowItems = emptyList(),
-        watchHistory = emptyList()
-    )
-}
-
-    val fallbackCatalogs = listOf(
-        CatalogManifest(type = "movie", id = "top", name = "Top"),
-        CatalogManifest(type = "series", id = "top", name = "Top")
-    )
-
-    val manifest = runCatching { addonRepository.fetchManifest(DEFAULT_CINEMETA_MANIFEST_URL) }.getOrNull()
-    val catalogs = manifest?.catalogs
-        ?.filter { it.type == "movie" || it.type == "series" }
-        ?.ifEmpty { fallbackCatalogs }
-        ?: fallbackCatalogs
-
-    val addonName = manifest?.name ?: "Cinemeta"
-    val addonEntity = AddonEntity(
-        transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
-        id = manifest?.id ?: "org.stremio.cinemeta",
-        name = addonName,
-        version = manifest?.version ?: "1.0.0",
-        description = manifest?.description ?: "Official Stremio metadata addon",
-        iconUrl = manifest?.logo,
-        isTrusted = false,
-        isEnabled = true,
-        nickname = null,
-        catalogsJson = gson.toJson(catalogs)
-    )
-
-    val configs = catalogs.mapIndexed { index, catalog ->
-        val isMovie = catalog.type == "movie"
-        val isSeries = catalog.type == "series"
-        CatalogConfigEntity(
-            uniqueId = "${DEFAULT_CINEMETA_TRANSPORT_URL}/${catalog.type}/${catalog.id}",
-            transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
-            addonName = addonName,
-            catalogType = catalog.type,
-            catalogId = catalog.id,
-            catalogName = catalog.name,
-            customTitle = null,
-            showInHome = true,
-            showInMovies = isMovie,
-            showInSeries = isSeries,
-            homeOrder = index,
-            moviesOrder = if (isMovie) index else 999,
-            seriesOrder = if (isSeries) index else 999
-        )
-    }
-
-    return ProfileRuntimeSnapshot(
-        addons = listOf(addonEntity),
         catalogConfigs = configs,
         hubRows = emptyList(),
         hubRowItems = emptyList(),
