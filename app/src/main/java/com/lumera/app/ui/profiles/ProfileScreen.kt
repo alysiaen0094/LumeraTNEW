@@ -225,8 +225,8 @@ fun ProfileSelectorView(
                 )
             }
 
-            // Only show Add button if under 6 profiles
-            if (profiles.size < 6) {
+            // Single-profile Troy build: do not allow adding more profiles.
+            if (profiles.isEmpty()) {
                 AddProfileCard(onClick = onAdd)
             }
         }
@@ -495,7 +495,6 @@ fun ProfileOptionsDialog(
 
     // SAFETY LOCK: Delay input to prevent accidental clicks
     var areButtonsReady by remember { mutableStateOf(false) }
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -504,80 +503,54 @@ fun ProfileOptionsDialog(
         areButtonsReady = true
     }
 
-    if (!showDeleteConfirmation) {
-        Dialog(onDismissRequest = onDismiss) {
-            Box(
-                modifier = Modifier
-                    .width(400.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.Black)
-                    .border(2.dp, Color(0xFF333333), RoundedCornerShape(24.dp))
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // 1. RESOLVE AVATAR STRING TO INT ID
-                    val avatarSource = ProfileAssets.getAvatarSource(profile.avatarRef)
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(400.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.Black)
+                .border(2.dp, Color(0xFF333333), RoundedCornerShape(24.dp))
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val avatarSource = ProfileAssets.getAvatarSource(profile.avatarRef)
 
-                    // 2. DISPLAY IMAGE
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(avatarSource)
-                            .size(300, 300)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    )
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(avatarSource)
+                        .size(300, 300)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                )
 
-                    Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-                    Text(
-                        text = profile.name.uppercase(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.height(32.dp))
+                Text(
+                    text = profile.name.uppercase(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White
+                )
 
-                    // Action Buttons
-                    VoidButton(
-                        text = "Edit Profile",
-                        onClick = {
-                            if (areButtonsReady) onEdit()
-                        },
-                        isPrimary = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        focusRequester = editRequester
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    VoidButton(
-                        text = "Delete Profile",
-                        onClick = {
-                            if (areButtonsReady) showDeleteConfirmation = true
-                        },
-                        isPrimary = false,
-                        isDestructive = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Spacer(Modifier.height(32.dp))
+
+                VoidButton(
+                    text = "Edit Profile",
+                    onClick = {
+                        if (areButtonsReady) onEdit()
+                    },
+                    isPrimary = false,
+                    modifier = Modifier.fillMaxWidth(),
+                    focusRequester = editRequester
+                )
             }
         }
-    }
-
-    // Delete Confirmation Dialog
-    if (showDeleteConfirmation) {
-        DeleteConfirmationDialog(
-            profileName = profile.name,
-            onConfirm = {
-                showDeleteConfirmation = false
-                onDelete()
-            },
-            onDismiss = { showDeleteConfirmation = false }
-        )
     }
 }
 
