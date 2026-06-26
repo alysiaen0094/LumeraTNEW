@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.lumera.app.data.activation.ActivationManager
 
 data class ProfileRuntimeSnapshot(
     val addons: List<AddonEntity> = emptyList(),
@@ -31,7 +32,8 @@ class ProfileConfigurationManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: AddonDao,
     private val stremioAuthManager: StremioAuthManager,
-    private val addonRepository: AddonRepository
+    private val addonRepository: AddonRepository,
+    private val activationManager: ActivationManager
 ) {
     companion object {
         private const val PREFS_FILE = "profile_configuration_prefs"
@@ -169,59 +171,152 @@ class ProfileConfigurationManager @Inject constructor(
     }
 
     private suspend fun createDefaultRuntimeSnapshot(): ProfileRuntimeSnapshot {
-        val fallbackCatalogs = listOf(
-            CatalogManifest(type = "movie", id = "top", name = "Top"),
-            CatalogManifest(type = "series", id = "top", name = "Top")
+    if (activationManager.isActivated()) {
+        val troySnapshot = createTroyRuntimeSnapshot()
+        if (troySnapshot.addons.isNotEmpty()) {
+            return troySnapshot
+        }
+    }
+
+    private suspend fun createTroyRuntimeSnapshot(): ProfileRuntimeSnapshot {
+    val manifestUrls = activationManager.getDefaultAddonManifestUrls()
+    if (manifestUrls.isEmpty()) {
+        return ProfileRuntimeSnapshot()
+    }
+
+    val addons = mutableListOf<AddonEntity>()
+    val configs = mutableListOf<CatalogConfigEntity>()
+
+    manifestUrls.forEachIndexed { addonIndex, manifestUrl ->
+        val manifest = runCatching { addonRepository.fetchManifest(manifestUrl) }.getOrNull()
+            ?: return@forEachIndexed
+
+        val transportUrl = manifestUrl.removeSuffix("/manifest.json")
+        val catalogs = manifest.catalogs.orEmpty()
+        val addonName = manifest.name
+
+        val supportsMeta = manifest.resources?.any { element ->
+            when {
+                element.isJsonPrimitive -> element.asString == "meta"
+                element.isJsonObject -> element.asJsonObject.get("name")?.asString == "meta"
+                else -> false
+            }
+        } ?: false
+
+        val supportsStream = manifest.resources?.any { element ->
+            when {
+                element.isJsonPrimitive -> element.asString == "stream"
+                element.isJsonObject -> element.asJsonObject.get("name")?.asString == "stream"
+                else -> false
+            }
+        } ?: false
+
+        addons.add(
+            AddonEntity(
+                transportUrl = transportUrl,
+                id = manifest.id,
+                name = addonName,
+                version = manifest.version,
+                description = manifest.description,
+                iconUrl = manifest.logo,
+                isTrusted = false,
+                isEnabled = true,
+                nickname = null,
+                catalogsJson = gson.toJson(catalogs),
+                supportsMeta = supportsMeta,
+                supportsStream = supportsStream,
+                typesJson = gson.toJson(manifest.types.orEmpty()),
+                idPrefixesJson = gson.toJson(manifest.idPrefixes.orEmpty()),
+                sortOrder = addonIndex
+            )
         )
 
-        val manifest = runCatching { addonRepository.fetchManifest(DEFAULT_CINEMETA_MANIFEST_URL) }.getOrNull()
-        val catalogs = manifest?.catalogs
-            ?.filter { it.type == "movie" || it.type == "series" }
-            ?.ifEmpty { fallbackCatalogs }
-            ?: fallbackCatalogs
-
-        val addonName = manifest?.name ?: "Cinemeta"
-        val addonEntity = AddonEntity(
-            transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
-            id = manifest?.id ?: "org.stremio.cinemeta",
-            name = addonName,
-            version = manifest?.version ?: "1.0.0",
-            description = manifest?.description ?: "Official Stremio metadata addon",
-            iconUrl = manifest?.logo,
-            isTrusted = false,
-            isEnabled = true,
-            nickname = null,
-            catalogsJson = gson.toJson(catalogs)
-        )
-
-        val configs = catalogs.mapIndexed { index, catalog ->
+        catalogs.forEachIndexed { catalogIndex, catalog ->
             val isMovie = catalog.type == "movie"
             val isSeries = catalog.type == "series"
-            CatalogConfigEntity(
-                uniqueId = "${DEFAULT_CINEMETA_TRANSPORT_URL}/${catalog.type}/${catalog.id}",
-                transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
-                addonName = addonName,
-                catalogType = catalog.type,
-                catalogId = catalog.id,
-                catalogName = catalog.name,
-                customTitle = null,
-                showInHome = true,
-                showInMovies = isMovie,
-                showInSeries = isSeries,
-                homeOrder = index,
-                moviesOrder = if (isMovie) index else 999,
-                seriesOrder = if (isSeries) index else 999
+
+            configs.add(
+                CatalogConfigEntity(
+                    uniqueId = "$transportUrl/${catalog.type}/${catalog.id}",
+                    transportUrl = transportUrl,
+                    addonName = addonName,
+                    catalogType = catalog.type,
+                    catalogId = catalog.id,
+                    catalogName = catalog.name,
+                    customTitle = null,
+                    showInHome = isMovie || isSeries,
+                    showInMovies = isMovie,
+                    showInSeries = isSeries,
+                    homeOrder = addonIndex * 100 + catalogIndex,
+                    moviesOrder = if (isMovie) addonIndex * 100 + catalogIndex else 999,
+                    seriesOrder = if (isSeries) addonIndex * 100 + catalogIndex else 999
+                )
             )
         }
+    }
 
-        return ProfileRuntimeSnapshot(
-            addons = listOf(addonEntity),
-            catalogConfigs = configs,
-            hubRows = emptyList(),
-            hubRowItems = emptyList(),
-            watchHistory = emptyList()
+    return ProfileRuntimeSnapshot(
+        addons = addons,
+        catalogConfigs = configs,
+        hubRows = emptyList(),
+        hubRowItems = emptyList(),
+        watchHistory = emptyList()
+    )
+}
+
+    val fallbackCatalogs = listOf(
+        CatalogManifest(type = "movie", id = "top", name = "Top"),
+        CatalogManifest(type = "series", id = "top", name = "Top")
+    )
+
+    val manifest = runCatching { addonRepository.fetchManifest(DEFAULT_CINEMETA_MANIFEST_URL) }.getOrNull()
+    val catalogs = manifest?.catalogs
+        ?.filter { it.type == "movie" || it.type == "series" }
+        ?.ifEmpty { fallbackCatalogs }
+        ?: fallbackCatalogs
+
+    val addonName = manifest?.name ?: "Cinemeta"
+    val addonEntity = AddonEntity(
+        transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
+        id = manifest?.id ?: "org.stremio.cinemeta",
+        name = addonName,
+        version = manifest?.version ?: "1.0.0",
+        description = manifest?.description ?: "Official Stremio metadata addon",
+        iconUrl = manifest?.logo,
+        isTrusted = false,
+        isEnabled = true,
+        nickname = null,
+        catalogsJson = gson.toJson(catalogs)
+    )
+
+    val configs = catalogs.mapIndexed { index, catalog ->
+        val isMovie = catalog.type == "movie"
+        val isSeries = catalog.type == "series"
+        CatalogConfigEntity(
+            uniqueId = "${DEFAULT_CINEMETA_TRANSPORT_URL}/${catalog.type}/${catalog.id}",
+            transportUrl = DEFAULT_CINEMETA_TRANSPORT_URL,
+            addonName = addonName,
+            catalogType = catalog.type,
+            catalogId = catalog.id,
+            catalogName = catalog.name,
+            customTitle = null,
+            showInHome = true,
+            showInMovies = isMovie,
+            showInSeries = isSeries,
+            homeOrder = index,
+            moviesOrder = if (isMovie) index else 999,
+            seriesOrder = if (isSeries) index else 999
         )
     }
+
+    return ProfileRuntimeSnapshot(
+        addons = listOf(addonEntity),
+        catalogConfigs = configs,
+        hubRows = emptyList(),
+        hubRowItems = emptyList(),
+        watchHistory = emptyList()
+    )
+}
 
     private fun writeSnapshot(profileId: Int, snapshot: ProfileRuntimeSnapshot) {
         val file = snapshotFile(profileId)
