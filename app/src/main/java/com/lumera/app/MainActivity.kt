@@ -837,7 +837,7 @@ class MainActivity : ComponentActivity() {
             val mainViewModel = hiltViewModel<MainViewModel>()
             val themeManager = hiltViewModel<ThemeManager>()
             val currentProfile by mainViewModel.activeProfile.collectAsState()
-            var isActivated by rememberSaveable { mutableStateOf(false) }
+            var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var activeView by rememberSaveable { mutableStateOf("menu") }
