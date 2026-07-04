@@ -1113,7 +1113,12 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = handleNavigate,
                                         onEnterContent = handleEnterContent,
                                         onLogout = {
-                                            currentNav = NavDestination.Home
+                                            sessionProfileId = null
+                                            sessionRestoreAttemptedProfileId = null
+                                        
+                                            activeView = "menu"
+                                            themeManager.resetTheme()
+                                            mainViewModel.logout()
                                         },
                                         onExit = { finishAffinity() },
                                         content = {
