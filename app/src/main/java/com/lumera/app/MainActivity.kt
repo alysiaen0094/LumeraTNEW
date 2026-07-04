@@ -950,6 +950,11 @@ class MainActivity : ComponentActivity() {
                         sessionProfileId = it.id
                         sessionRestoreAttemptedProfileId = null
                         mainViewModel.login(it.id)
+                    
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val pushed = lumeraBackupRepository.pushAccountBackup()
+                            android.util.Log.d("LumeraBackup", "manual profile-select backup pushed=$pushed")
+                        }
                     }
                 )
             }
