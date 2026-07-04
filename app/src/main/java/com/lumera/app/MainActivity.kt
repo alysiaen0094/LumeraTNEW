@@ -106,6 +106,7 @@ import com.lumera.app.data.profile.ProfileConfigurationManager
 import kotlinx.coroutines.runBlocking
 import com.lumera.app.data.activation.ActivationManager
 import com.lumera.app.ui.activation.ActivationScreen
+import com.lumera.app.data.sync.LumeraBackupRepository
 
 import java.util.Locale
 import javax.inject.Inject
@@ -672,6 +673,8 @@ class MainActivity : ComponentActivity() {
     lateinit var streamSortingService: StreamSortingService
     @Inject
     lateinit var activationManager: ActivationManager
+    @Inject
+    lateinit var lumeraBackupRepository: LumeraBackupRepository
 
     private var splashPlayer: MediaPlayer? = null
     private var splashOverlay: android.view.View? = null
