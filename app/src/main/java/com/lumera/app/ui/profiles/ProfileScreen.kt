@@ -226,7 +226,7 @@ fun ProfileSelectorView(
             }
 
             // Single-profile Troy build: do not allow adding more profiles.
-            if (profiles.isEmpty()) {
+            if (profiles.size < 6) {
                 AddProfileCard(onClick = onAdd)
             }
         }
@@ -1106,20 +1106,46 @@ fun AddProfileCard(onClick: () -> Unit, focusRequester: FocusRequester? = null) 
                 .size(120.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(0.1f))
-                .border(2.dp, if(isFocused) Color.White else Color.Transparent, CircleShape)
+                .border(2.dp, if (isFocused) Color.White else Color.Transparent, CircleShape)
                 .then(focusModifier)
-                .clickable(interactionSource = interactionSource, indication = null) { onClick() }
+                .onPreviewKeyEvent { event ->
+                    val isConfirm =
+                        event.key == Key.DirectionCenter ||
+                            event.key == Key.Enter ||
+                            event.key == Key.NumPadEnter
+
+                    if (isConfirm && event.type == KeyEventType.KeyUp) {
+                        onClick()
+                        true
+                    } else {
+                        false
+                    }
+                }
+                .clickable(interactionSource = interactionSource, indication = null) {
+                    onClick()
+                }
                 .focusable(interactionSource = interactionSource),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(40.dp))
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Add Profile",
+                tint = Color.White,
+                modifier = Modifier.size(40.dp)
+            )
         }
+
         Spacer(Modifier.height(12.dp))
+
         Text(
             "ADD PROFILE",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-            color = if(isFocused) Color.White else Color.Gray
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            color = if (isFocused) Color.White else Color.Gray
         )
+
         Spacer(Modifier.height(8.dp))
         Spacer(Modifier.height(32.dp))
     }
