@@ -1195,7 +1195,11 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 NavDestination.Profile -> {
-                                                    currentNav = NavDestination.Home
+                                                    sessionProfileId = null
+                                                    sessionRestoreAttemptedProfileId = null
+                                                    activeView = "menu"
+                                                    themeManager.resetTheme()
+                                                    mainViewModel.logout()
                                                 }
                                                 NavDestination.Watchlist -> {
                                                     val watchlistHomeVm = hiltViewModel<HomeViewModel>()
