@@ -560,7 +560,21 @@ fun TopNavProfileAvatar(
             onClick = onNavigate,
             modifier = Modifier
                 .fillMaxSize()
-                .onFocusChanged { isFocused = it.isFocused },
+                .onFocusChanged { isFocused = it.isFocused }
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyUp &&
+                        (
+                            event.key == Key.DirectionCenter ||
+                            event.key == Key.Enter ||
+                            event.key == Key.NumPadEnter
+                        )
+                    ) {
+                        onNavigate()
+                        true
+                    } else {
+                        false
+                    }
+                },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.0f),
             colors = ClickableSurfaceDefaults.colors(
