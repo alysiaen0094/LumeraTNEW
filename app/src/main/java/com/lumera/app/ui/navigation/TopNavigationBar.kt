@@ -193,7 +193,7 @@ fun TopNavigationBar(
             ) {
                 TopNavProfileAvatar(
                     profile = currentProfile,
-                    onNavigate = { onNavigate(NavDestination.Profile) },
+                    onNavigate = onLogout,
                     modifier = Modifier
                         .focusRequester(topNavRequesters[profileItem]!!)
                         .onFocusChanged { isProfileFocused = it.isFocused }
