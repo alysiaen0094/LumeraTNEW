@@ -106,8 +106,7 @@ fun ActivationScreen(
             Text(
                 text = "ACTIVATE LUMERA",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified
+                    fontWeight = FontWeight.Bold
                 ),
                 color = Color.White,
                 textAlign = TextAlign.Center
