@@ -2085,6 +2085,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onEpisodeSwitchDismissed = { playerState.pendingEpisodeSwitch = null; playerState.isEpisodeSwitchLoading = false },
                                 onBack = { sessionResult ->
+                                    torrentProgress = null
+                                
                                     handlePlayerSessionEnd(
                                         sessionResult = sessionResult,
                                         selectedPlaybackId = selectedPlaybackId,
@@ -2095,10 +2097,20 @@ class MainActivity : ComponentActivity() {
                                         onResumeHintResolved = { detailsResumePlaybackHint = it },
                                         rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
                                     )
+                                
+                                    stopService(Intent(this@MainActivity, TorrentService::class.java))
+                                
                                     if (selectedPlaybackId.startsWith("trailer_")) {
                                         trailerReturnToken++
                                     }
+                                
                                     activeView = "details"
+                                
+                                    uiScope.launch(Dispatchers.IO) {
+                                        delay(1200)
+                                        val pushed = lumeraBackupRepository.pushAccountBackup()
+                                        android.util.Log.d("LumeraBackup", "player-exit backup pushed=$pushed")
+                                    }
                                 }
                             )
                             }
