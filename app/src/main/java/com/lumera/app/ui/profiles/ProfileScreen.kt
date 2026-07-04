@@ -493,8 +493,8 @@ fun ProfileOptionsDialog(
 ) {
     val editRequester = remember { FocusRequester() }
 
-    // SAFETY LOCK: Delay input to prevent accidental clicks
     var areButtonsReady by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -549,8 +549,42 @@ fun ProfileOptionsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     focusRequester = editRequester
                 )
+
+                Spacer(Modifier.height(12.dp))
+
+                VoidButton(
+                    text = "Delete Profile",
+                    onClick = {
+                        if (areButtonsReady) showDeleteConfirm = true
+                    },
+                    isPrimary = false,
+                    isDestructive = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                VoidButton(
+                    text = "Cancel",
+                    onClick = onDismiss,
+                    isPrimary = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        DeleteConfirmationDialog(
+            profileName = profile.name,
+            onConfirm = {
+                showDeleteConfirm = false
+                onDelete()
+            },
+            onDismiss = {
+                showDeleteConfirm = false
+            }
+        )
     }
 }
 
