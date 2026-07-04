@@ -562,7 +562,8 @@ fun TopNavProfileAvatar(
                 .fillMaxSize()
                 .onFocusChanged { isFocused = it.isFocused }
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyUp &&
+                    if (
+                        event.type == KeyEventType.KeyUp &&
                         (
                             event.key == Key.DirectionCenter ||
                             event.key == Key.Enter ||
