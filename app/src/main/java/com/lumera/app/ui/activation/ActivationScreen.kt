@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.fillMaxWidth
 
 private const val MAX_AUTH_CODE_LENGTH = 8
 @Composable
