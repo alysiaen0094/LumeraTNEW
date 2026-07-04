@@ -183,11 +183,7 @@ fun TopNavigationBar(
                 }
         ) {
             // Profile Button (Left aligned) - fades with navbar
-            val profileAlpha by animateFloatAsState(
-                targetValue = if (isTopNavActive) 1f else 0f,
-                animationSpec = tween(200),
-                label = "profileAlpha"
-            )
+            val profileAlpha = 1f
             
             Box(
                 modifier = Modifier
