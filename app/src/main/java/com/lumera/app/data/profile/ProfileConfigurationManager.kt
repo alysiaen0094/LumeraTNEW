@@ -13,11 +13,25 @@ import com.lumera.app.data.model.WatchHistoryEntity
 import com.lumera.app.data.model.stremio.CatalogManifest
 import com.lumera.app.data.repository.AddonRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.lumera.app.data.model.ProfileEntity
 import kotlinx.coroutines.flow.firstOrNull
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.lumera.app.data.activation.ActivationManager
+
+data class LumeraProfileBackup(
+    val profile: ProfileEntity,
+    val snapshot: ProfileRuntimeSnapshot
+)
+
+data class LumeraAccountBackup(
+    val version: Int = 1,
+    val userId: String,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastActiveProfileId: Int? = null,
+    val profiles: List<LumeraProfileBackup> = emptyList()
+)
 
 data class ProfileRuntimeSnapshot(
     val addons: List<AddonEntity> = emptyList(),
@@ -84,6 +98,27 @@ class ProfileConfigurationManager @Inject constructor(
     suspend fun saveActiveRuntimeState() {
         val activeId = getLastActiveProfileId() ?: return
         saveRuntimeState(activeId)
+    }
+
+    suspend fun buildAccountBackup(userId: String): LumeraAccountBackup {
+        val profiles = dao.getProfiles().firstOrNull() ?: emptyList()
+        val lastActive = getLastActiveProfileId()
+    
+        val profileBackups = profiles.map { profile ->
+            val snapshot = readSnapshot(profile.id) ?: ProfileRuntimeSnapshot()
+    
+            LumeraProfileBackup(
+                profile = profile,
+                snapshot = snapshot
+            )
+        }
+    
+        return LumeraAccountBackup(
+            userId = userId,
+            updatedAt = System.currentTimeMillis(),
+            lastActiveProfileId = lastActive,
+            profiles = profileBackups
+        )
     }
 
     suspend fun loadRuntimeState(profileId: Int) {
