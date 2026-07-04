@@ -104,12 +104,9 @@ fun ProfileScreen(
                         onNext = { viewModel.setWizardName(it) },
                         onCancel = { viewModel.cancelWizard() }
                     )
+                    
                     2 -> WizardAvatarStep(
                         onNext = { viewModel.setWizardAvatar(it) },
-                        onBack = { viewModel.goBackStep() }
-                    )
-                    3 -> WizardThemeStep(
-                        onFinish = { viewModel.setWizardTheme(it) },
                         onBack = { viewModel.goBackStep() }
                     )
                 }
@@ -206,15 +203,18 @@ fun ProfileSelectorView(
                     profile = profile,
                     onClick = {
                         if (isInitializingProfile) return@ProfileCard
+                    
                         if (viewModel.needsInitialSetup(profile.id)) {
-                            val hasCopySource = profiles.any { it.id != profile.id }
-                            if (!hasCopySource) {
-                                viewModel.initializeProfileFromScratch(profile.id) {
+                            val sourceProfile = profiles.firstOrNull { it.id != profile.id }
+                    
+                            if (sourceProfile != null) {
+                                viewModel.initializeProfileByCopy(profile.id, sourceProfile.id) {
                                     onSelect(profile)
                                 }
                             } else {
-                                setupTargetProfile = profile
-                                showSetupChoiceDialog = true
+                                viewModel.initializeProfileFromScratch(profile.id) {
+                                    onSelect(profile)
+                                }
                             }
                         } else {
                             onSelect(profile)
@@ -697,10 +697,7 @@ fun WizardAvatarStep(onNext: (String) -> Unit, onBack: () -> Unit) {
         DpadRepeatGate(horizontalRepeatIntervalMs = PROFILE_HORIZONTAL_REPEAT_INTERVAL_MS)
     }
     val focusRequesters = remember(avatars.size) { List(avatars.size) { FocusRequester() } }
-    val uploadButtonRequester = remember { FocusRequester() }
     
-    var showUploadDialog by remember { mutableStateOf(false) }
-
     LaunchedEffect(Unit) {
         listState.scrollToItem(initialIndex)
         delay(100)
@@ -742,32 +739,7 @@ fun WizardAvatarStep(onNext: (String) -> Unit, onBack: () -> Unit) {
                     modifier = Modifier.size(120.dp)
                 )
             }
-        }
-        
-        Spacer(Modifier.height(32.dp))
-        
-        Text(
-            "Or",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.Gray
-        )
-        
-        Spacer(Modifier.height(16.dp))
-        
-        UploadAvatarButton(
-            onClick = { showUploadDialog = true },
-            focusRequester = uploadButtonRequester
-        )
-    }
-    
-    if (showUploadDialog) {
-        AvatarUploadDialog(
-            onDismissRequest = { showUploadDialog = false },
-            onAvatarReceived = { avatarPath ->
-                showUploadDialog = false
-                onNext(avatarPath)
-            }
-        )
+        }        
     }
 }
 
