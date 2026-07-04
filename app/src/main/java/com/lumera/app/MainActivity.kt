@@ -845,6 +845,7 @@ class MainActivity : ComponentActivity() {
             var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
+            var forceProfileSelector by rememberSaveable { mutableStateOf(false) }
             var activeView by rememberSaveable { mutableStateOf("menu") }
             var selectedMovieId by rememberSaveable { mutableStateOf("") }
             var selectedMovieType by rememberSaveable { mutableStateOf("movie") }
@@ -875,8 +876,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect(currentProfile, sessionProfileId, sessionRestoreAttemptedProfileId) {
+            LaunchedEffect(currentProfile, sessionProfileId, sessionRestoreAttemptedProfileId, forceProfileSelector) {
+                if (forceProfileSelector) return@LaunchedEffect
                 if (currentProfile != null) return@LaunchedEffect
+
                 val profileIdToRestore = sessionProfileId ?: return@LaunchedEffect
                 if (sessionRestoreAttemptedProfileId == profileIdToRestore) return@LaunchedEffect
 
@@ -947,6 +950,7 @@ class MainActivity : ComponentActivity() {
                 ProfileScreen(
                     profiles = profiles,
                     onProfileSelected = {
+                        forceProfileSelector = false
                         sessionProfileId = it.id
                         sessionRestoreAttemptedProfileId = null
                         mainViewModel.login(it.id)
@@ -1040,6 +1044,7 @@ class MainActivity : ComponentActivity() {
                                 var lastBackPressMs by remember { mutableStateOf(0L) }
                                 var settingsContentFocused by remember { mutableStateOf(false) }
                                 val openProfileSelector: () -> Unit = {
+                                    forceProfileSelector = true
                                     sessionProfileId = null
                                     sessionRestoreAttemptedProfileId = null
                                     activeView = "menu"
@@ -1121,12 +1126,7 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = handleNavigate,
                                         onEnterContent = handleEnterContent,
                                         onLogout = {
-                                            sessionProfileId = null
-                                            sessionRestoreAttemptedProfileId = null
-                                        
-                                            activeView = "menu"
-                                            themeManager.resetTheme()
-                                            mainViewModel.logout()
+                                            openProfileSelector()
                                         },
                                         onExit = { finishAffinity() },
                                         content = {
@@ -1226,11 +1226,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 NavDestination.Profile -> {
-                                                    sessionProfileId = null
-                                                    sessionRestoreAttemptedProfileId = null
-                                                    activeView = "menu"
-                                                    themeManager.resetTheme()
-                                                    mainViewModel.logout()
+                                                    openProfileSelector()
                                                 }
                                                 NavDestination.Watchlist -> {
                                                     val watchlistHomeVm = hiltViewModel<HomeViewModel>()
