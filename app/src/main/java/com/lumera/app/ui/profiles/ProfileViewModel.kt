@@ -77,13 +77,15 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun setWizardName(name: String) {
-        tempName = name
+         tempName = name
+        tempThemeId = "void"
         _wizardStep.value = 2
     }
 
     fun setWizardAvatar(avatarKey: String) {
         tempAvatarRef = avatarKey
-        _wizardStep.value = 3
+        tempThemeId = "void"
+        finishWizard()
     }
 
     fun setWizardTheme(themeId: String) {
