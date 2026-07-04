@@ -125,25 +125,15 @@ fun ActivationScreen(
 
             AuthCodeDisplay(value = state.authCode)
 
-            if (!state.error.isNullOrBlank()) {
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    text = state.error.orEmpty(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFFF7777),
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    text = "Use the remote to enter your code.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.35f),
-                    textAlign = TextAlign.Center
-                )
-            }
+            Spacer(Modifier.height(14.dp))
 
-            Spacer(Modifier.height(26.dp))
+            ActivationStatusMessage(
+                value = state.authCode,
+                isLoading = state.isLoading,
+                error = state.error
+            )
+            
+            Spacer(Modifier.height(22.dp))
 
             TvAuthKeyboard(
                 value = state.authCode,
@@ -174,6 +164,43 @@ private fun AuthCodeDisplay(value: String) {
                 fontWeight = FontWeight.Bold
             ),
             color = if (value.isBlank()) Color.White.copy(alpha = 0.28f) else Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ActivationStatusMessage(
+    value: String,
+    isLoading: Boolean,
+    error: String?
+) {
+    val remaining = (MAX_AUTH_CODE_LENGTH - value.length).coerceAtLeast(0)
+
+    val message = when {
+        isLoading -> "Checking activation..."
+        !error.isNullOrBlank() -> error
+        remaining > 0 -> "$remaining characters remaining"
+        else -> "Validating code..."
+    }
+
+    val color = when {
+        !error.isNullOrBlank() -> Color(0xFFFF7777)
+        isLoading -> Color.White.copy(alpha = 0.65f)
+        else -> Color.White.copy(alpha = 0.35f)
+    }
+
+    Box(
+        modifier = Modifier
+            .height(24.dp)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -229,16 +256,6 @@ private fun TvAuthKeyboard(
                     )
                 }
             }
-        }
-
-        if (isLoading) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Checking...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.65f),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
