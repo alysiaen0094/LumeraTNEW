@@ -32,18 +32,20 @@ class LumeraBackupRepository @Inject constructor(
                 ?: return@withContext false
 
             runCatching {
+                profileConfigurationManager.saveActiveRuntimeState()
+            
                 val backup = profileConfigurationManager.buildAccountBackup(userId)
-
+            
                 val bodyJson = JSONObject()
                     .put("userId", userId)
                     .put("payload", JSONObject(gson.toJson(backup)))
                     .toString()
-
+            
                 val request = Request.Builder()
                     .url("${ActivationManager.TROY_BASE_URL}/lumera/account-backup-push")
                     .post(bodyJson.toRequestBody(jsonMediaType))
                     .build()
-
+            
                 okHttpClient.newCall(request).execute().use { response ->
                     response.isSuccessful
                 }
