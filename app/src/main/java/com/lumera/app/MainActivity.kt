@@ -1039,6 +1039,14 @@ class MainActivity : ComponentActivity() {
                                 // Double-back-to-exit: two rapid back presses exit the app
                                 var lastBackPressMs by remember { mutableStateOf(0L) }
                                 var settingsContentFocused by remember { mutableStateOf(false) }
+                                val openProfileSelector: () -> Unit = {
+                                    sessionProfileId = null
+                                    sessionRestoreAttemptedProfileId = null
+                                    activeView = "menu"
+                                    currentNav = NavDestination.Home
+                                    themeManager.resetTheme()
+                                    mainViewModel.logout()
+                                }
 
                                 // Shared content composable
                                 // Shared navigation handler
@@ -1049,7 +1057,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                 
                                         NavDestination.Profile -> {
-                                            currentNav = NavDestination.Home
+                                            openProfileSelector()
                                         }
                                 
                                         else -> {
@@ -1371,7 +1379,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 NavDestination.Profile -> {
-                                                    currentNav = NavDestination.Home
+                                                    openProfileSelector()
                                                 }
                                                 NavDestination.Watchlist -> {
                                                     val watchlistHomeVm = hiltViewModel<HomeViewModel>()
