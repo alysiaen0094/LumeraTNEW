@@ -685,8 +685,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+    
         lifecycleScope.launch(Dispatchers.IO) {
             profileConfigurationManager.saveActiveRuntimeState()
+            lumeraBackupRepository.pushAccountBackup()
         }
     }
 
