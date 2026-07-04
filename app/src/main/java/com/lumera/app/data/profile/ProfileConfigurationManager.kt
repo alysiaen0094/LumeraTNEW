@@ -101,8 +101,14 @@ class ProfileConfigurationManager @Inject constructor(
     }
 
     suspend fun buildAccountBackup(userId: String): LumeraAccountBackup {
+        val activeProfileId = getLastActiveProfileId()
+    
+        // Important: capture the active live DB state before reading snapshot files.
+        if (activeProfileId != null) {
+            saveRuntimeState(activeProfileId)
+        }
+    
         val profiles = dao.getProfiles().firstOrNull() ?: emptyList()
-        val lastActive = getLastActiveProfileId()
     
         val profileBackups = profiles.map { profile ->
             val snapshot = readSnapshot(profile.id) ?: ProfileRuntimeSnapshot()
@@ -116,7 +122,7 @@ class ProfileConfigurationManager @Inject constructor(
         return LumeraAccountBackup(
             userId = userId,
             updatedAt = System.currentTimeMillis(),
-            lastActiveProfileId = lastActive,
+            lastActiveProfileId = activeProfileId,
             profiles = profileBackups
         )
     }
