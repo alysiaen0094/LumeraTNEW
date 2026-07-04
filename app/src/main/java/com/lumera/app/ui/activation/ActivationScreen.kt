@@ -49,8 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 
-private const val MAX_AUTH_CODE_LENGTH = 48
-
+private const val MAX_AUTH_CODE_LENGTH = 8
 @Composable
 fun ActivationScreen(
     onActivated: () -> Unit,
@@ -97,11 +96,11 @@ fun ActivationScreen(
     ) {
         Column(
             modifier = Modifier
-                .width(760.dp)
+                .width(700.dp)
+                .padding(horizontal = 34.dp, vertical = 28.dp)
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color(0xFF080808).copy(alpha = 0.96f))
                 .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(32.dp))
-                .padding(horizontal = 42.dp, vertical = 34.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -152,7 +151,7 @@ fun ActivationScreen(
                 isLoading = state.isLoading,
                 firstKeyRequester = firstKeyRequester,
                 onValueChange = viewModel::updateAuthCode,
-                onSubmit = viewModel::validateAuthCode
+                onSubmit = { code -> viewModel.validateAuthCode(code) }
             )
         }
     }
@@ -188,13 +187,13 @@ private fun TvAuthKeyboard(
     isLoading: Boolean,
     firstKeyRequester: FocusRequester,
     onValueChange: (String) -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: (String) -> Unit
 ) {
     val rows = listOf(
         listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
         listOf("A", "B", "C", "D", "E", "F", "G", "H", "I", "J"),
         listOf("K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"),
-        listOf("U", "V", "W", "X", "Y", "Z")
+        listOf("U", "V", "W", "X", "Y", "Z", "⌫")
     )
 
     Column(
@@ -212,8 +211,20 @@ private fun TvAuthKeyboard(
                         enabled = !isLoading,
                         focusRequester = if (rowIndex == 0 && index == 0) firstKeyRequester else null,
                         onClick = {
-                            if (value.length < MAX_AUTH_CODE_LENGTH) {
-                                onValueChange(value + key)
+                            if (key == "⌫") {
+                                val next = value.dropLast(1)
+                                onValueChange(next)
+                            } else {
+                                val next = (value + key)
+                                    .uppercase()
+                                    .filter { it.isLetterOrDigit() }
+                                    .take(MAX_AUTH_CODE_LENGTH)
+
+                                onValueChange(next)
+
+                                if (next.length == MAX_AUTH_CODE_LENGTH) {
+                                    onSubmit(next)
+                                }
                             }
                         }
                     )
@@ -221,36 +232,13 @@ private fun TvAuthKeyboard(
             }
         }
 
-        Spacer(Modifier.height(4.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AuthActionButton(
-                text = "Backspace",
-                enabled = !isLoading && value.isNotEmpty(),
-                width = 150.dp,
-                onClick = {
-                    if (value.isNotEmpty()) {
-                        onValueChange(value.dropLast(1))
-                    }
-                }
-            )
-
-            AuthActionButton(
-                text = "Clear",
-                enabled = !isLoading && value.isNotEmpty(),
-                width = 110.dp,
-                onClick = { onValueChange("") }
-            )
-
-            AuthActionButton(
-                text = if (isLoading) "Checking..." else "Activate",
-                enabled = !isLoading,
-                width = 170.dp,
-                isPrimary = true,
-                onClick = onSubmit
+        if (isLoading) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Checking...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center
             )
         }
     }
