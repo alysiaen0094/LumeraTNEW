@@ -1,7 +1,7 @@
 package com.lumera.app.ui.activation
 
 import androidx.lifecycle.ViewModel
- import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewModelScope
 import com.lumera.app.data.activation.ActivationManager
 import com.lumera.app.data.repository.AddonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,13 +32,26 @@ class ActivationViewModel @Inject constructor(
     )
     val uiState: StateFlow<ActivationUiState> = _uiState
 
+    fun updateAuthCode(value: String) {
+        val cleaned = value
+            .trim()
+            .uppercase()
+            .filter { it.isLetterOrDigit() }
+            .take(8)
+
+        _uiState.value = _uiState.value.copy(
+            authCode = cleaned,
+            error = null
+        )
+    }
+
     fun validateAuthCode(codeOverride: String? = null) {
         val userId = (codeOverride ?: _uiState.value.authCode)
             .trim()
             .uppercase()
             .filter { it.isLetterOrDigit() }
             .take(8)
-    
+
         if (userId.length != 8) {
             _uiState.value = _uiState.value.copy(
                 authCode = userId,
@@ -46,52 +59,10 @@ class ActivationViewModel @Inject constructor(
             )
             return
         }
-    
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 authCode = userId,
-                isLoading = true,
-                error = null
-            )
-    
-            val manifestUrl = "${ActivationManager.TROY_BASE_URL}/$userId/manifest.json"
-    
-            val isValid = withContext(Dispatchers.IO) {
-                runCatching {
-                    addonRepository.fetchManifest(manifestUrl)
-                }.isSuccess
-            }
-    
-            if (isValid) {
-                activationManager.markActivated(userId)
-    
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    activated = true,
-                    error = null
-                )
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    activated = false,
-                    error = "Auth code invalid or expired"
-                )
-            }
-        }
-    }
-
-    fun validateAuthCode() {
-        val userId = _uiState.value.authCode.trim()
-
-        if (userId.isBlank()) {
-            _uiState.value = _uiState.value.copy(
-                error = "Enter your auth code"
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null
             )
