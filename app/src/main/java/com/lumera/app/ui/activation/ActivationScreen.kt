@@ -97,10 +97,10 @@ fun ActivationScreen(
         Column(
             modifier = Modifier
                 .width(700.dp)
-                .padding(horizontal = 34.dp, vertical = 28.dp)
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color(0xFF080808).copy(alpha = 0.96f))
                 .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(32.dp))
+                .padding(horizontal = 34.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
