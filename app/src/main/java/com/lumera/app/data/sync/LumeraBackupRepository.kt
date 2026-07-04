@@ -56,7 +56,7 @@ class LumeraBackupRepository @Inject constructor(
                     .put("payload", JSONObject(gson.toJson(backup)))
                     .toString()
     
-                Log.d("LumeraBackup", "Posting backup bytes=${bodyJson.length()}")
+                Log.d("LumeraBackup", "Posting backup bytes=${bodyJson.length}")
     
                 val request = Request.Builder()
                     .url("${ActivationManager.TROY_BASE_URL}/lumera/account-backup-push")
