@@ -687,8 +687,8 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     
         lifecycleScope.launch(Dispatchers.IO) {
-            profileConfigurationManager.saveActiveRuntimeState()
-            lumeraBackupRepository.pushAccountBackup()
+            val pushed = lumeraBackupRepository.pushAccountBackup()
+            android.util.Log.d("LumeraBackup", "onStop backup pushed=$pushed")
         }
     }
 
