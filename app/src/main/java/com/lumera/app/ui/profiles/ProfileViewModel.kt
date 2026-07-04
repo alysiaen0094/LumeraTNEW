@@ -54,9 +54,8 @@ class ProfileViewModel @Inject constructor(
     // --- WIZARD ACTIONS ---
 
     fun startWizard() {
-        // Single-profile Troy build: only allow creating the first profile.
-        if (_profiles.value.isNotEmpty()) return
-
+        if (_profiles.value.size >= 6) return
+    
         editingProfileId = null
         tempName = ""
         tempAvatarRef = "avatar_1"
@@ -102,16 +101,15 @@ class ProfileViewModel @Inject constructor(
                 )
                 if (updatedProfile != null) dao.updateProfile(updatedProfile)
             } else {
-                // Single-profile Troy build: block creating a second profile.
-                if (_profiles.value.isNotEmpty()) {
+                if (_profiles.value.size >= 6) {
                     _wizardStep.value = 0
                     editingProfileId = null
                     return@launch
                 }
-
+            
                 val profileId = dao.insertProfile(
                     ProfileEntity(
-                        name = tempName,
+                        name = tempName.ifBlank { "Profile ${_profiles.value.size + 1}" },
                         avatarRef = tempAvatarRef,
                         themeId = tempThemeId,
                         navPosition = "left",
@@ -159,7 +157,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun deleteProfile(id: Int) {
-        // Single-profile Troy build: profile deletion disabled.
+        viewModelScope.launch(Dispatchers.IO + NonCancellable) {
+            dao.deleteProfile(id)
+            profileConfigurationManager.deleteProfileState(id)
+        }
     }
 
     fun goBackStep() {
