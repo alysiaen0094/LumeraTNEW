@@ -1038,21 +1038,39 @@ class MainActivity : ComponentActivity() {
                                 // Shared content composable
                                 // Shared navigation handler
                                 val handleNavigate: (NavDestination) -> Unit = { destination ->
-                                    if (destination == NavDestination.Exit) {
-                                        finishAffinity()
-                                    } else if (currentNav == destination) {
-                                        // Already here - just focus content
-                                        when(destination) {
-                                            NavDestination.Home, NavDestination.Movies, NavDestination.Series -> homeEntryRequester.requestFocus()
-                                            NavDestination.Search -> searchEntryRequester.requestFocus()
-                                            NavDestination.Settings -> settingsEntryRequester.requestFocus()
-                                            NavDestination.Watchlist -> watchlistEntryRequester.requestFocus()
-                                            else -> {}
+                                    when (destination) {
+                                        NavDestination.Exit -> {
+                                            finishAffinity()
                                         }
-                                    } else {
-                                        if (currentNav == NavDestination.Search) searchFocusTarget = null
-                                        if (currentNav == NavDestination.Settings) settingsContentFocused = false
-                                        currentNav = destination
+                                
+                                        NavDestination.Profile -> {
+                                            sessionProfileId = null
+                                            sessionRestoreAttemptedProfileId = null
+                                            activeView = "menu"
+                                            currentNav = NavDestination.Home
+                                            themeManager.resetTheme()
+                                            mainViewModel.logout()
+                                        }
+                                
+                                        else -> {
+                                            if (currentNav == destination) {
+                                                when (destination) {
+                                                    NavDestination.Home,
+                                                    NavDestination.Movies,
+                                                    NavDestination.Series -> homeEntryRequester.requestFocus()
+                                
+                                                    NavDestination.Search -> searchEntryRequester.requestFocus()
+                                                    NavDestination.Settings -> settingsEntryRequester.requestFocus()
+                                                    NavDestination.Watchlist -> watchlistEntryRequester.requestFocus()
+                                
+                                                    else -> {}
+                                                }
+                                            } else {
+                                                if (currentNav == NavDestination.Search) searchFocusTarget = null
+                                                if (currentNav == NavDestination.Settings) settingsContentFocused = false
+                                                currentNav = destination
+                                            }
+                                        }
                                     }
                                 }
 
