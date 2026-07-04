@@ -1044,12 +1044,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                 
                                         NavDestination.Profile -> {
-                                            sessionProfileId = null
-                                            sessionRestoreAttemptedProfileId = null
-                                            activeView = "menu"
                                             currentNav = NavDestination.Home
-                                            themeManager.resetTheme()
-                                            mainViewModel.logout()
                                         }
                                 
                                         else -> {
