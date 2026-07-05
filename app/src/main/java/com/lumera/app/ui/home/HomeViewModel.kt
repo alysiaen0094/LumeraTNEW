@@ -605,12 +605,9 @@ class HomeViewModel @Inject constructor(
             // Load watched IDs for all tabs (watched indicator on posters)
             launch {
                 dao.getWatchedIds().collect { ids ->
-                    // Extract canonical series ID from episode IDs (tt123:1:3 → tt123)
-                    val canonicalIds = ids.map { id ->
-                        val parts = id.split(":")
-                        if (parts.size >= 3) parts.first() else id
-                    }.toSet()
-                    _state.update { it.copy(watchedIds = canonicalIds) }
+                    _state.update {
+                        it.copy(watchedIds = ids.toSet())
+                    }
                 }
             }
 
