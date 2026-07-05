@@ -1,6 +1,7 @@
 package com.lumera.app.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -9,15 +10,14 @@ import androidx.room.Update
 import com.lumera.app.data.model.AddonEntity
 import com.lumera.app.data.model.CatalogConfigEntity
 import com.lumera.app.data.model.HubRowEntity
-import com.lumera.app.data.model.HubRowWithItems
 import com.lumera.app.data.model.HubRowItemEntity
+import com.lumera.app.data.model.HubRowWithItems
 import com.lumera.app.data.model.ProfileEntity
-import com.lumera.app.data.model.ThemeEntity
 import com.lumera.app.data.model.SeriesNextUpEntity
+import com.lumera.app.data.model.ThemeEntity
 import com.lumera.app.data.model.WatchHistoryEntity
 import com.lumera.app.data.model.WatchlistEntity
 import kotlinx.coroutines.flow.Flow
-import androidx.room.Delete
 
 @Dao
 interface AddonDao {
@@ -76,6 +76,8 @@ interface AddonDao {
     @Query("DELETE FROM profiles WHERE id = :id")
     suspend fun deleteProfile(id: Int)
 
+    // ── Watch History / Continue Watching ──
+
     @Query("SELECT * FROM watch_history ORDER BY lastWatched DESC")
     fun getWatchHistory(): Flow<List<WatchHistoryEntity>>
 
@@ -113,6 +115,20 @@ interface AddonDao {
     @Query("DELETE FROM watch_history WHERE type = 'series' AND id LIKE :episodePrefix")
     suspend fun deleteSeriesHistory(episodePrefix: String)
 
+    @Query("SELECT * FROM watch_history WHERE scrobbled = 1 AND watched = 0")
+    suspend fun getScrobbledInProgressItems(): List<WatchHistoryEntity>
+
+    @Query("SELECT * FROM watch_history WHERE scrobbled = 1 AND watched = 1")
+    suspend fun getScrobbledWatchedItems(): List<WatchHistoryEntity>
+
+    @Query("SELECT id FROM watch_history WHERE watched = 1")
+    fun getWatchedIds(): Flow<List<String>>
+
+    @Query("UPDATE watch_history SET poster = :poster, background = :background, logo = :logo WHERE id = :id")
+    suspend fun updateHistoryImages(id: String, poster: String?, background: String?, logo: String?)
+
+    // ── Themes ──
+
     @Query("SELECT * FROM themes")
     fun getAllThemes(): Flow<List<ThemeEntity>>
 
@@ -124,6 +140,8 @@ interface AddonDao {
 
     @Delete
     suspend fun deleteTheme(theme: ThemeEntity)
+
+    // ── Hub Rows ──
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHubRow(row: HubRowEntity)
@@ -171,8 +189,6 @@ interface AddonDao {
     @Query("SELECT * FROM hub_rows ORDER BY homeOrder ASC, createdAt ASC")
     fun getHubRowsWithItems(): Flow<List<HubRowWithItems>>
 
-
-
     @Query("SELECT MAX(homeOrder) FROM hub_rows")
     suspend fun getMaxHubHomeOrder(): Int?
 
@@ -181,8 +197,6 @@ interface AddonDao {
 
     @Query("SELECT MAX(seriesOrder) FROM hub_rows")
     suspend fun getMaxHubSeriesOrder(): Int?
-
-
 
     @Update
     suspend fun updateHubRow(row: HubRowEntity)
@@ -219,17 +233,20 @@ interface AddonDao {
     @Query("SELECT * FROM watchlist WHERE id = :id")
     suspend fun getWatchlistItem(id: String): WatchlistEntity?
 
-    @Query("SELECT * FROM watch_history WHERE scrobbled = 1 AND watched = 0")
-    suspend fun getScrobbledInProgressItems(): List<WatchHistoryEntity>
+    @Query("SELECT EXISTS(SELECT 1 FROM watchlist WHERE id = :id)")
+    suspend fun isInWatchlist(id: String): Boolean
 
-    @Query("SELECT * FROM watch_history WHERE scrobbled = 1 AND watched = 1")
-    suspend fun getScrobbledWatchedItems(): List<WatchHistoryEntity>
+    @Query("SELECT EXISTS(SELECT 1 FROM watchlist WHERE id = :id)")
+    fun isInWatchlistFlow(id: String): Flow<Boolean>
 
-    @Query("SELECT id FROM watch_history WHERE watched = 1")
-    fun getWatchedIds(): Flow<List<String>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addToWatchlist(item: WatchlistEntity)
 
-    @Query("UPDATE watch_history SET poster = :poster, background = :background, logo = :logo WHERE id = :id")
-    suspend fun updateHistoryImages(id: String, poster: String?, background: String?, logo: String?)
+    @Query("DELETE FROM watchlist WHERE id = :id")
+    suspend fun removeFromWatchlist(id: String)
+
+    @Query("DELETE FROM watchlist")
+    suspend fun clearWatchlist()
 
     // ── Series Next Up ──
 
@@ -245,17 +262,10 @@ interface AddonDao {
     @Query("DELETE FROM series_next_up WHERE seriesId = :seriesId")
     suspend fun deleteSeriesNextUp(seriesId: String)
 
-    @Query("SELECT EXISTS(SELECT 1 FROM watchlist WHERE id = :id)")
-    suspend fun isInWatchlist(id: String): Boolean
+    @Query("DELETE FROM series_next_up")
+    suspend fun clearSeriesNextUp()
 
-    @Query("SELECT EXISTS(SELECT 1 FROM watchlist WHERE id = :id)")
-    fun isInWatchlistFlow(id: String): Flow<Boolean>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addToWatchlist(item: WatchlistEntity)
-
-    @Query("DELETE FROM watchlist WHERE id = :id")
-    suspend fun removeFromWatchlist(id: String)
+    // ── Runtime State Replace ──
 
     @Transaction
     suspend fun replaceRuntimeState(
@@ -269,8 +279,13 @@ interface AddonDao {
         clearHubRows()
         clearCatalogConfigs()
         clearAddons()
+
+        // User/activity state must be cleared when switching, restoring,
+        // or initializing profile runtime state.
         clearWatchHistory()
-    
+        clearWatchlist()
+        clearSeriesNextUp()
+
         if (addons.isNotEmpty()) insertAddons(addons)
         if (catalogConfigs.isNotEmpty()) saveCatalogConfigs(catalogConfigs)
         if (hubRows.isNotEmpty()) insertHubRows(hubRows)
