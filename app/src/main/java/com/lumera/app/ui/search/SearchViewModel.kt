@@ -28,6 +28,7 @@ class SearchViewModel @Inject constructor(
         val movies: List<MetaItem> = emptyList(),
         val series: List<MetaItem> = emptyList(),
         val isLoading: Boolean = false,
+        val hasSearched: Boolean = false,
 
         // Discover
         val discoverCatalogs: List<DiscoverCatalog> = emptyList(),
@@ -85,58 +86,69 @@ class SearchViewModel @Inject constructor(
 
     fun onQueryChange(newQuery: String) {
         searchJob?.cancel()
-
+    
         _state.value = _state.value.copy(
             query = newQuery,
             results = emptyList(),
             movies = emptyList(),
             series = emptyList(),
-            isLoading = false
+            isLoading = false,
+            hasSearched = false
         )
-
-        // Important:
-        // Do not auto-search after 3 characters.
-        // Search now runs only when user presses the on-screen Enter/Search key.
+    
+        // Do not auto-search.
+        // Search only runs from submitSearch().
     }
 
     fun submitSearch() {
         val query = _state.value.query.trim()
-
+    
         searchJob?.cancel()
-
+    
         if (query.isBlank()) {
             _state.value = _state.value.copy(
                 query = "",
                 results = emptyList(),
                 movies = emptyList(),
                 series = emptyList(),
-                isLoading = false
+                isLoading = false,
+                hasSearched = false
             )
             return
         }
-
+    
+        _state.value = _state.value.copy(
+            query = query,
+            hasSearched = true
+        )
+    
         searchJob = viewModelScope.launch {
             performSearch(query)
         }
     }
 
     private suspend fun performSearch(query: String) {
-        _state.value = _state.value.copy(isLoading = true)
-
+        _state.value = _state.value.copy(
+            isLoading = true,
+            hasSearched = true
+        )
+    
         try {
             val results = repository.searchMovies(query)
             val movies = results.filter { it.type == "movie" }
             val series = results.filter { it.type == "series" }
-
+    
             _state.value = _state.value.copy(
                 results = results,
                 movies = movies,
                 series = series,
-                isLoading = false
+                isLoading = false,
+                hasSearched = true
             )
         } catch (_: Exception) {
             _state.value = _state.value.copy(
-                isLoading = false
+                isLoading = false,
+                hasSearched = true
             )
         }
     }
