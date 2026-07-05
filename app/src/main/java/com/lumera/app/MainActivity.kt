@@ -107,6 +107,7 @@ import kotlinx.coroutines.runBlocking
 import com.lumera.app.data.activation.ActivationManager
 import com.lumera.app.ui.activation.ActivationScreen
 import com.lumera.app.data.sync.LumeraBackupRepository
+import com.lumera.app.data.model.WatchHistoryEntity
 
 import java.util.Locale
 import javax.inject.Inject
