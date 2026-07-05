@@ -410,4 +410,29 @@ private suspend fun createTroyRuntimeSnapshot(): ProfileRuntimeSnapshot {
     private fun setLastActiveProfileId(profileId: Int) {
         prefs.edit().putInt(KEY_LAST_ACTIVE_PROFILE_ID, profileId).apply()
     }
+    
+    suspend fun restoreAccountBackup(backup: LumeraAccountBackup): Boolean {
+        if (backup.profiles.isEmpty()) {
+            return false
+        }
+    
+        // Replace profile rows first.
+        backup.profiles.forEach { profileBackup ->
+            val profile = profileBackup.profile
+    
+            dao.insertProfile(profile)
+            writeSnapshot(profile.id, profileBackup.snapshot)
+            clearPendingSetup(profile.id)
+        }
+    
+        val restoreProfileId =
+            backup.lastActiveProfileId
+                ?.takeIf { id -> backup.profiles.any { it.profile.id == id } }
+                ?: backup.profiles.first().profile.id
+    
+        loadRuntimeState(restoreProfileId)
+        setLastActiveProfileId(restoreProfileId)
+    
+        return true
+    }
 }
