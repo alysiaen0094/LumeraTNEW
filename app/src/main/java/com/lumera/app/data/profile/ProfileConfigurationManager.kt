@@ -156,11 +156,22 @@ class ProfileConfigurationManager @Inject constructor(
 
     suspend fun initializeByCopying(targetProfileId: Int, sourceProfileId: Int) {
         captureStartupRuntimeIfNeeded()
+    
         val sourceSnapshot = readSnapshot(sourceProfileId) ?: captureRuntimeSnapshot().also {
             writeSnapshot(sourceProfileId, it)
             stremioAuthManager.saveCredentialsForProfile(sourceProfileId)
         }
-        writeSnapshot(targetProfileId, sourceSnapshot.copy(watchHistory = emptyList()))
+    
+        val copiedConfigOnlySnapshot = ProfileRuntimeSnapshot(
+            addons = sourceSnapshot.addons,
+            catalogConfigs = sourceSnapshot.catalogConfigs,
+            hubRows = emptyList(),
+            hubRowItems = emptyList(),
+            watchHistory = emptyList()
+        )
+    
+        writeSnapshot(targetProfileId, copiedConfigOnlySnapshot)
+    
         stremioAuthManager.copyCredentialsBetweenProfiles(sourceProfileId, targetProfileId)
         copyProfileDisplayAndDashboardConfig(targetProfileId, sourceProfileId)
         clearPendingSetup(targetProfileId)
