@@ -166,6 +166,11 @@ fun SearchScreen(
                         viewModel.appendCharacter(" ")
                         keepFocused = false
                     },
+                    onSubmitSearch = {
+                        keepFocused = false
+                        keyboardController?.hide()
+                        viewModel.submitSearch()
+                    },
                     onOpenSystemKeyboard = {
                         keepFocused = true
                         searchInputFocusRequester.requestFocus()
@@ -175,7 +180,7 @@ fun SearchScreen(
                     drawerRequester = drawerRequester,
                     isTopNav = isTopNav,
                     hasResults = state.results.isNotEmpty() || state.discoverItems.isNotEmpty(),
-                    contentEntryRequester = if (state.query.length < 3 && state.discoverItems.isNotEmpty()) {
+                    contentEntryRequester = if (state.results.isEmpty() && state.discoverItems.isNotEmpty()) {
                         discoverGridEntryRequester
                     } else null
                 )
@@ -781,6 +786,7 @@ fun TvKeyboard(
     onKeyPress: (String) -> Unit,
     onBackspace: () -> Unit,
     onSpace: () -> Unit,
+    onSubmitSearch: () -> Unit,
     onOpenSystemKeyboard: () -> Unit,
     entryRequester: FocusRequester,
     drawerRequester: FocusRequester,
@@ -854,61 +860,60 @@ fun TvKeyboard(
                     }
             )
         }
-
         val spaceIndex = keys.size
-        item(span = { GridItemSpan(2) }) {
-            val isRemembered = spaceIndex == lastFocusedIndex
-            KeyButton(
-                icon = Icons.Default.SpaceBar,
-                onClick = onSpace,
-                label = "Space",
-                modifier = Modifier
-                    .onFocusChanged { if (it.isFocused) lastFocusedIndex = spaceIndex }
-                    .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
-                    .onPreviewKeyEvent {
-                        if (it.key == Key.DirectionLeft && it.type == KeyEventType.KeyDown) {
-                            if (!isTopNav) drawerRequester.requestFocus()
-                            true
-                        } else false
-                    }
-            )
-        }
-
-        val backIndex = keys.size + 1
-        item(span = { GridItemSpan(2) }) {
-            val isRemembered = backIndex == lastFocusedIndex
-            KeyButton(
-                icon = Icons.AutoMirrored.Filled.Backspace,
-                onClick = onBackspace,
-                label = "Back",
-                modifier = Modifier
-                    .onFocusChanged { if (it.isFocused) lastFocusedIndex = backIndex }
-                    .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
-            )
-        }
-
-        val hideIndex = keys.size + 2
-        item(span = { GridItemSpan(2) }) {
-            val isRemembered = hideIndex == lastFocusedIndex
-            KeyButton(
-                icon = Icons.Default.Keyboard,
-                onClick = onOpenSystemKeyboard,
-                label = "Keyboard",
-                modifier = Modifier
-                    .onFocusChanged { if (it.isFocused) lastFocusedIndex = hideIndex }
-                    .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
-                    .onPreviewKeyEvent {
-                        if (it.key == Key.DirectionRight && it.type == KeyEventType.KeyDown) {
-                            if (!hasResults) return@onPreviewKeyEvent true
-                            if (contentEntryRequester != null) {
-                                contentEntryRequester.requestFocus()
-                                return@onPreviewKeyEvent true
-                            }
-                            false
-                        } else false
-                    }
-            )
-        }
+            item(span = { GridItemSpan(2) }) {
+                val isRemembered = spaceIndex == lastFocusedIndex
+                KeyButton(
+                    icon = Icons.Default.SpaceBar,
+                    onClick = onSpace,
+                    label = "Space",
+                    modifier = Modifier
+                        .onFocusChanged { if (it.isFocused) lastFocusedIndex = spaceIndex }
+                        .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
+                        .onPreviewKeyEvent {
+                            if (it.key == Key.DirectionLeft && it.type == KeyEventType.KeyDown) {
+                                if (!isTopNav) drawerRequester.requestFocus()
+                                true
+                            } else false
+                        }
+                )
+            }
+            
+            val backIndex = keys.size + 1
+            item(span = { GridItemSpan(2) }) {
+                val isRemembered = backIndex == lastFocusedIndex
+                KeyButton(
+                    icon = Icons.AutoMirrored.Filled.Backspace,
+                    onClick = onBackspace,
+                    label = "Back",
+                    modifier = Modifier
+                        .onFocusChanged { if (it.isFocused) lastFocusedIndex = backIndex }
+                        .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
+                )
+            }
+            
+            val enterIndex = keys.size + 2
+            item(span = { GridItemSpan(2) }) {
+                val isRemembered = enterIndex == lastFocusedIndex
+                KeyButton(
+                    icon = Icons.Default.Search,
+                    onClick = onSubmitSearch,
+                    label = "Enter",
+                    modifier = Modifier
+                        .onFocusChanged { if (it.isFocused) lastFocusedIndex = enterIndex }
+                        .then(if (isRemembered) Modifier.focusRequester(entryRequester) else Modifier)
+                        .onPreviewKeyEvent {
+                            if (it.key == Key.DirectionRight && it.type == KeyEventType.KeyDown) {
+                                if (!hasResults) return@onPreviewKeyEvent true
+                                if (contentEntryRequester != null) {
+                                    contentEntryRequester.requestFocus()
+                                    return@onPreviewKeyEvent true
+                                }
+                                false
+                            } else false
+                        }
+                )
+            }
     }
 }
 
