@@ -2116,15 +2116,63 @@ class MainActivity : ComponentActivity() {
                                 
                                     if (selectedPlaybackId.startsWith("trailer_")) {
                                         trailerReturnToken++
+                                        activeView = "details"
+                                        return@PlayerScreen
                                     }
                                 
-                                    activeView = "details"
+                                    val playbackIdToSave = selectedPlaybackId
+                                    val playbackTypeToSave = selectedPlaybackType
+                                    val playbackTitleToSave = selectedPlaybackTitle.ifBlank { selectedMovieTitle }
+                                    val playbackPosterToSave = selectedPlaybackPoster.ifBlank { selectedMoviePoster }
+                                    val playbackBackgroundToSave = selectedMovieBackground.ifBlank { null }
+                                    val playbackLogoToSave = selectedMovieLogo.ifBlank { null }
+                                
+                                    val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
+                                    val durationToSave = sessionResult.durationMs?.coerceAtLeast(0L) ?: 0L
+                                
+                                    val watchedToSave =
+                                        sessionResult.isCompleted ||
+                                            (durationToSave > 0L && positionToSave.toFloat() / durationToSave.toFloat() >= 0.90f)
                                 
                                     uiScope.launch(Dispatchers.IO) {
+                                        if (
+                                            playbackIdToSave.isNotBlank() &&
+                                            playbackTitleToSave.isNotBlank() &&
+                                            positionToSave >= 5_000L
+                                        ) {
+                                            addonDao.upsertHistory(
+                                                WatchHistoryEntity(
+                                                    id = playbackIdToSave,
+                                                    title = playbackTitleToSave,
+                                                    poster = playbackPosterToSave.takeIf { it.isNotBlank() },
+                                                    background = playbackBackgroundToSave,
+                                                    logo = playbackLogoToSave,
+                                                    position = if (watchedToSave && durationToSave > 0L) durationToSave else positionToSave,
+                                                    duration = durationToSave,
+                                                    lastWatched = System.currentTimeMillis(),
+                                                    type = playbackTypeToSave,
+                                                    watched = watchedToSave,
+                                                    scrobbled = false
+                                                )
+                                            )
+                                
+                                            android.util.Log.d(
+                                                "LumeraWatchHistory",
+                                                "Saved history id=$playbackIdToSave title=$playbackTitleToSave pos=$positionToSave duration=$durationToSave watched=$watchedToSave"
+                                            )
+                                        } else {
+                                            android.util.Log.d(
+                                                "LumeraWatchHistory",
+                                                "Skipped history save id=$playbackIdToSave title=$playbackTitleToSave pos=$positionToSave duration=$durationToSave"
+                                            )
+                                        }
+                                
                                         delay(1200)
                                         val pushed = lumeraBackupRepository.pushAccountBackup()
                                         android.util.Log.d("LumeraBackup", "player-exit backup pushed=$pushed")
                                     }
+                                
+                                    activeView = "details"
                                 }
                             )
                             }
