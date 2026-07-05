@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.lumera.app.data.sync.LumeraBackupRepository
 
 data class ActivationUiState(
     val authCode: String = "",
@@ -22,7 +23,8 @@ data class ActivationUiState(
 @HiltViewModel
 class ActivationViewModel @Inject constructor(
     private val activationManager: ActivationManager,
-    private val addonRepository: AddonRepository
+    private val addonRepository: AddonRepository,
+    private val lumeraBackupRepository: LumeraBackupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -77,7 +79,11 @@ class ActivationViewModel @Inject constructor(
 
             if (isValid) {
                 activationManager.markActivated(userId)
-
+            
+                withContext(Dispatchers.IO) {
+                    lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
+                }
+            
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     activated = true,
