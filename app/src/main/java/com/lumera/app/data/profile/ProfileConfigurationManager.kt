@@ -162,7 +162,7 @@ class ProfileConfigurationManager @Inject constructor(
             stremioAuthManager.saveCredentialsForProfile(sourceProfileId)
         }
     
-        val copiedConfigOnlySnapshot = ProfileRuntimeSnapshot(
+        val configOnlySnapshot = ProfileRuntimeSnapshot(
             addons = sourceSnapshot.addons,
             catalogConfigs = sourceSnapshot.catalogConfigs,
             hubRows = emptyList(),
@@ -170,11 +170,20 @@ class ProfileConfigurationManager @Inject constructor(
             watchHistory = emptyList()
         )
     
-        writeSnapshot(targetProfileId, copiedConfigOnlySnapshot)
+        writeSnapshot(targetProfileId, configOnlySnapshot)
+    
+        dao.replaceRuntimeState(
+            addons = configOnlySnapshot.addons,
+            catalogConfigs = configOnlySnapshot.catalogConfigs,
+            hubRows = configOnlySnapshot.hubRows,
+            hubRowItems = configOnlySnapshot.hubRowItems,
+            watchHistory = configOnlySnapshot.watchHistory
+        )
     
         stremioAuthManager.copyCredentialsBetweenProfiles(sourceProfileId, targetProfileId)
         copyProfileDisplayAndDashboardConfig(targetProfileId, sourceProfileId)
         clearPendingSetup(targetProfileId)
+        setLastActiveProfileId(targetProfileId)
     }
 
     fun deleteProfileState(profileId: Int) {
