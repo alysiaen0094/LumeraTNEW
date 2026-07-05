@@ -242,6 +242,9 @@ interface AddonDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addToWatchlist(item: WatchlistEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addWatchlistItems(items: List<WatchlistEntity>)
+
     @Query("DELETE FROM watchlist WHERE id = :id")
     suspend fun removeFromWatchlist(id: String)
 
@@ -252,6 +255,12 @@ interface AddonDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSeriesNextUp(entry: SeriesNextUpEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSeriesNextUpItems(items: List<SeriesNextUpEntity>)
+
+    @Query("SELECT * FROM series_next_up ORDER BY updatedAt DESC")
+    suspend fun getAllSeriesNextUpOnce(): List<SeriesNextUpEntity>
 
     @Query("SELECT * FROM series_next_up WHERE isComplete = 0 ORDER BY updatedAt DESC")
     fun getActiveSeriesNextUp(): Flow<List<SeriesNextUpEntity>>
@@ -273,23 +282,27 @@ interface AddonDao {
         catalogConfigs: List<CatalogConfigEntity>,
         hubRows: List<HubRowEntity>,
         hubRowItems: List<HubRowItemEntity>,
-        watchHistory: List<WatchHistoryEntity>
+        watchHistory: List<WatchHistoryEntity>,
+        watchlist: List<WatchlistEntity>,
+        seriesNextUp: List<SeriesNextUpEntity>
     ) {
         clearHubRowItems()
         clearHubRows()
         clearCatalogConfigs()
         clearAddons()
-
+    
         // User/activity state must be cleared when switching, restoring,
         // or initializing profile runtime state.
         clearWatchHistory()
         clearWatchlist()
         clearSeriesNextUp()
-
+    
         if (addons.isNotEmpty()) insertAddons(addons)
         if (catalogConfigs.isNotEmpty()) saveCatalogConfigs(catalogConfigs)
         if (hubRows.isNotEmpty()) insertHubRows(hubRows)
         if (hubRowItems.isNotEmpty()) insertHubRowItems(hubRowItems)
         if (watchHistory.isNotEmpty()) upsertHistoryItems(watchHistory)
+        if (watchlist.isNotEmpty()) addWatchlistItems(watchlist)
+        if (seriesNextUp.isNotEmpty()) upsertSeriesNextUpItems(seriesNextUp)
     }
 }
