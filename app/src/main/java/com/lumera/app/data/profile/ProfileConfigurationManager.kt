@@ -19,6 +19,8 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.lumera.app.data.activation.ActivationManager
+import com.lumera.app.data.model.WatchlistEntity
+import com.lumera.app.data.model.SeriesNextUpEntity
 
 data class LumeraProfileBackup(
     val profile: ProfileEntity,
@@ -38,7 +40,9 @@ data class ProfileRuntimeSnapshot(
     val catalogConfigs: List<CatalogConfigEntity> = emptyList(),
     val hubRows: List<HubRowEntity> = emptyList(),
     val hubRowItems: List<HubRowItemEntity> = emptyList(),
-    val watchHistory: List<WatchHistoryEntity> = emptyList()
+    val watchHistory: List<WatchHistoryEntity> = emptyList(),
+    val watchlist: List<WatchlistEntity> = emptyList(),
+    val seriesNextUp: List<SeriesNextUpEntity> = emptyList()
 )
 
 @Singleton
@@ -142,7 +146,9 @@ class ProfileConfigurationManager @Inject constructor(
             catalogConfigs = snapshot.catalogConfigs,
             hubRows = snapshot.hubRows,
             hubRowItems = snapshot.hubRowItems,
-            watchHistory = snapshot.watchHistory
+            watchHistory = snapshot.watchHistory,
+            watchlist = snapshot.watchlist,
+            seriesNextUp = snapshot.seriesNextUp
         )
         stremioAuthManager.loadCredentialsForProfile(profileId)
         setLastActiveProfileId(profileId)
@@ -167,7 +173,9 @@ class ProfileConfigurationManager @Inject constructor(
             catalogConfigs = sourceSnapshot.catalogConfigs,
             hubRows = emptyList(),
             hubRowItems = emptyList(),
-            watchHistory = emptyList()
+            watchHistory = emptyList(),
+            watchlist = emptyList(),
+            seriesNextUp = emptyList()
         )
     
         writeSnapshot(targetProfileId, configOnlySnapshot)
@@ -177,7 +185,9 @@ class ProfileConfigurationManager @Inject constructor(
             catalogConfigs = configOnlySnapshot.catalogConfigs,
             hubRows = configOnlySnapshot.hubRows,
             hubRowItems = configOnlySnapshot.hubRowItems,
-            watchHistory = configOnlySnapshot.watchHistory
+            watchHistory = configOnlySnapshot.watchHistory,
+            watchlist = configOnlySnapshot.watchlist,
+            seriesNextUp = configOnlySnapshot.seriesNextUp
         )
     
         stremioAuthManager.copyCredentialsBetweenProfiles(sourceProfileId, targetProfileId)
@@ -227,7 +237,9 @@ class ProfileConfigurationManager @Inject constructor(
             catalogConfigs = dao.getAllCatalogConfigs().firstOrNull() ?: emptyList(),
             hubRows = dao.getAllHubRows().firstOrNull() ?: emptyList(),
             hubRowItems = dao.getAllHubRowItems().firstOrNull() ?: emptyList(),
-            watchHistory = dao.getWatchHistory().firstOrNull() ?: emptyList()
+            watchHistory = dao.getWatchHistory().firstOrNull() ?: emptyList(),
+            watchlist = dao.getWatchlistOnce(),
+            seriesNextUp = dao.getAllSeriesNextUpOnce()
         )
     }
 
@@ -295,6 +307,8 @@ class ProfileConfigurationManager @Inject constructor(
         hubRows = emptyList(),
         hubRowItems = emptyList(),
         watchHistory = emptyList()
+        watchlist = emptyList(),
+        seriesNextUp = emptyList()
     )
 }
 
@@ -382,6 +396,8 @@ private suspend fun createTroyRuntimeSnapshot(): ProfileRuntimeSnapshot {
         hubRows = emptyList(),
         hubRowItems = emptyList(),
         watchHistory = emptyList()
+        watchlist = emptyList(),
+        seriesNextUp = emptyList()
     )
 }
 
