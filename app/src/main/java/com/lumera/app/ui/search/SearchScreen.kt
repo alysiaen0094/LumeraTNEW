@@ -183,6 +183,7 @@ fun SearchScreen(
                    contentEntryRequester = if (!state.hasSearched && state.discoverItems.isNotEmpty()) {
                         discoverGridEntryRequester
                     } else null
+                    )
 
                 // DISCOVER FILTERS — greyed out with fade when searching
                 if (state.discoverCatalogs.isNotEmpty()) {
