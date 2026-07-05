@@ -3,6 +3,7 @@ package com.lumera.app.ui.activation
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,8 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -41,16 +41,19 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lumera.app.R
 import kotlinx.coroutines.delay
-import androidx.compose.foundation.layout.fillMaxWidth
 
 private const val MAX_AUTH_CODE_LENGTH = 8
+
 @Composable
 fun ActivationScreen(
     onActivated: () -> Unit,
@@ -86,63 +89,84 @@ fun ActivationScreen(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF161616),
-                        Color(0xFF050505),
+                        Color(0xFF242424),
+                        Color(0xFF090909),
                         Color.Black
                     ),
-                    radius = 900f
+                    radius = 1150f
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .width(700.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(Color(0xFF080808).copy(alpha = 0.96f))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(32.dp))
-                .padding(horizontal = 34.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .width(720.dp)
+                .clip(RoundedCornerShape(34.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.105f),
+                            Color.White.copy(alpha = 0.045f),
+                            Color.Black.copy(alpha = 0.18f)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.16f),
+                    shape = RoundedCornerShape(34.dp)
+                )
+                .padding(1.dp)
         ) {
-            Text(
-                text = "ACTIVATE LUMERA",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(33.dp))
+                    .background(Color(0xFF070707).copy(alpha = 0.96f))
+                    .padding(horizontal = 38.dp, vertical = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.banner),
+                    contentDescription = "Lumera",
+                    modifier = Modifier
+                        .width(310.dp)
+                        .height(86.dp),
+                    contentScale = ContentScale.Fit
+                )
 
-            Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(18.dp))
 
-            Text(
-                text = "Enter your Troy auth code to continue.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.58f),
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = "Add VOD Code",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(18.dp))
 
-            AuthCodeDisplay(value = state.authCode)
+                AuthCodeDisplay(value = state.authCode)
 
-            Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
 
-            ActivationStatusMessage(
-                value = state.authCode,
-                isLoading = state.isLoading,
-                error = state.error
-            )
-            
-            Spacer(Modifier.height(22.dp))
+                ActivationStatusMessage(
+                    value = state.authCode,
+                    isLoading = state.isLoading,
+                    error = state.error
+                )
 
-            TvAuthKeyboard(
-                value = state.authCode,
-                isLoading = state.isLoading,
-                firstKeyRequester = firstKeyRequester,
-                onValueChange = viewModel::updateAuthCode,
-                onSubmit = { code -> viewModel.validateAuthCode(code) }
-            )
+                Spacer(Modifier.height(22.dp))
+
+                TvAuthKeyboard(
+                    value = state.authCode,
+                    isLoading = state.isLoading,
+                    firstKeyRequester = firstKeyRequester,
+                    onValueChange = viewModel::updateAuthCode,
+                    onSubmit = { code -> viewModel.validateAuthCode(code) }
+                )
+            }
         }
     }
 }
@@ -151,20 +175,27 @@ fun ActivationScreen(
 private fun AuthCodeDisplay(value: String) {
     Box(
         modifier = Modifier
-            .widthIn(min = 420.dp)
-            .height(68.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.07f))
-            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
+            .widthIn(min = 430.dp)
+            .height(70.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.115f),
+                        Color.White.copy(alpha = 0.055f)
+                    )
+                )
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
             .padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = value.ifBlank { "AUTH CODE" },
+            text = value.ifBlank { "VOD CODE" },
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = if (value.isBlank()) Color.White.copy(alpha = 0.28f) else Color.White,
+            color = if (value.isBlank()) Color.White.copy(alpha = 0.30f) else Color.White,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -180,7 +211,7 @@ private fun ActivationStatusMessage(
     val remaining = (MAX_AUTH_CODE_LENGTH - value.length).coerceAtLeast(0)
 
     val message = when {
-        isLoading -> "Checking activation..."
+        isLoading -> "Checking code..."
         !error.isNullOrBlank() -> error
         remaining > 0 -> "$remaining characters remaining"
         else -> "Validating code..."
@@ -188,8 +219,8 @@ private fun ActivationStatusMessage(
 
     val color = when {
         !error.isNullOrBlank() -> Color(0xFFFF7777)
-        isLoading -> Color.White.copy(alpha = 0.65f)
-        else -> Color.White.copy(alpha = 0.35f)
+        isLoading -> Color.White.copy(alpha = 0.70f)
+        else -> Color.White.copy(alpha = 0.40f)
     }
 
     Box(
@@ -279,24 +310,6 @@ private fun AuthKeyButton(
 }
 
 @Composable
-private fun AuthActionButton(
-    text: String,
-    enabled: Boolean,
-    width: androidx.compose.ui.unit.Dp,
-    isPrimary: Boolean = false,
-    onClick: () -> Unit
-) {
-    AuthButtonBase(
-        text = text,
-        enabled = enabled,
-        width = width,
-        height = 50.dp,
-        isPrimary = isPrimary,
-        onClick = onClick
-    )
-}
-
-@Composable
 private fun AuthButtonBase(
     text: String,
     enabled: Boolean,
@@ -320,7 +333,7 @@ private fun AuthButtonBase(
             isFocused && isPrimary -> MaterialTheme.colorScheme.primary
             isFocused -> Color.White
             isPrimary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
-            else -> Color.White.copy(alpha = 0.10f)
+            else -> Color.White.copy(alpha = 0.105f)
         },
         label = "authKeyBackground"
     )
@@ -330,7 +343,7 @@ private fun AuthButtonBase(
             !enabled -> Color.White.copy(alpha = 0.25f)
             isFocused -> Color.Black
             isPrimary -> Color.Black
-            else -> Color.White.copy(alpha = 0.86f)
+            else -> Color.White.copy(alpha = 0.88f)
         },
         label = "authKeyContent"
     )
