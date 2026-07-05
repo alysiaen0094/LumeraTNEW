@@ -100,6 +100,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.media.MediaPlayer
 import com.lumera.app.data.local.AddonDao
 import com.lumera.app.data.profile.ProfileConfigurationManager
@@ -108,6 +109,7 @@ import com.lumera.app.data.activation.ActivationManager
 import com.lumera.app.ui.activation.ActivationScreen
 import com.lumera.app.data.sync.LumeraBackupRepository
 import com.lumera.app.data.model.WatchHistoryEntity
+import com.lumera.app.data.model.SeriesNextUpEntity
 
 import java.util.Locale
 import javax.inject.Inject
@@ -676,6 +678,120 @@ class MainActivity : ComponentActivity() {
     lateinit var activationManager: ActivationManager
     @Inject
     lateinit var lumeraBackupRepository: LumeraBackupRepository
+
+    private suspend fun saveLumeraPlaybackState(
+        sessionResult: PlayerSessionResult,
+        playbackId: String,
+        playbackType: String,
+        playbackTitle: String,
+        playbackPoster: String,
+        playbackBackground: String?,
+        playbackLogo: String?,
+        seriesId: String,
+        seriesTitle: String,
+        nextEpisode: MetaVideo?
+    ) {
+        val cleanPlaybackId = playbackId.trim()
+        val cleanPlaybackType = playbackType.trim().ifBlank { "movie" }
+        val cleanPlaybackTitle = playbackTitle.trim()
+        val cleanPoster = playbackPoster.trim().takeIf { it.isNotBlank() }
+        val cleanBackground = playbackBackground?.trim()?.takeIf { it.isNotBlank() }
+        val cleanLogo = playbackLogo?.trim()?.takeIf { it.isNotBlank() }
+
+        val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
+        val durationToSave = sessionResult.durationMs?.coerceAtLeast(0L) ?: 0L
+        val watchedToSave = sessionResult.isCompleted ||
+            (durationToSave > 0L && positionToSave.toFloat() / durationToSave.toFloat() >= 0.90f)
+
+        if (cleanPlaybackId.isBlank() || cleanPlaybackTitle.isBlank()) {
+            android.util.Log.d(
+                "LumeraWatchHistory",
+                "Skipped history save: missing id/title id=$cleanPlaybackId title=$cleanPlaybackTitle"
+            )
+            return
+        }
+
+        if (!watchedToSave && positionToSave < SOURCE_SELECTION_COMMIT_MIN_POSITION_MS) {
+            android.util.Log.d(
+                "LumeraWatchHistory",
+                "Skipped history save id=$cleanPlaybackId pos=$positionToSave duration=$durationToSave"
+            )
+            return
+        }
+
+        addonDao.upsertHistory(
+            WatchHistoryEntity(
+                id = cleanPlaybackId,
+                title = cleanPlaybackTitle,
+                poster = cleanPoster,
+                background = cleanBackground,
+                logo = cleanLogo,
+                position = if (watchedToSave && durationToSave > 0L) durationToSave else positionToSave,
+                duration = durationToSave,
+                lastWatched = System.currentTimeMillis(),
+                type = cleanPlaybackType,
+                watched = watchedToSave,
+                scrobbled = false
+            )
+        )
+
+        val isSeriesToSave = cleanPlaybackType.equals("series", ignoreCase = true) ||
+            cleanPlaybackType.equals("tv", ignoreCase = true)
+
+        if (isSeriesToSave) {
+            val idParts = cleanPlaybackId.split(":")
+            val parsedSeason = idParts.getOrNull(idParts.size - 2)?.toIntOrNull()
+            val parsedEpisode = idParts.getOrNull(idParts.size - 1)?.toIntOrNull()
+            val seriesIdToSave = seriesId.trim().ifBlank {
+                if (idParts.size >= 3) idParts.dropLast(2).joinToString(":") else cleanPlaybackId
+            }
+
+            if (seriesIdToSave.isNotBlank() && parsedSeason != null && parsedEpisode != null) {
+                val nextEpisodeToSave = if (watchedToSave) nextEpisode else null
+                val nextSeasonToSave = if (watchedToSave && nextEpisodeToSave != null) {
+                    nextEpisodeToSave.season
+                } else {
+                    parsedSeason
+                }
+                val nextEpisodeNumberToSave = if (watchedToSave && nextEpisodeToSave != null) {
+                    nextEpisodeToSave.episode
+                } else {
+                    parsedEpisode
+                }
+
+                if (nextSeasonToSave != null && nextEpisodeNumberToSave != null) {
+                    addonDao.upsertSeriesNextUp(
+                        SeriesNextUpEntity(
+                            seriesId = seriesIdToSave,
+                            title = seriesTitle.trim().ifBlank { cleanPlaybackTitle },
+                            poster = cleanPoster,
+                            nextSeason = nextSeasonToSave,
+                            nextEpisode = nextEpisodeNumberToSave,
+                            nextEpisodeTitle = if (watchedToSave && nextEpisodeToSave != null) {
+                                episodeDisplayTitle(nextEpisodeToSave)
+                            } else {
+                                cleanPlaybackTitle
+                            },
+                            nextReleased = null,
+                            isComplete = watchedToSave && nextEpisodeToSave == null,
+                            isNewEpisode = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
+
+                    android.util.Log.d(
+                        "LumeraWatchHistory",
+                        "Saved series next-up series=$seriesIdToSave s=$nextSeasonToSave e=$nextEpisodeNumberToSave complete=${watchedToSave && nextEpisodeToSave == null}"
+                    )
+                }
+            }
+        }
+
+        android.util.Log.d(
+            "LumeraWatchHistory",
+            "Saved history id=$cleanPlaybackId title=$cleanPlaybackTitle pos=$positionToSave duration=$durationToSave watched=$watchedToSave"
+        )
+    }
 
     private var splashPlayer: MediaPlayer? = null
     private var splashOverlay: android.view.View? = null
@@ -1783,6 +1899,28 @@ class MainActivity : ComponentActivity() {
                                         val nextPlaybackTitle = episodeDisplayTitle(nextEpisode)
 
                                         uiScope.launch {
+                                            withContext(Dispatchers.IO) {
+                                                saveLumeraPlaybackState(
+                                                    sessionResult = PlayerSessionResult(
+                                                        positionMs = 0L,
+                                                        durationMs = null,
+                                                        isCompleted = true,
+                                                        selectedSourceUrl = playerCurrentSourceUrl ?: selectedVideoUrl,
+                                                        selectedAudioTrackId = null,
+                                                        selectedSubtitleTrackId = null
+                                                    ),
+                                                    playbackId = selectedPlaybackId,
+                                                    playbackType = selectedPlaybackType,
+                                                    playbackTitle = selectedPlaybackTitle.ifBlank { selectedMovieTitle },
+                                                    playbackPoster = selectedPlaybackPoster.ifBlank { selectedMoviePoster },
+                                                    playbackBackground = selectedMovieBackground,
+                                                    playbackLogo = selectedMovieLogo,
+                                                    seriesId = selectedMovieId,
+                                                    seriesTitle = selectedMovieTitle,
+                                                    nextEpisode = nextEpisode
+                                                )
+                                            }
+
                                             // Show loading feedback immediately
                                             val autoplay = currentProfile?.autoplayNextEpisode == true
                                             val autoSelect = currentProfile?.autoSelectSource == true
@@ -2114,65 +2252,42 @@ class MainActivity : ComponentActivity() {
                                         onResumeHintResolved = { detailsResumePlaybackHint = it },
                                         rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
                                     )
-                                
+
                                     if (selectedPlaybackId.startsWith("trailer_")) {
                                         trailerReturnToken++
                                         activeView = "details"
                                         return@PlayerScreen
                                     }
-                                
+
                                     val playbackIdToSave = selectedPlaybackId
                                     val playbackTypeToSave = selectedPlaybackType
                                     val playbackTitleToSave = selectedPlaybackTitle.ifBlank { selectedMovieTitle }
                                     val playbackPosterToSave = selectedPlaybackPoster.ifBlank { selectedMoviePoster }
-                                    val playbackBackgroundToSave = selectedMovieBackground.ifBlank { null }
-                                    val playbackLogoToSave = selectedMovieLogo.ifBlank { null }
-                                
-                                    val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
-                                    val durationToSave = sessionResult.durationMs?.coerceAtLeast(0L) ?: 0L
-                                
-                                    val watchedToSave =
-                                        sessionResult.isCompleted ||
-                                            (durationToSave > 0L && positionToSave.toFloat() / durationToSave.toFloat() >= 0.90f)
-                                
+                                    val playbackBackgroundToSave = selectedMovieBackground
+                                    val playbackLogoToSave = selectedMovieLogo
+                                    val seriesIdToSave = selectedMovieId
+                                    val seriesTitleToSave = selectedMovieTitle
+                                    val nextEpisodeToSave = nextEpisode
+
                                     uiScope.launch(Dispatchers.IO) {
-                                        if (
-                                            playbackIdToSave.isNotBlank() &&
-                                            playbackTitleToSave.isNotBlank() &&
-                                            positionToSave >= 5_000L
-                                        ) {
-                                            addonDao.upsertHistory(
-                                                WatchHistoryEntity(
-                                                    id = playbackIdToSave,
-                                                    title = playbackTitleToSave,
-                                                    poster = playbackPosterToSave.takeIf { it.isNotBlank() },
-                                                    background = playbackBackgroundToSave,
-                                                    logo = playbackLogoToSave,
-                                                    position = if (watchedToSave && durationToSave > 0L) durationToSave else positionToSave,
-                                                    duration = durationToSave,
-                                                    lastWatched = System.currentTimeMillis(),
-                                                    type = playbackTypeToSave,
-                                                    watched = watchedToSave,
-                                                    scrobbled = false
-                                                )
-                                            )
-                                
-                                            android.util.Log.d(
-                                                "LumeraWatchHistory",
-                                                "Saved history id=$playbackIdToSave title=$playbackTitleToSave pos=$positionToSave duration=$durationToSave watched=$watchedToSave"
-                                            )
-                                        } else {
-                                            android.util.Log.d(
-                                                "LumeraWatchHistory",
-                                                "Skipped history save id=$playbackIdToSave title=$playbackTitleToSave pos=$positionToSave duration=$durationToSave"
-                                            )
-                                        }
-                                
+                                        saveLumeraPlaybackState(
+                                            sessionResult = sessionResult,
+                                            playbackId = playbackIdToSave,
+                                            playbackType = playbackTypeToSave,
+                                            playbackTitle = playbackTitleToSave,
+                                            playbackPoster = playbackPosterToSave,
+                                            playbackBackground = playbackBackgroundToSave,
+                                            playbackLogo = playbackLogoToSave,
+                                            seriesId = seriesIdToSave,
+                                            seriesTitle = seriesTitleToSave,
+                                            nextEpisode = nextEpisodeToSave
+                                        )
+
                                         delay(1200)
                                         val pushed = lumeraBackupRepository.pushAccountBackup()
                                         android.util.Log.d("LumeraBackup", "player-exit backup pushed=$pushed")
                                     }
-                                
+
                                     activeView = "details"
                                 }
                             )
