@@ -7,7 +7,6 @@ import com.lumera.app.data.repository.AddonRepository
 import com.lumera.app.data.repository.AddonRepository.DiscoverCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -55,6 +54,7 @@ class SearchViewModel @Inject constructor(
     // Discover grid scroll position — survives navigation to details and back
     var discoverScrollIndex: Int = 0
         private set
+
     var discoverScrollOffset: Int = 0
         private set
 
@@ -84,35 +84,60 @@ class SearchViewModel @Inject constructor(
     }
 
     fun onQueryChange(newQuery: String) {
-        _state.value = _state.value.copy(query = newQuery)
         searchJob?.cancel()
 
-        if (newQuery.length < 3) {
+        _state.value = _state.value.copy(
+            query = newQuery,
+            results = emptyList(),
+            movies = emptyList(),
+            series = emptyList(),
+            isLoading = false
+        )
+
+        // Important:
+        // Do not auto-search after 3 characters.
+        // Search now runs only when user presses the on-screen Enter/Search key.
+    }
+
+    fun submitSearch() {
+        val query = _state.value.query.trim()
+
+        searchJob?.cancel()
+
+        if (query.isBlank()) {
             _state.value = _state.value.copy(
-                results = emptyList(), movies = emptyList(),
-                series = emptyList(), isLoading = false
+                query = "",
+                results = emptyList(),
+                movies = emptyList(),
+                series = emptyList(),
+                isLoading = false
             )
             return
         }
 
         searchJob = viewModelScope.launch {
-            delay(500)
-            performSearch(newQuery)
+            performSearch(query)
         }
     }
 
     private suspend fun performSearch(query: String) {
         _state.value = _state.value.copy(isLoading = true)
+
         try {
             val results = repository.searchMovies(query)
             val movies = results.filter { it.type == "movie" }
             val series = results.filter { it.type == "series" }
+
             _state.value = _state.value.copy(
-                results = results, movies = movies,
-                series = series, isLoading = false
+                results = results,
+                movies = movies,
+                series = series,
+                isLoading = false
             )
-        } catch (e: Exception) {
-            _state.value = _state.value.copy(isLoading = false)
+        } catch (_: Exception) {
+            _state.value = _state.value.copy(
+                isLoading = false
+            )
         }
     }
 
@@ -139,6 +164,7 @@ class SearchViewModel @Inject constructor(
         val defaultCatalog = filtered.firstOrNull()
 
         resetDiscoverBuffer()
+
         _state.value = _state.value.copy(
             selectedType = type,
             availableTypes = allCatalogs.map { it.type }.distinct().sorted(),
@@ -149,11 +175,13 @@ class SearchViewModel @Inject constructor(
             discoverItems = emptyList(),
             hasMoreDiscover = true
         )
+
         loadDiscoverContent()
     }
 
     fun selectCatalog(catalog: DiscoverCatalog) {
         resetDiscoverBuffer()
+
         _state.value = _state.value.copy(
             selectedCatalog = catalog,
             availableGenres = buildGenreList(catalog),
@@ -161,17 +189,21 @@ class SearchViewModel @Inject constructor(
             discoverItems = emptyList(),
             hasMoreDiscover = true
         )
+
         loadDiscoverContent()
     }
 
     fun selectGenre(genre: String) {
         val actualGenre = if (genre == "All") null else genre
+
         resetDiscoverBuffer()
+
         _state.value = _state.value.copy(
             selectedGenre = actualGenre,
             discoverItems = emptyList(),
             hasMoreDiscover = true
         )
+
         loadDiscoverContent()
     }
 
@@ -189,8 +221,10 @@ class SearchViewModel @Inject constructor(
 
     private fun loadDiscoverContent() {
         discoverJob?.cancel()
+
         discoverJob = viewModelScope.launch {
             val catalog = _state.value.selectedCatalog ?: return@launch
+
             _state.value = _state.value.copy(isDiscoverLoading = true)
 
             try {
@@ -202,26 +236,25 @@ class SearchViewModel @Inject constructor(
                     skip = 0
                 )
 
-                // Track all fetched IDs for deduplication
                 allFetchedIds.clear()
                 items.forEach { allFetchedIds.add("${it.type}:${it.id}") }
 
-                // Batch: show first DISCOVER_INITIAL_LIMIT, buffer the rest
                 val visible = items.take(DISCOVER_INITIAL_LIMIT)
+
                 pendingDiscoverItems.clear()
                 if (items.size > DISCOVER_INITIAL_LIMIT) {
                     pendingDiscoverItems.addAll(items.drop(DISCOVER_INITIAL_LIMIT))
                 }
 
                 val hasMore = pendingDiscoverItems.isNotEmpty() ||
-                        (catalog.supportsSkip && items.isNotEmpty())
+                    (catalog.supportsSkip && items.isNotEmpty())
 
                 _state.value = _state.value.copy(
                     discoverItems = visible,
                     hasMoreDiscover = hasMore,
                     isDiscoverLoading = false
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _state.value = _state.value.copy(isDiscoverLoading = false)
             }
         }
@@ -230,14 +263,15 @@ class SearchViewModel @Inject constructor(
     fun loadMoreDiscover() {
         if (isLoadingMoreDiscover || !_state.value.hasMoreDiscover) return
 
-        // First: reveal items from the pending buffer (no API call needed)
         if (pendingDiscoverItems.isNotEmpty()) {
             val batch = pendingDiscoverItems.take(DISCOVER_BATCH_SIZE)
-            pendingDiscoverItems = pendingDiscoverItems.drop(DISCOVER_BATCH_SIZE).toMutableList()
+            pendingDiscoverItems = pendingDiscoverItems
+                .drop(DISCOVER_BATCH_SIZE)
+                .toMutableList()
 
             val catalog = _state.value.selectedCatalog
             val hasMore = pendingDiscoverItems.isNotEmpty() ||
-                    (catalog?.supportsSkip == true)
+                (catalog?.supportsSkip == true)
 
             _state.value = _state.value.copy(
                 discoverItems = _state.value.discoverItems + batch,
@@ -246,18 +280,19 @@ class SearchViewModel @Inject constructor(
             return
         }
 
-        // Pending buffer empty — fetch next page from API
         val catalog = _state.value.selectedCatalog ?: return
+
         if (!catalog.supportsSkip) {
             _state.value = _state.value.copy(hasMoreDiscover = false)
             return
         }
 
         isLoadingMoreDiscover = true
+
         viewModelScope.launch {
             try {
-                // Skip = total fetched count (visible + already consumed from pending)
                 val totalFetched = allFetchedIds.size
+
                 val newItems = repository.fetchDiscoverPage(
                     transportUrl = catalog.transportUrl,
                     type = catalog.type,
@@ -265,18 +300,21 @@ class SearchViewModel @Inject constructor(
                     genre = _state.value.selectedGenre,
                     skip = totalFetched
                 )
-                // Deduplicate against all previously fetched items
+
                 val newUniqueItems = newItems.filter { item ->
                     allFetchedIds.add("${item.type}:${item.id}")
                 }
+
                 if (newUniqueItems.isNotEmpty()) {
-                    // Show first batch immediately, buffer the rest
                     val batch = newUniqueItems.take(DISCOVER_BATCH_SIZE)
+
                     if (newUniqueItems.size > DISCOVER_BATCH_SIZE) {
                         pendingDiscoverItems.addAll(newUniqueItems.drop(DISCOVER_BATCH_SIZE))
                     }
+
                     val hasMore = pendingDiscoverItems.isNotEmpty() ||
-                            (catalog.supportsSkip && newItems.isNotEmpty())
+                        (catalog.supportsSkip && newItems.isNotEmpty())
+
                     _state.value = _state.value.copy(
                         discoverItems = _state.value.discoverItems + batch,
                         hasMoreDiscover = hasMore
