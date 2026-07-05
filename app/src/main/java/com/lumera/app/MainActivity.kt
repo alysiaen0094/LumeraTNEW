@@ -867,6 +867,15 @@ class MainActivity : ComponentActivity() {
             var previousView by rememberSaveable { mutableStateOf("menu") }
             val playerState = remember { PlayerState() }
 
+            LaunchedEffect(isActivated) {
+                if (isActivated) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val restored = lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
+                        android.util.Log.d("LumeraBackup", "startup restore restored=$restored")
+                    }
+                }
+            }
+
 
             LaunchedEffect(currentProfile?.id) {
                 val profileId = currentProfile?.id
