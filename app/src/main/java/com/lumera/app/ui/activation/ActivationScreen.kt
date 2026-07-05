@@ -19,9 +19,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -45,14 +47,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lumera.app.R
 import kotlinx.coroutines.delay
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 
 private const val MAX_AUTH_CODE_LENGTH = 8
 
@@ -91,23 +92,23 @@ fun ActivationScreen(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF242424),
-                        Color(0xFF090909),
+                        Color(0xFF1B1B1B),
+                        Color(0xFF070707),
                         Color.Black
                     ),
-                    radius = 1150f
+                    radius = 950f
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .width(720.dp)
+                .width(640.dp)
                 .clip(RoundedCornerShape(34.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.105f),
+                            Color.White.copy(alpha = 0.11f),
                             Color.White.copy(alpha = 0.045f),
                             Color.Black.copy(alpha = 0.18f)
                         )
@@ -115,7 +116,7 @@ fun ActivationScreen(
                 )
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.16f),
+                    color = Color.White.copy(alpha = 0.14f),
                     shape = RoundedCornerShape(34.dp)
                 )
                 .padding(1.dp)
@@ -123,35 +124,37 @@ fun ActivationScreen(
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(33.dp))
-                    .background(Color(0xFF070707).copy(alpha = 0.96f))
-                    .padding(horizontal = 38.dp, vertical = 30.dp),
+                    .background(Color(0xFF070707).copy(alpha = 0.97f))
+                    .padding(horizontal = 32.dp, vertical = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.banner),
-                    contentDescription = "Lumera",
+                Box(
                     modifier = Modifier
-                        .width(310.dp)
-                        .height(86.dp),
-                    contentScale = ContentScale.Fit
-                )
+                        .width(250.dp)
+                        .height(70.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.94f))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                        .padding(horizontal = 18.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.banner),
+                        contentDescription = "Lumera",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
 
-                Spacer(Modifier.height(18.dp))
-
-                Text(
-                    text = "Add VOD Code",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(22.dp))
 
                 AuthCodeDisplay(value = state.authCode)
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
                 ActivationStatusMessage(
                     value = state.authCode,
@@ -177,27 +180,36 @@ fun ActivationScreen(
 private fun AuthCodeDisplay(value: String) {
     Box(
         modifier = Modifier
-            .widthIn(min = 430.dp)
-            .height(70.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .widthIn(min = 390.dp)
+            .height(62.dp)
+            .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.115f),
-                        Color.White.copy(alpha = 0.055f)
+                        Color.White.copy(alpha = 0.13f),
+                        Color.White.copy(alpha = 0.06f)
                     )
                 )
             )
-            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 22.dp),
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = value.ifBlank { "VOD CODE" },
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
+            text = value.ifBlank { "Enter VOD code" },
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Monospace
             ),
-            color = if (value.isBlank()) Color.White.copy(alpha = 0.30f) else Color.White,
+            color = if (value.isBlank()) {
+                Color.White.copy(alpha = 0.34f)
+            } else {
+                Color.White
+            },
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -251,18 +263,18 @@ private fun TvAuthKeyboard(
 ) {
     val rows = listOf(
         listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
-        listOf("A", "B", "C", "D", "E", "F", "G", "H", "I", "J"),
-        listOf("K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"),
-        listOf("U", "V", "W", "X", "Y", "Z", "⌫")
+        listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
+        listOf("A", "S", "D", "F", "G", "H", "J", "K", "L"),
+        listOf("Z", "X", "C", "V", "B", "N", "M", "⌫")
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         rows.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 row.forEachIndexed { index, key ->
@@ -304,8 +316,8 @@ private fun AuthKeyButton(
     AuthButtonBase(
         text = text,
         enabled = enabled,
-        width = 54.dp,
-        height = 48.dp,
+        width = if (text == "⌫") 74.dp else 46.dp,
+        height = 42.dp,
         focusRequester = focusRequester,
         onClick = onClick
     )
@@ -317,7 +329,6 @@ private fun AuthButtonBase(
     enabled: Boolean,
     width: androidx.compose.ui.unit.Dp,
     height: androidx.compose.ui.unit.Dp,
-    isPrimary: Boolean = false,
     focusRequester: FocusRequester? = null,
     onClick: () -> Unit
 ) {
@@ -325,16 +336,14 @@ private fun AuthButtonBase(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.08f else 1f,
+        targetValue = if (isFocused) 1.045f else 1f,
         label = "authKeyScale"
     )
 
     val background by animateColorAsState(
         targetValue = when {
-            !enabled -> Color.White.copy(alpha = 0.05f)
-            isFocused && isPrimary -> MaterialTheme.colorScheme.primary
+            !enabled -> Color.White.copy(alpha = 0.045f)
             isFocused -> Color.White
-            isPrimary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
             else -> Color.White.copy(alpha = 0.105f)
         },
         label = "authKeyBackground"
@@ -344,7 +353,6 @@ private fun AuthButtonBase(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.25f)
             isFocused -> Color.Black
-            isPrimary -> Color.Black
             else -> Color.White.copy(alpha = 0.88f)
         },
         label = "authKeyContent"
@@ -354,7 +362,6 @@ private fun AuthButtonBase(
         targetValue = when {
             !enabled -> Color.Transparent
             isFocused -> Color.White
-            isPrimary -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
             else -> Color.White.copy(alpha = 0.14f)
         },
         label = "authKeyBorder"
@@ -372,9 +379,9 @@ private fun AuthButtonBase(
             .height(height)
             .scale(scale)
             .then(requesterModifier)
-            .clip(RoundedCornerShape(13.dp))
+            .clip(RoundedCornerShape(11.dp))
             .background(background)
-            .border(1.dp, borderColor, RoundedCornerShape(13.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(11.dp))
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
@@ -398,8 +405,9 @@ private fun AuthButtonBase(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
             ),
             color = contentColor,
             textAlign = TextAlign.Center,
