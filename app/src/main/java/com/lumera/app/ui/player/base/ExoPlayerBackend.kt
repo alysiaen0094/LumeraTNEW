@@ -428,23 +428,72 @@ class ExoPlayerBackend(
 
     override fun play() {
         if (released) return
+    
         val player = exoPlayer ?: return
-        val wasPaused = !player.playWhenReady
+        val wasPaused = !player.playWhenReady || !player.isPlaying
+        val resumePosition = player.currentPosition.coerceAtLeast(0L)
+    
+        player.playWhenReady = true
         player.play()
-        if (wasPaused && player.playbackState == Player.STATE_READY) {
-            // Force a codec flush on resume to prevent indefinite buffering on
-            // certain MKV files. Seeking to current position + 1ms ensures
-            // ExoPlayer doesn't optimise the seek away, while CLOSEST_SYNC
-            // snaps to the nearest keyframe (no visible skip).
-            val pos = player.currentPosition.coerceAtLeast(0L)
-            player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
-            player.seekTo(pos + 1L)
+    
+        if (!wasPaused) {
+            updateProgressState()
+            return
         }
+    
+        // Small immediate nudge for streams/codecs that do not resume cleanly.
+        // This is tiny enough to be invisible but prevents ExoPlayer from staying
+        // in a stale paused/buffer state.
+        player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+        player.seekTo(resumePosition + 1L)
+    
+        // Resume watchdog:
+        // If pause -> play gets stuck in STATE_BUFFERING, a manual seek normally fixes it.
+        // Do the same automatically after a short delay.
+        scope.launch {
+            delay(2500L)
+    
+            if (released) return@launch
+    
+            val livePlayer = exoPlayer ?: return@launch
+            if (livePlayer !== player) return@launch
+            if (!livePlayer.playWhenReady) return@launch
+            if (livePlayer.isPlaying) return@launch
+            if (livePlayer.playbackState != Player.STATE_BUFFERING) return@launch
+    
+            val currentPosition = livePlayer.currentPosition.coerceAtLeast(0L)
+            val duration = livePlayer.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+    
+            val recoveryPosition = when {
+                currentPosition + 500L < duration -> currentPosition + 500L
+                currentPosition > 1_000L -> currentPosition - 1_000L
+                else -> currentPosition
+            }
+    
+            android.util.Log.w(
+                "ExoPlayerBackend",
+                "Resume stuck buffering; nudging seek from $currentPosition to $recoveryPosition"
+            )
+    
+            livePlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+            livePlayer.seekTo(recoveryPosition)
+            livePlayer.playWhenReady = true
+            livePlayer.play()
+    
+            updateProgressState()
+        }
+    
+        updateProgressState()
     }
 
     override fun pause() {
         if (released) return
-        exoPlayer?.pause()
+    
+        exoPlayer?.let { player ->
+            player.playWhenReady = false
+            player.pause()
+            updateProgressState()
+        }
     }
 
     override fun seekTo(positionMs: Long) {
