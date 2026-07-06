@@ -32,7 +32,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -87,91 +86,80 @@ fun ActivationScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .width(610.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF151515),
-                            Color(0xFF0B0B0B)
-                        )
-                    )
-                )
-                .padding(horizontal = 34.dp, vertical = 32.dp)
+                .width(620.dp)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Enter VOD Code",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 22.sp
-                    ),
-                    color = Color.White.copy(alpha = 0.92f),
-                    textAlign = TextAlign.Center
-                )
+            Text(
+                text = "Enter VOD Code",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 26.sp,
+                    letterSpacing = 0.2.sp
+                ),
+                color = Color.White.copy(alpha = 0.94f),
+                textAlign = TextAlign.Center
+            )
 
-                Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
-                Text(
-                    text = "Use your remote to enter the 8-character code",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp
-                    ),
-                    color = Color.White.copy(alpha = 0.42f),
-                    textAlign = TextAlign.Center
-                )
+            Text(
+                text = "Use your remote to enter the 8-character code",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal
+                ),
+                color = Color.White.copy(alpha = 0.42f),
+                textAlign = TextAlign.Center
+            )
 
-                Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
 
-                AuthCodeBox(value = state.authCode)
+            AuthCodeInput(value = state.authCode)
 
-                Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
-                ActivationStatusMessage(
-                    value = state.authCode,
-                    isLoading = state.isLoading,
-                    error = state.error
-                )
+            ActivationStatusMessage(
+                value = state.authCode,
+                isLoading = state.isLoading,
+                error = state.error
+            )
 
-                Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(34.dp))
 
-                ActivationKeyboard(
-                    value = state.authCode,
-                    isLoading = state.isLoading,
-                    firstKeyRequester = firstKeyRequester,
-                    onValueChange = viewModel::updateAuthCode,
-                    onSubmit = { code -> viewModel.validateAuthCode(code) }
-                )
-            }
+            ActivationKeyboard(
+                value = state.authCode,
+                isLoading = state.isLoading,
+                firstKeyRequester = firstKeyRequester,
+                onValueChange = viewModel::updateAuthCode,
+                onSubmit = { code -> viewModel.validateAuthCode(code) }
+            )
         }
     }
 }
 
 @Composable
-private fun AuthCodeBox(value: String) {
+private fun AuthCodeInput(value: String) {
     Box(
         modifier = Modifier
-            .width(420.dp)
-            .height(64.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.085f))
-            .padding(horizontal = 22.dp),
+            .width(440.dp)
+            .height(66.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.10f))
+            .padding(horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = value.ifBlank { "VOD CODE" },
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.Medium,
-                fontSize = 25.sp,
-                letterSpacing = 1.6.sp
+                fontSize = 26.sp,
+                letterSpacing = 2.2.sp
             ),
             color = if (value.isBlank()) {
-                Color.White.copy(alpha = 0.30f)
+                Color.White.copy(alpha = 0.28f)
             } else {
                 Color.White.copy(alpha = 0.96f)
             },
@@ -199,7 +187,7 @@ private fun ActivationStatusMessage(
     }
 
     val color = when {
-        !error.isNullOrBlank() -> Color(0xFFFF6B6B)
+        !error.isNullOrBlank() -> Color(0xFFFF5F5F)
         isLoading -> Color.White.copy(alpha = 0.72f)
         else -> Color.White.copy(alpha = 0.38f)
     }
@@ -241,11 +229,11 @@ private fun ActivationKeyboard(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         rows.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 row.forEachIndexed { index, key ->
@@ -254,8 +242,8 @@ private fun ActivationKeyboard(
                     ActivationKeyButton(
                         text = key,
                         enabled = !isLoading && (value.isNotEmpty() || !isBackspace),
-                        width = if (isBackspace) 68.dp else 45.dp,
-                        height = 42.dp,
+                        width = if (isBackspace) 72.dp else 47.dp,
+                        height = 44.dp,
                         focusRequester = if (rowIndex == 0 && index == 0) firstKeyRequester else null,
                         onClick = {
                             if (isBackspace) {
@@ -294,15 +282,15 @@ private fun ActivationKeyButton(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.055f else 1f,
+        targetValue = if (isFocused) 1.06f else 1f,
         label = "activationKeyScale"
     )
 
     val background by animateColorAsState(
         targetValue = when {
-            !enabled -> Color.White.copy(alpha = 0.028f)
-            isFocused -> Color.White.copy(alpha = 0.94f)
-            else -> Color.White.copy(alpha = 0.095f)
+            !enabled -> Color.White.copy(alpha = 0.035f)
+            isFocused -> Color.White.copy(alpha = 0.96f)
+            else -> Color.White.copy(alpha = 0.11f)
         },
         label = "activationKeyBackground"
     )
@@ -310,8 +298,8 @@ private fun ActivationKeyButton(
     val contentColor by animateColorAsState(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.18f)
-            isFocused -> Color.Black.copy(alpha = 0.92f)
-            else -> Color.White.copy(alpha = 0.86f)
+            isFocused -> Color.Black.copy(alpha = 0.94f)
+            else -> Color.White.copy(alpha = 0.88f)
         },
         label = "activationKeyContent"
     )
@@ -328,7 +316,7 @@ private fun ActivationKeyButton(
             .height(height)
             .scale(scale)
             .then(requesterModifier)
-            .clip(RoundedCornerShape(9.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(background)
             .clickable(
                 enabled = enabled,
