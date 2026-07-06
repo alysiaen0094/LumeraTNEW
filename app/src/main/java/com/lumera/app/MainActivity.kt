@@ -691,7 +691,19 @@ class MainActivity : ComponentActivity() {
     ) {
         val cleanPlaybackId = playbackId.trim()
         val cleanPlaybackType = playbackType.trim().ifBlank { "movie" }
-        val cleanPlaybackTitle = playbackTitle.trim()
+        
+        val isSeriesPlaybackToSave =
+            cleanPlaybackType.equals("series", ignoreCase = true) ||
+                cleanPlaybackType.equals("tv", ignoreCase = true)
+        
+        val cleanSeriesTitle = seriesTitle.trim()
+        
+        val cleanPlaybackTitle = if (isSeriesPlaybackToSave) {
+            cleanSeriesTitle.ifBlank { playbackTitle.trim() }
+        } else {
+            playbackTitle.trim()
+        }
+        
         val cleanPoster = playbackPoster.trim().takeIf { it.isNotBlank() }
         val cleanBackground = playbackBackground?.trim()?.takeIf { it.isNotBlank() }
         val cleanLogo = playbackLogo?.trim()?.takeIf { it.isNotBlank() }
@@ -733,8 +745,7 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        val isSeriesToSave = cleanPlaybackType.equals("series", ignoreCase = true) ||
-            cleanPlaybackType.equals("tv", ignoreCase = true)
+        val isSeriesToSave = isSeriesPlaybackToSave
 
         if (isSeriesToSave) {
             val idParts = cleanPlaybackId.split(":")
@@ -761,7 +772,7 @@ class MainActivity : ComponentActivity() {
                     addonDao.upsertSeriesNextUp(
                         SeriesNextUpEntity(
                             seriesId = seriesIdToSave,
-                            title = seriesTitle.trim().ifBlank { cleanPlaybackTitle },
+                            title = cleanSeriesTitle.ifBlank { cleanPlaybackTitle },
                             poster = cleanPoster,
                             nextSeason = nextSeasonToSave,
                             nextEpisode = nextEpisodeNumberToSave,
