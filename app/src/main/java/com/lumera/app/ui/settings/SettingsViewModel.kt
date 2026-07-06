@@ -38,7 +38,7 @@ class SettingsViewModel @Inject constructor(
     fun updateContinueWatchingShape(profileId: Int, shape: String) {
         viewModelScope.launch(Dispatchers.IO + NonCancellable) {
             val profile = dao.getProfileById(profileId)
-            if (profile != null) dao.insertProfile(profile.copy(continueWatchingShape = shape))
+            if (profile != null) dao.insertProfile(profile.copy(continueWatchingShape = "landscape"))
         }
     }
 
