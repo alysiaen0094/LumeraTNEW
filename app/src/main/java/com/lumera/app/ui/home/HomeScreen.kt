@@ -817,11 +817,11 @@ private fun buildContinueWatchingItems(
                     poster = entry.poster,
                     background = chosen.background ?: chosen.poster,
                     logo = null,
-                    description = null,
-                    imdbRating = buildContinueWatchingSeriesSubtitle(
+                    description = buildContinueWatchingSeriesSubtitle(
                         playbackId = chosen.id,
                         episodeTitle = chosen.title
                     ),
+                    imdbRating = null,
                     runtime = buildContinueWatchingRemainingText(
                         position = chosen.position,
                         duration = chosen.duration
@@ -873,12 +873,12 @@ private fun buildContinueWatchingItems(
                 poster = nextUp.poster,
                 background = nextUp.poster,
                 logo = null,
-                description = null,
-                imdbRating = buildNextUpSubtitle(
+                description = buildNextUpSubtitle(
                     season = nextUp.nextSeason,
                     episode = nextUp.nextEpisode,
                     episodeTitle = nextUp.nextEpisodeTitle
                 ),
+                imdbRating = null,
                 runtime = "New episode",
                 hasNewEpisode = isReturning
             )
@@ -900,7 +900,14 @@ private fun buildContinueWatchingSeriesSubtitle(
         .trim()
         .replace(
             Regex(
-                pattern = "^S\\d{1,2}\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
+                pattern = "^S\\d{1,2}\\s*[: ]?\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*",
                 option = RegexOption.IGNORE_CASE
             ),
             ""
@@ -936,11 +943,35 @@ private fun buildNextUpSubtitle(
     episode: Int?,
     episodeTitle: String?
 ): String? {
-    if (season == null || episode == null) {
-        return episodeTitle?.trim()?.takeIf { it.isNotBlank() }
-    }
+    val cleanEpisodeTitle = episodeTitle
+        ?.trim()
+        .orEmpty()
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}\\s*[: ]?\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .trim()
 
-    val cleanEpisodeTitle = episodeTitle?.trim().orEmpty()
+    if (season == null || episode == null) {
+        return cleanEpisodeTitle.takeIf { it.isNotBlank() }
+    }
 
     return buildString {
         append("S")
@@ -1000,9 +1031,6 @@ private fun resolveLatestPreviewItem(
     val enriched = state.enrichedMeta["${item.type}:${item.id}"]
     if (enriched != null && hasUsefulPreviewMetadata(enriched)) return enriched
 
-    val fromHistory = historyItems.firstOrNull { it.type == item.type && it.id == item.id }
-    if (fromHistory != null && hasUsefulPreviewMetadata(fromHistory)) return fromHistory
-
     val fromHero = state.heroRow?.items?.firstOrNull { it.type == item.type && it.id == item.id }
     if (fromHero != null && hasUsefulPreviewMetadata(fromHero)) return fromHero
 
@@ -1014,7 +1042,17 @@ private fun resolveLatestPreviewItem(
 
     if (fromRows != null && hasUsefulPreviewMetadata(fromRows)) return fromRows
 
-    return item
+    val isContinueWatchingItem = historyItems.any { it.type == item.type && it.id == item.id }
+
+    return if (isContinueWatchingItem) {
+        item.copy(
+            description = null,
+            imdbRating = null,
+            runtime = null
+        )
+    } else {
+        item
+    }
 }
 
 private fun hasUsefulPreviewMetadata(item: MetaItem): Boolean {
@@ -1022,7 +1060,6 @@ private fun hasUsefulPreviewMetadata(item: MetaItem): Boolean {
         !item.description.isNullOrBlank() ||
         !item.background.isNullOrBlank() ||
         !item.releaseInfo.isNullOrBlank() ||
-        !item.runtime.isNullOrBlank() ||
         !item.genres.isNullOrEmpty()
 }
 
