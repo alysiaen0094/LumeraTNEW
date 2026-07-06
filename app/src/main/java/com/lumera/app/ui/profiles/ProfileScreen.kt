@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -46,7 +47,6 @@ import com.lumera.app.R
 import com.lumera.app.data.model.ProfileEntity
 import com.lumera.app.data.model.ThemeEntity
 import com.lumera.app.ui.addons.VoidButton
-import com.lumera.app.ui.addons.VoidInput
 import com.lumera.app.ui.components.CenterCarouselRow
 import com.lumera.app.ui.home.DpadRepeatGate
 import com.lumera.app.ui.theme.DefaultThemes
@@ -656,35 +656,246 @@ fun DeleteConfirmationDialog(
 
 @Composable
 fun WizardNameStep(initialName: String, onNext: (String) -> Unit, onCancel: () -> Unit) {
-    var name by remember { mutableStateOf(initialName) }
-    val focusRequester = remember { FocusRequester() }
+    var name by remember { mutableStateOf(initialName.take(18)) }
+    val firstKeyRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) { delay(100); focusRequester.requestFocus() }
+    LaunchedEffect(Unit) {
+        delay(120)
+        firstKeyRequester.requestFocus()
+    }
+
     BackHandler { onCancel() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .offset(y = (-80).dp), // Move up to avoid virtual keyboard cropping
+            .background(Color.Black)
+            .padding(horizontal = 32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "What should we call you?",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color.White
+            text = "Name Your Profile",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 28.sp
+            ),
+            color = Color.White.copy(alpha = 0.94f),
+            textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(32.dp))
 
-        Box(modifier = Modifier.width(400.dp)) {
-            VoidInput(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = "Enter Name",
-                modifier = Modifier.focusRequester(focusRequester),
-                onDone = { if(name.isNotEmpty()) onNext(name) }
-            )
+        Spacer(Modifier.height(10.dp))
+
+        Text(
+            text = "Use your remote to enter a profile name",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp
+            ),
+            color = Color.White.copy(alpha = 0.42f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        ProfileNameInput(value = name)
+
+        Spacer(Modifier.height(34.dp))
+
+        ProfileNameKeyboard(
+            value = name,
+            firstKeyRequester = firstKeyRequester,
+            onValueChange = { name = it.take(18) },
+            onDone = {
+                val cleanName = name.trim()
+                if (cleanName.isNotEmpty()) {
+                    onNext(cleanName)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ProfileNameInput(value: String) {
+    Box(
+        modifier = Modifier
+            .width(440.dp)
+            .height(66.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.10f))
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = value.ifBlank { "PROFILE NAME" },
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 25.sp,
+                letterSpacing = if (value.isBlank()) 1.4.sp else 0.4.sp
+            ),
+            color = if (value.isBlank()) {
+                Color.White.copy(alpha = 0.28f)
+            } else {
+                Color.White.copy(alpha = 0.96f)
+            },
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun ProfileNameKeyboard(
+    value: String,
+    firstKeyRequester: FocusRequester,
+    onValueChange: (String) -> Unit,
+    onDone: () -> Unit
+) {
+    val rows = listOf(
+        listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
+        listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
+        listOf("A", "S", "D", "F", "G", "H", "J", "K", "L"),
+        listOf("Z", "X", "C", "V", "B", "N", "M", "⌫"),
+        listOf("SPACE", "DONE")
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        rows.forEachIndexed { rowIndex, row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                row.forEachIndexed { index, key ->
+                    val isBackspace = key == "⌫"
+                    val isSpace = key == "SPACE"
+                    val isDone = key == "DONE"
+
+                    ProfileKeyboardKey(
+                        text = key,
+                        enabled = when {
+                            isBackspace -> value.isNotEmpty()
+                            isDone -> value.trim().isNotEmpty()
+                            else -> true
+                        },
+                        width = when {
+                            isSpace -> 180.dp
+                            isDone -> 150.dp
+                            isBackspace -> 72.dp
+                            else -> 47.dp
+                        },
+                        height = 44.dp,
+                        focusRequester = if (rowIndex == 0 && index == 0) firstKeyRequester else null,
+                        onClick = {
+                            when {
+                                isBackspace -> onValueChange(value.dropLast(1))
+                                isSpace -> {
+                                    if (value.isNotBlank() && !value.endsWith(" ")) {
+                                        onValueChange((value + " ").take(18))
+                                    }
+                                }
+                                isDone -> onDone()
+                                else -> onValueChange((value + key).take(18))
+                            }
+                        }
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ProfileKeyboardKey(
+    text: String,
+    enabled: Boolean,
+    width: Dp,
+    height: Dp,
+    focusRequester: FocusRequester? = null,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.06f else 1f,
+        label = "profileKeyScale"
+    )
+
+    val background by animateColorAsState(
+        targetValue = when {
+            !enabled -> Color.White.copy(alpha = 0.035f)
+            isFocused -> Color.White.copy(alpha = 0.96f)
+            else -> Color.White.copy(alpha = 0.11f)
+        },
+        label = "profileKeyBackground"
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> Color.White.copy(alpha = 0.18f)
+            isFocused -> Color.Black.copy(alpha = 0.94f)
+            else -> Color.White.copy(alpha = 0.88f)
+        },
+        label = "profileKeyContent"
+    )
+
+    val requesterModifier = if (focusRequester != null) {
+        Modifier.focusRequester(focusRequester)
+    } else {
+        Modifier
+    }
+
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(height)
+            .scale(scale)
+            .then(requesterModifier)
+            .clip(RoundedCornerShape(10.dp))
+            .background(background)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .onPreviewKeyEvent { event ->
+                if (
+                    enabled &&
+                    event.type == KeyEventType.KeyDown &&
+                    (
+                        event.key == Key.Enter ||
+                            event.key == Key.DirectionCenter ||
+                            event.key == Key.NumPadEnter
+                    )
+                ) {
+                    onClick()
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable(enabled = enabled, interactionSource = interactionSource),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = when (text) {
+                    "SPACE", "DONE" -> 14.sp
+                    "⌫" -> 18.sp
+                    else -> 15.sp
+                },
+                letterSpacing = 0.4.sp
+            ),
+            color = contentColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
     }
 }
 
