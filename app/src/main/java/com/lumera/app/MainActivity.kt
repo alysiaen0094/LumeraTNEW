@@ -791,8 +791,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val _splashFinished = mutableStateOf(true)
-
     override fun onStop() {
         super.onStop()
     
@@ -2220,7 +2218,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Update dialogs (auto-shown after splash)
-                    if (_splashFinished.value && !updateDismissed && appUpdateManager.isPopupEnabled) {
+                    if (!updateDismissed && appUpdateManager.isPopupEnabled) {
                         when (val state = updateState) {
                             is UpdateState.UpdateAvailable -> {
                                 UpdateAvailableDialog(
