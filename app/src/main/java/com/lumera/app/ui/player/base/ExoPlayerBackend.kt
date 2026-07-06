@@ -96,6 +96,9 @@ class ExoPlayerBackend(
 
     private val scopeJob = SupervisorJob()
     private val scope = CoroutineScope(scopeJob + Dispatchers.Main)
+    
+    private var pendingSeekJob: kotlinx.coroutines.Job? = null
+    private var pendingSeekPositionMs: Long? = null
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     override val uiState: StateFlow<PlayerUiState> = _uiState
@@ -498,24 +501,96 @@ class ExoPlayerBackend(
 
     override fun seekTo(positionMs: Long) {
         if (released) return
+    
         pendingStartPositionMs = 0L
+    
         val player = exoPlayer ?: return
-        player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
-        player.seekTo(positionMs.coerceAtLeast(0L))
-        updateProgressState()
+        val duration = player.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+    
+        val safePosition = positionMs
+            .coerceAtLeast(0L)
+            .coerceAtMost(duration)
+    
+        pendingSeekPositionMs = safePosition
+    
+        pendingSeekJob?.cancel()
+        pendingSeekJob = scope.launch {
+            delay(220L)
+    
+            if (released) return@launch
+    
+            val livePlayer = exoPlayer ?: return@launch
+            val finalPosition = pendingSeekPositionMs ?: return@launch
+    
+            pendingSeekPositionMs = null
+    
+            livePlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+            livePlayer.seekTo(finalPosition)
+    
+            if (livePlayer.playWhenReady) {
+                livePlayer.play()
+            }
+    
+            updateProgressState()
+        }
+    
+        _uiState.update {
+            it.copy(
+                positionMs = safePosition,
+                errorMessage = null,
+                isBuffering = true
+            )
+        }
     }
 
     override fun seekBy(deltaMs: Long) {
         if (released) return
+    
         pendingStartPositionMs = 0L
+    
         val player = exoPlayer ?: return
-        player.setSeekParameters(
-            if (deltaMs >= 0L) SeekParameters.NEXT_SYNC else SeekParameters.PREVIOUS_SYNC
-        )
         val duration = player.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
-        val target = (player.currentPosition + deltaMs).coerceIn(0L, duration)
-        player.seekTo(target)
-        updateProgressState()
+    
+        val basePosition = pendingSeekPositionMs
+            ?: _uiState.value.positionMs.takeIf { it > 0L }
+            ?: player.currentPosition.coerceAtLeast(0L)
+    
+        val targetPosition = (basePosition + deltaMs)
+            .coerceAtLeast(0L)
+            .coerceAtMost(duration)
+    
+        pendingSeekPositionMs = targetPosition
+    
+        pendingSeekJob?.cancel()
+        pendingSeekJob = scope.launch {
+            delay(220L)
+    
+            if (released) return@launch
+    
+            val livePlayer = exoPlayer ?: return@launch
+            val finalPosition = pendingSeekPositionMs ?: return@launch
+    
+            pendingSeekPositionMs = null
+    
+            livePlayer.setSeekParameters(
+                if (deltaMs >= 0L) SeekParameters.NEXT_SYNC else SeekParameters.PREVIOUS_SYNC
+            )
+            livePlayer.seekTo(finalPosition)
+    
+            if (livePlayer.playWhenReady) {
+                livePlayer.play()
+            }
+    
+            updateProgressState()
+        }
+    
+        _uiState.update {
+            it.copy(
+                positionMs = targetPosition,
+                errorMessage = null,
+                isBuffering = true
+            )
+        }
     }
 
     override fun setPlaybackSpeed(speed: Float) {
@@ -756,6 +831,9 @@ class ExoPlayerBackend(
 
     override fun release() {
         released = true
+        pendingSeekJob?.cancel()
+        pendingSeekJob = null
+        pendingSeekPositionMs = null
         frameRateManager?.restoreOriginalMode()
         scopeJob.cancel()
         stopProgressLoop()
