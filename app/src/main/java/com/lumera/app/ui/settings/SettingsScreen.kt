@@ -183,10 +183,7 @@ fun SettingsScreen(
                                 if (it.type == KeyEventType.KeyDown) {
                                     when (it.key) {
                                         Key.DirectionLeft -> {
-                                            if (!isTransitioning) {
-                                                drawerRequester.requestFocus()
-                                            }
-                                            true
+                                            true // Block LEFT. Back opens navigation.
                                         }
                                         Key.Back -> {
                                             if (!isTransitioning) {
