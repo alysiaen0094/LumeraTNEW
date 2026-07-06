@@ -833,6 +833,7 @@ class MainActivity : ComponentActivity() {
             val currentProfile by mainViewModel.activeProfile.collectAsState()
             var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
+            var startupRestoreFinished by rememberSaveable { mutableStateOf(false) }
             var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var forceProfileSelector by rememberSaveable { mutableStateOf(false) }
             var activeView by rememberSaveable { mutableStateOf("menu") }
@@ -857,12 +858,19 @@ class MainActivity : ComponentActivity() {
             val playerState = remember { PlayerState() }
 
             LaunchedEffect(isActivated) {
-                if (isActivated) {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        val restored = lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
-                        android.util.Log.d("LumeraBackup", "startup restore restored=$restored")
-                    }
+                if (!isActivated) {
+                    startupRestoreFinished = false
+                    return@LaunchedEffect
                 }
+            
+                startupRestoreFinished = false
+            
+                val restored = withContext(Dispatchers.IO) {
+                    lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
+                }
+            
+                android.util.Log.d("LumeraBackup", "startup restore restored=$restored")
+                startupRestoreFinished = true
             }
 
 
@@ -1132,7 +1140,10 @@ class MainActivity : ComponentActivity() {
                                                     val dashboardTab = DashboardTab.fromString(tab)
 
                                                     key(tab) {
-                                                        LaunchedEffect(tab, currentProfile?.id) { vm.loadScreen(tab, currentProfile) }
+                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
+                                                            if (!startupRestoreFinished) return@LaunchedEffect
+                                                            vm.loadScreen(tab, currentProfile)
+                                                        }
                                                         HomeScreen(
                                                             tab = dashboardTab,
                                                             viewModel = vm,
@@ -1281,7 +1292,10 @@ class MainActivity : ComponentActivity() {
                                                     val dashboardTab = DashboardTab.fromString(tab)
 
                                                     key(tab) {
-                                                        LaunchedEffect(tab, currentProfile?.id) { vm.loadScreen(tab, currentProfile) }
+                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
+                                                            if (!startupRestoreFinished) return@LaunchedEffect
+                                                            vm.loadScreen(tab, currentProfile)
+                                                        }
                                                         HomeScreen(
                                                             tab = dashboardTab,
                                                             viewModel = vm,
