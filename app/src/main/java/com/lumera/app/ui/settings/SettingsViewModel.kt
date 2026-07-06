@@ -192,7 +192,7 @@ class SettingsViewModel @Inject constructor(
     fun updateSourceSortingEnabled(profileId: Int, enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO + NonCancellable) {
             val profile = dao.getProfileById(profileId)
-            if (profile != null) dao.insertProfile(profile.copy(sourceSortingEnabled = enabled))
+            if (profile != null) dao.insertProfile(profile.copy(sourceSortingEnabled = false))
         }
     }
 
