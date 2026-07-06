@@ -153,24 +153,42 @@ fun LumeraLandscapeCard(
                         )
                 )
 
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        lineHeight = 17.sp
-                    ),
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(
                             start = 13.dp,
                             end = 13.dp,
-                            bottom = if (progress > 0f) 15.dp else 11.dp
+                            bottom = if (progress > 0f) 16.dp else 12.dp
                         )
-                )
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            lineHeight = 17.sp
+                        ),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                
+                    val subtitle = posterUrl
+                    if (!subtitle.isNullOrBlank() && subtitle.startsWith("S")) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 11.sp,
+                                lineHeight = 13.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.78f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
 
                 if (hasNewEpisode) {
                     Box(
