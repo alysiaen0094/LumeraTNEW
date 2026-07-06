@@ -208,20 +208,6 @@ fun PersonalizationSettings(
                 blockUp = false
             )
         }
-        Spacer(Modifier.height(15.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(0.1f)))
-        Spacer(Modifier.height(15.dp))
-
-        // SPLASH SCREEN
-        SettingRow("Splash Screen") {
-            VoidSegmentedControl(
-                options = listOf("On" to true, "Off" to false),
-                selectedOption = currentProfile.splashEnabled,
-                onOptionSelected = { viewModel.updateSplashEnabled(currentProfile.id, it) },
-                onBack = onGoBack,
-                blockUp = false
-            )
-        }
     }
 }
 
