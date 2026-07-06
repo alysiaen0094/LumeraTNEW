@@ -37,7 +37,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
-            .dns(com.lumera.app.network.GoogleDns.create())
+            .dns(com.lumera.app.network.CloudflareDns.create())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
