@@ -827,11 +827,27 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-
+            var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
+        
+            if (!isActivated) {
+                LumeraTheme(theme = DefaultThemes.VOID) {
+                    LumeraBackground {
+                        ActivationScreen(
+                            onActivated = {
+                                isActivated = true
+                            },
+                            onExit = {
+                                finishAffinity()
+                            }
+                        )
+                    }
+                }
+                return@setContent
+            }
+        
             val mainViewModel = hiltViewModel<MainViewModel>()
             val themeManager = hiltViewModel<ThemeManager>()
             val currentProfile by mainViewModel.activeProfile.collectAsState()
-            var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
             var startupRestoreFinished by rememberSaveable { mutableStateOf(false) }
             var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -863,14 +879,17 @@ class MainActivity : ComponentActivity() {
                     return@LaunchedEffect
                 }
             
-                startupRestoreFinished = false
+                // Let the app/UI continue immediately.
+                startupRestoreFinished = true
+            
+                // Run restore later so startup is not blocked.
+                delay(2500)
             
                 val restored = withContext(Dispatchers.IO) {
                     lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
                 }
             
                 android.util.Log.d("LumeraBackup", "startup restore restored=$restored")
-                startupRestoreFinished = true
             }
 
 
