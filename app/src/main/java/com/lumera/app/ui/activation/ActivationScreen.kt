@@ -3,7 +3,6 @@ package com.lumera.app.ui.activation
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,17 +40,14 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lumera.app.R
 import kotlinx.coroutines.delay
 
 private const val MAX_AUTH_CODE_LENGTH = 8
@@ -91,42 +87,60 @@ fun ActivationScreen(
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .width(720.dp)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .width(560.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF171717),
+                            Color(0xFF0D0D0D)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .padding(horizontal = 28.dp, vertical = 26.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.banner),
-                contentDescription = "Lumera",
-                modifier = Modifier
-                    .width(320.dp)
-                    .height(104.dp),
-                contentScale = ContentScale.Fit
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Enter VOD Code",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color.White.copy(alpha = 0.88f),
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(18.dp))
 
-            AuthCodeBox(value = state.authCode)
+                AuthCodeBox(value = state.authCode)
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
 
-            ActivationStatusMessage(
-                value = state.authCode,
-                isLoading = state.isLoading,
-                error = state.error
-            )
+                ActivationStatusMessage(
+                    value = state.authCode,
+                    isLoading = state.isLoading,
+                    error = state.error
+                )
 
-            Spacer(Modifier.height(34.dp))
+                Spacer(Modifier.height(22.dp))
 
-            ModernQwertyKeyboard(
-                value = state.authCode,
-                isLoading = state.isLoading,
-                firstKeyRequester = firstKeyRequester,
-                onValueChange = viewModel::updateAuthCode,
-                onSubmit = { code -> viewModel.validateAuthCode(code) }
-            )
+                ActivationKeyboard(
+                    value = state.authCode,
+                    isLoading = state.isLoading,
+                    firstKeyRequester = firstKeyRequester,
+                    onValueChange = viewModel::updateAuthCode,
+                    onSubmit = { code -> viewModel.validateAuthCode(code) }
+                )
+            }
         }
     }
 }
@@ -135,35 +149,28 @@ fun ActivationScreen(
 private fun AuthCodeBox(value: String) {
     Box(
         modifier = Modifier
-            .width(460.dp)
-            .height(72.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.13f),
-                        Color.White.copy(alpha = 0.07f)
-                    )
-                )
-            )
+            .width(390.dp)
+            .height(58.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.08f))
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(18.dp)
+                color = Color.White.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(14.dp)
             )
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = value.ifBlank { "Enter VOD code" },
-            style = MaterialTheme.typography.titleLarge.copy(
+            text = value.ifBlank { "VOD CODE" },
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace
             ),
             color = if (value.isBlank()) {
-                Color.White.copy(alpha = 0.38f)
+                Color.White.copy(alpha = 0.32f)
             } else {
-                Color.White.copy(alpha = 0.98f)
+                Color.White.copy(alpha = 0.96f)
             },
             textAlign = TextAlign.Center,
             maxLines = 1
@@ -182,20 +189,20 @@ private fun ActivationStatusMessage(
     val message = when {
         isLoading -> "Checking code..."
         !error.isNullOrBlank() -> error
-        value.isBlank() -> "Use the keyboard below to enter your code"
+        value.isBlank() -> "Use the keyboard below"
         remaining > 0 -> "$remaining characters remaining"
         else -> "Checking code..."
     }
 
     val color = when {
         !error.isNullOrBlank() -> Color(0xFFFF6B6B)
-        isLoading -> Color.White.copy(alpha = 0.72f)
-        else -> Color.White.copy(alpha = 0.44f)
+        isLoading -> Color.White.copy(alpha = 0.70f)
+        else -> Color.White.copy(alpha = 0.42f)
     }
 
     Box(
         modifier = Modifier
-            .height(24.dp)
+            .height(22.dp)
             .fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
@@ -210,7 +217,7 @@ private fun ActivationStatusMessage(
 }
 
 @Composable
-private fun ModernQwertyKeyboard(
+private fun ActivationKeyboard(
     value: String,
     isLoading: Boolean,
     firstKeyRequester: FocusRequester,
@@ -226,26 +233,26 @@ private fun ModernQwertyKeyboard(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         rows.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 row.forEachIndexed { index, key ->
                     val isBackspace = key == "⌫"
 
-                    KeyboardKey(
+                    ActivationKeyButton(
                         text = key,
                         enabled = !isLoading && (value.isNotEmpty() || !isBackspace),
-                        width = if (isBackspace) 74.dp else 52.dp,
-                        height = 48.dp,
+                        width = if (isBackspace) 62.dp else 41.dp,
+                        height = 38.dp,
                         focusRequester = if (rowIndex == 0 && index == 0) firstKeyRequester else null,
                         onClick = {
                             if (isBackspace) {
                                 onValueChange(value.dropLast(1))
-                                return@KeyboardKey
+                                return@ActivationKeyButton
                             }
 
                             val next = (value + key)
@@ -267,7 +274,7 @@ private fun ModernQwertyKeyboard(
 }
 
 @Composable
-private fun KeyboardKey(
+private fun ActivationKeyButton(
     text: String,
     enabled: Boolean,
     width: Dp,
@@ -279,7 +286,7 @@ private fun KeyboardKey(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.055f else 1f,
+        targetValue = if (isFocused) 1.06f else 1f,
         label = "activationKeyScale"
     )
 
@@ -287,18 +294,18 @@ private fun KeyboardKey(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.035f)
             isFocused -> Color.White
-            else -> Color.White.copy(alpha = 0.09f)
+            else -> Color.White.copy(alpha = 0.10f)
         },
         label = "activationKeyBackground"
     )
 
-    val textColor by animateColorAsState(
+    val contentColor by animateColorAsState(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.22f)
             isFocused -> Color.Black
             else -> Color.White.copy(alpha = 0.88f)
         },
-        label = "activationKeyText"
+        label = "activationKeyContent"
     )
 
     val borderColor by animateColorAsState(
@@ -322,9 +329,9 @@ private fun KeyboardKey(
             .height(height)
             .scale(scale)
             .then(requesterModifier)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(background)
-            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
@@ -348,11 +355,11 @@ private fun KeyboardKey(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.Monospace
             ),
-            color = textColor,
+            color = contentColor,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
