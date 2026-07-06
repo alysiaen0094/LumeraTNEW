@@ -1813,7 +1813,7 @@ class MainActivity : ComponentActivity() {
                                             val rawStreams = streamsDeferred.await()
                                             val addonSubs = subtitlesDeferred.await()
 
-                                            val streams = if (currentProfile?.sourceSortingEnabled == true) {
+                                            val streams = if (false) {
                                                 val enabledQ = StreamSortingService.parseEnabledQualities(currentProfile?.sourceEnabledQualities ?: "4k,1080p,720p,unknown")
                                                 val excludeP = StreamSortingService.parseExcludePhrases(currentProfile?.sourceExcludePhrases ?: "")
                                                 val addonOrders = addonRepository.getAddonSortOrders()
@@ -1939,7 +1939,7 @@ class MainActivity : ComponentActivity() {
                                             val rawStreams2 = streamsDeferred.await()
                                             val addonSubs = subtitlesDeferred.await()
 
-                                            val streams = if (currentProfile?.sourceSortingEnabled == true) {
+                                            val streams = if (false) {
                                                 val enabledQ = StreamSortingService.parseEnabledQualities(currentProfile?.sourceEnabledQualities ?: "4k,1080p,720p,unknown")
                                                 val excludeP = StreamSortingService.parseExcludePhrases(currentProfile?.sourceExcludePhrases ?: "")
                                                 val addonOrders = addonRepository.getAddonSortOrders()
