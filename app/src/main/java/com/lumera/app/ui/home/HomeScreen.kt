@@ -812,19 +812,24 @@ private fun buildContinueWatchingItems(
             result.add(
                 chosen.lastWatched to MetaItem(
                     id = canonicalId,
-                    type = entry.type,
+                    type = "series",
                     name = seriesTitle,
-                    poster = entry.poster,
+                    poster = chosen.poster,
                     background = chosen.background ?: chosen.poster,
                     logo = null,
-                    description = buildContinueWatchingSeriesSubtitle(
-                        playbackId = chosen.id,
-                        episodeTitle = chosen.title
-                    ),
+            
+                    // Important: do not put episode/season text here.
+                    // The cinematic preview uses description as synopsis.
+                    description = null,
+            
                     imdbRating = null,
-                    runtime = buildContinueWatchingRemainingText(
-                        position = chosen.position,
-                        duration = chosen.duration
+                    runtime = buildContinueWatchingEpisodeBadge(
+                        playbackId = chosen.id,
+                        episodeTitle = chosen.title,
+                        fallback = buildContinueWatchingRemainingText(
+                            position = chosen.position,
+                            duration = chosen.duration
+                        )
                     ),
                     progress = chosen.progress()
                 )
@@ -873,19 +878,44 @@ private fun buildContinueWatchingItems(
                 poster = nextUp.poster,
                 background = nextUp.poster,
                 logo = null,
-                description = buildNextUpSubtitle(
+        
+                // Important: keep description free for real series synopsis.
+                description = null,
+        
+                imdbRating = null,
+                runtime = buildNextUpSubtitle(
                     season = nextUp.nextSeason,
                     episode = nextUp.nextEpisode,
                     episodeTitle = nextUp.nextEpisodeTitle
-                ),
-                imdbRating = null,
-                runtime = "New episode",
+                ) ?: "Next episode",
                 hasNewEpisode = isReturning
             )
         )
     }
 
     return result.sortedByDescending { it.first }.map { it.second }
+}
+
+private fun buildContinueWatchingEpisodeBadge(
+    playbackId: String,
+    episodeTitle: String,
+    fallback: String?
+): String? {
+    val episodeLabel = buildContinueWatchingSeriesSubtitle(
+        playbackId = playbackId,
+        episodeTitle = episodeTitle
+    )
+
+    return when {
+        !episodeLabel.isNullOrBlank() && !fallback.isNullOrBlank() ->
+            "$episodeLabel • $fallback"
+
+        !episodeLabel.isNullOrBlank() ->
+            episodeLabel
+
+        else ->
+            fallback
+    }
 }
 
 private fun buildContinueWatchingSeriesSubtitle(
@@ -1046,11 +1076,11 @@ private fun resolveLatestPreviewItem(
 
     return if (isContinueWatchingItem) {
         item.copy(
-            description = null,
-            imdbRating = null,
-            runtime = null
+            imdbRating = null
         )
     } else {
+        item
+    }
         item
     }
 }
