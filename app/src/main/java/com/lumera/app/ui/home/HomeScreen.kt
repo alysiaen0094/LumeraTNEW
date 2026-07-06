@@ -896,28 +896,6 @@ private fun buildContinueWatchingItems(
     return result.sortedByDescending { it.first }.map { it.second }
 }
 
-private fun buildContinueWatchingEpisodeBadge(
-    playbackId: String,
-    episodeTitle: String,
-    fallback: String?
-): String? {
-    val episodeLabel = buildContinueWatchingSeriesSubtitle(
-        playbackId = playbackId,
-        episodeTitle = episodeTitle
-    )
-
-    return when {
-        !episodeLabel.isNullOrBlank() && !fallback.isNullOrBlank() ->
-            "$episodeLabel • $fallback"
-
-        !episodeLabel.isNullOrBlank() ->
-            episodeLabel
-
-        else ->
-            fallback
-    }
-}
-
 private fun buildContinueWatchingSeriesSubtitle(
     playbackId: String,
     episodeTitle: String
@@ -1598,13 +1576,17 @@ private fun HomeMetaStrip(item: MetaItem) {
         HomeMetaDot()
         Text(text = yearLabel, style = textStyle, color = valueColor)
 
-        item.runtime?.filter { it.isDigit() }?.toIntOrNull()?.let { mins ->
-            HomeMetaDot()
-            val hours = mins / 60
-            val m = mins % 60
-            val display = if (hours > 0) "${hours}h ${m}m" else "${m}m"
-            Text(text = display, style = textStyle, color = valueColor)
-        }
+        item.runtime
+            ?.trim()
+            ?.takeIf { runtime -> runtime.matches(Regex("^\\d+$")) }
+            ?.toIntOrNull()
+            ?.let { mins ->
+                HomeMetaDot()
+                val hours = mins / 60
+                val m = mins % 60
+                val display = if (hours > 0) "${hours}h ${m}m" else "${m}m"
+                Text(text = display, style = textStyle, color = valueColor)
+            }
 
         item.imdbRating?.takeIf { it.isNotBlank() }?.let { rating ->
             HomeMetaDot()
