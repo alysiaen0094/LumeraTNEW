@@ -6,18 +6,18 @@ import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import java.net.InetAddress
 
-object GoogleDns {
+object CloudflareDns {
     fun create(): Dns {
         val bootstrapClient = OkHttpClient.Builder().build()
 
         return DnsOverHttps.Builder()
             .client(bootstrapClient)
-            .url("https://dns.google/dns-query".toHttpUrl())
+            .url("https://cloudflare-dns.com/dns-query".toHttpUrl())
             .bootstrapDnsHosts(
-                InetAddress.getByName("8.8.8.8"),
-                InetAddress.getByName("8.8.4.4"),
-                InetAddress.getByName("2001:4860:4860::8888"),
-                InetAddress.getByName("2001:4860:4860::8844")
+                InetAddress.getByName("1.1.1.1"),
+                InetAddress.getByName("1.0.0.1"),
+                InetAddress.getByName("2606:4700:4700::1111"),
+                InetAddress.getByName("2606:4700:4700::1001")
             )
             .build()
     }
