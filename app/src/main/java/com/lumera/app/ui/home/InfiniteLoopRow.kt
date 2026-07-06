@@ -154,7 +154,7 @@ fun InfiniteLoopRow(
 
     // Calculate end padding to allow last item to align to left (pivot position)
     // End padding = Screen Width - Start Padding - Item Width
-    val effectiveItemWidth = if (isLandscapeCards) 190.dp else ITEM_WIDTH
+    val effectiveItemWidth = if (isLandscapeCards) 220.dp else ITEM_WIDTH
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val endPadding = remember(screenWidth, startPadding, effectiveItemWidth) {
@@ -314,12 +314,11 @@ private fun LinearContent(
 ) {
     val context = LocalContext.current
 
-    // Prefetch image URLs list (cached to avoid allocation during scroll)
-    val imageUrls = remember(items, isLandscapeCards, enrichedItems) {
+    // Prefetch image URLs list (cached to avoid allocation during 
+    val imageUrls = remember(items, isLandscapeCards) {
         if (isLandscapeCards) {
             items.map { item ->
-                val enriched = enrichedItems["${item.type}:${item.id}"]
-                enriched?.background ?: enriched?.poster ?: item.poster
+                item.background ?: item.poster
             }
         } else {
             items.map { it.poster }
@@ -418,11 +417,10 @@ private fun LinearContent(
                     }
             ) {
                 if (isLandscapeCards) {
-                    val enriched = enrichedItems["${item.type}:${item.id}"]
                     LumeraLandscapeCard(
                         title = item.name,
-                        backdropUrl = enriched?.background,
-                        logoUrl = enriched?.logo,
+                        backdropUrl = item.background,
+                        logoUrl = null,
                         posterUrl = item.poster,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
