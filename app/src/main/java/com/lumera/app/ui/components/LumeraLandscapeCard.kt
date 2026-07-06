@@ -77,12 +77,12 @@ fun LumeraLandscapeCard(
     val glowColor = MaterialTheme.colorScheme.primary
     val roundCorners = LocalRoundCorners.current
 
-    val cardShape = if (roundCorners) RoundedCornerShape(12.dp) else RectangleShape
-    val focusedCardShape = if (roundCorners) RoundedCornerShape(16.dp) else RectangleShape
+    val cardShape = if (roundCorners) RoundedCornerShape(14.dp) else RectangleShape
+    val focusedCardShape = if (roundCorners) RoundedCornerShape(18.dp) else RectangleShape
 
     Box(
         modifier = modifier
-            .width(190.dp)
+            .width(225.dp)
             .aspectRatio(16f / 9f)
             .zIndex(if (isFocused) 10f else 0f)
             .graphicsLayer { clip = false }
@@ -99,7 +99,7 @@ fun LumeraLandscapeCard(
                 shape = cardShape,
                 focusedShape = focusedCardShape
             ),
-            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.055f),
             colors = ClickableSurfaceDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.surface,
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -122,13 +122,12 @@ fun LumeraLandscapeCard(
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
                     .scale(Scale.FILL)
-                    .size(380, 214) // 2x card size for crisp rendering on high-DPI
+                    .size(450, 254)
                     .allowHardware(true)
                     .build()
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                // Backdrop/poster image
                 AsyncImage(
                     model = imageRequest,
                     contentDescription = title,
@@ -139,81 +138,50 @@ fun LumeraLandscapeCard(
                         .background(MaterialTheme.colorScheme.surface)
                 )
 
-                // Bottom gradient scrim for logo/text readability
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.55f)
+                        .fillMaxHeight(0.70f)
                         .align(Alignment.BottomStart)
                         .background(
                             Brush.verticalGradient(
                                 colorStops = arrayOf(
                                     0.0f to Color.Transparent,
-                                    0.15f to Color.Black.copy(alpha = 0.05f),
-                                    0.3f to Color.Black.copy(alpha = 0.15f),
-                                    0.45f to Color.Black.copy(alpha = 0.30f),
-                                    0.6f to Color.Black.copy(alpha = 0.48f),
-                                    0.75f to Color.Black.copy(alpha = 0.64f),
-                                    0.88f to Color.Black.copy(alpha = 0.77f),
-                                    1.0f to Color.Black.copy(alpha = 0.85f)
+                                    0.22f to Color.Black.copy(alpha = 0.10f),
+                                    0.45f to Color.Black.copy(alpha = 0.38f),
+                                    0.72f to Color.Black.copy(alpha = 0.68f),
+                                    1.0f to Color.Black.copy(alpha = 0.88f)
                                 )
                             )
                         )
                 )
 
-                // Logo or text title in bottom-left
-                Box(
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        lineHeight = 17.sp
+                    ),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(
-                            start = 10.dp,
-                            bottom = if (progress > 0f) 12.dp else 6.dp
+                            start = 13.dp,
+                            end = 13.dp,
+                            bottom = if (progress > 0f) 15.dp else 11.dp
                         )
-                ) {
-                    if (!logoUrl.isNullOrEmpty()) {
-                        SubcomposeAsyncImage(
-                            model = logoUrl,
-                            contentDescription = title,
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.BottomStart,
-                            modifier = Modifier
-                                .widthIn(max = 130.dp)
-                                .heightIn(max = 35.dp),
-                            error = {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    ),
-                                    color = Color.White,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        )
-                    } else {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            ),
-                            color = Color.White,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                )
 
-                // New episode badge
                 if (hasNewEpisode) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(8.dp)
+                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(9.dp))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
                         androidx.compose.material3.Text(
                             "+1",
@@ -224,16 +192,15 @@ fun LumeraLandscapeCard(
                     }
                 }
 
-                // Progress bar overlay
                 if (progress > 0f) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                             .height(3.dp)
                             .clip(RoundedCornerShape(1.5.dp))
-                            .background(Color.White.copy(0.3f))
+                            .background(Color.White.copy(0.28f))
                     ) {
                         Box(
                             modifier = Modifier
