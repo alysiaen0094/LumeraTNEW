@@ -445,7 +445,7 @@ class ExoPlayerBackend(
         // This is tiny enough to be invisible but prevents ExoPlayer from staying
         // in a stale paused/buffer state.
         player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
-        player.seekTo(resumePosition + 1L)
+        player.seekTo((resumePosition - 500L).coerceAtLeast(0L))
     
         // Resume watchdog:
         // If pause -> play gets stuck in STATE_BUFFERING, a manual seek normally fixes it.
@@ -465,8 +465,8 @@ class ExoPlayerBackend(
             val duration = livePlayer.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
     
             val recoveryPosition = when {
-                currentPosition + 500L < duration -> currentPosition + 500L
                 currentPosition > 1_000L -> currentPosition - 1_000L
+                currentPosition > 500L -> currentPosition - 500L
                 else -> currentPosition
             }
     
