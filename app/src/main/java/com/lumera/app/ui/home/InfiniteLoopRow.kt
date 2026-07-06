@@ -422,6 +422,8 @@ private fun LinearContent(
                         backdropUrl = item.background,
                         logoUrl = null,
                         posterUrl = item.poster,
+                        subtitle = item.description,
+                        remainingText = item.runtime,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
                         hasNewEpisode = item.hasNewEpisode,
