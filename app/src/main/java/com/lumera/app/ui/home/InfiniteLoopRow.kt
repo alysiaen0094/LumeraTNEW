@@ -417,9 +417,20 @@ private fun LinearContent(
                     }
             ) {
                 if (isLandscapeCards) {
+                    val enriched = enrichedItems["${item.type}:${item.id}"]
+                    val displayTitle = if (item.type == "series") {
+                        enriched?.name?.takeIf { it.isNotBlank() } ?: item.name
+                    } else {
+                        item.name
+                    }
+                    
                     LumeraLandscapeCard(
-                        title = item.name,
-                        backdropUrl = item.background,
+                        title = displayTitle,
+                        backdropUrl = if (item.type == "series") {
+                            enriched?.background ?: item.background
+                        } else {
+                            item.background
+                        },
                         logoUrl = null,
                         posterUrl = item.poster,
                         subtitle = item.description,
