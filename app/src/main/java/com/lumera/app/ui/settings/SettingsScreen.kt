@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lumera.app.R
 import com.lumera.app.data.model.ProfileEntity
-import com.lumera.app.ui.addons.AddonsScreen
 import com.lumera.app.ui.theme.ThemeManager
 import com.lumera.app.ui.utils.rememberLastFocus
 import kotlinx.coroutines.delay
@@ -49,8 +48,6 @@ enum class SettingsSection(val label: String, @DrawableRes val iconRes: Int) {
     Theme("Theme", R.drawable.palette_icon),
     Dashboard("Home Screen", R.drawable.home_icon),
     Playback("Playback", R.drawable.playback_icon),
-    SourcePreferences("Sort & Filter", R.drawable.source_preferences_icon),
-    Addons("Addons", R.drawable.puzzle_icon),
     Integrations("Integrations", R.drawable.integrations_icon),
     About("About", R.drawable.info_icon)
 }
@@ -256,6 +253,7 @@ fun SettingsScreen(
                                 onGoBack = { itemRequesters[selectedSection]?.requestFocus() }
                             )
                         }
+                    
                         SettingsSection.Theme -> {
                             ThemeSettings(
                                 currentProfile = currentProfile,
@@ -263,16 +261,18 @@ fun SettingsScreen(
                                 isTopNav = isTopNav
                             )
                         }
+                    
                         SettingsSection.Dashboard -> {
                             DashboardEditorScreen(
                                 onBack = {
-                                    onDashboardChanged() // Invalidate home screen cache
+                                    onDashboardChanged()
                                     itemRequesters[selectedSection]?.requestFocus()
                                 },
                                 isTopNav = isTopNav,
                                 currentProfile = currentProfile
                             )
                         }
+                    
                         SettingsSection.Playback -> {
                             PlaybackSettings(
                                 currentProfile = currentProfile,
@@ -280,24 +280,13 @@ fun SettingsScreen(
                                 onGoBack = { itemRequesters[selectedSection]?.requestFocus() }
                             )
                         }
-                        SettingsSection.SourcePreferences -> {
-                            SourcePreferencesSettings(
-                                currentProfile = currentProfile,
-                                viewModel = viewModel,
-                                onGoBack = { itemRequesters[selectedSection]?.requestFocus() }
-                            )
-                        }
-                        SettingsSection.Addons -> {
-                            AddonsScreen(
-                                onBack = { itemRequesters[selectedSection]?.requestFocus() },
-                                isTopNav = isTopNav
-                            )
-                        }
+                    
                         SettingsSection.Integrations -> {
                             IntegrationsScreen(
                                 onBack = { itemRequesters[selectedSection]?.requestFocus() }
                             )
                         }
+                    
                         SettingsSection.About -> {
                             AboutSettings(
                                 onGoBack = { itemRequesters[selectedSection]?.requestFocus() }
