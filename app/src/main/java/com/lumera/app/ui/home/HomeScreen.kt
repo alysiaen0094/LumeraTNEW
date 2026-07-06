@@ -817,7 +817,8 @@ private fun buildContinueWatchingItems(
                     poster = entry.poster,
                     background = chosen.background ?: chosen.poster,
                     logo = null,
-                    description = buildContinueWatchingSeriesSubtitle(
+                    description = null,
+                    imdbRating = buildContinueWatchingSeriesSubtitle(
                         playbackId = chosen.id,
                         episodeTitle = chosen.title
                     ),
@@ -872,7 +873,8 @@ private fun buildContinueWatchingItems(
                 poster = nextUp.poster,
                 background = nextUp.poster,
                 logo = null,
-                description = buildNextUpSubtitle(
+                description = null,
+                imdbRating = buildNextUpSubtitle(
                     season = nextUp.nextSeason,
                     episode = nextUp.nextEpisode,
                     episodeTitle = nextUp.nextEpisodeTitle
@@ -894,11 +896,27 @@ private fun buildContinueWatchingSeriesSubtitle(
     val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
     val episode = parts.lastOrNull()?.toIntOrNull()
 
-    if (season == null || episode == null) {
-        return episodeTitle.takeIf { it.isNotBlank() }
-    }
+    val cleanEpisodeTitle = episodeTitle
+        .trim()
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .trim()
 
-    val cleanEpisodeTitle = episodeTitle.trim()
+    if (season == null || episode == null) {
+        return cleanEpisodeTitle.takeIf { it.isNotBlank() }
+    }
 
     return buildString {
         append("S")
@@ -979,24 +997,33 @@ private fun resolveLatestPreviewItem(
 ): MetaItem? {
     val item = current ?: return null
 
-    // Check enriched metadata cache (handles items not in any category row, e.g. from search)
     val enriched = state.enrichedMeta["${item.type}:${item.id}"]
-    if (enriched != null && !enriched.logo.isNullOrEmpty()) return enriched
+    if (enriched != null && hasUsefulPreviewMetadata(enriched)) return enriched
 
     val fromHistory = historyItems.firstOrNull { it.type == item.type && it.id == item.id }
-    if (fromHistory != null && !fromHistory.logo.isNullOrEmpty()) return fromHistory
+    if (fromHistory != null && hasUsefulPreviewMetadata(fromHistory)) return fromHistory
 
     val fromHero = state.heroRow?.items?.firstOrNull { it.type == item.type && it.id == item.id }
-    if (fromHero != null && !fromHero.logo.isNullOrEmpty()) return fromHero
+    if (fromHero != null && hasUsefulPreviewMetadata(fromHero)) return fromHero
 
     val fromRows = state.mixedRows
         .asSequence()
         .filterIsInstance<CategoryRow>()
         .flatMap { row -> row.items.asSequence() }
         .firstOrNull { it.type == item.type && it.id == item.id }
-    if (fromRows != null && !fromRows.logo.isNullOrEmpty()) return fromRows
+
+    if (fromRows != null && hasUsefulPreviewMetadata(fromRows)) return fromRows
 
     return item
+}
+
+private fun hasUsefulPreviewMetadata(item: MetaItem): Boolean {
+    return !item.logo.isNullOrBlank() ||
+        !item.description.isNullOrBlank() ||
+        !item.background.isNullOrBlank() ||
+        !item.releaseInfo.isNullOrBlank() ||
+        !item.runtime.isNullOrBlank() ||
+        !item.genres.isNullOrEmpty()
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
