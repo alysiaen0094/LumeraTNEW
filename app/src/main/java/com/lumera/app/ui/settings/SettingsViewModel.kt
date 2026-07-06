@@ -35,13 +35,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateSplashEnabled(profileId: Int, enabled: Boolean) {
-        viewModelScope.launch(Dispatchers.IO + NonCancellable) {
-            val profile = dao.getProfileById(profileId)
-            if (profile != null) dao.insertProfile(profile.copy(splashEnabled = enabled))
-        }
-    }
-
     fun updateContinueWatchingShape(profileId: Int, shape: String) {
         viewModelScope.launch(Dispatchers.IO + NonCancellable) {
             val profile = dao.getProfileById(profileId)
