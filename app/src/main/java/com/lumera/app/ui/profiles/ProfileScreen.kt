@@ -1,5 +1,6 @@
 package com.lumera.app.ui.profiles
 
+import androidx.compose.ui.unit.Dp
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
