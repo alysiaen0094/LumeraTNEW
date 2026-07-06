@@ -968,6 +968,28 @@ private fun buildContinueWatchingSeriesSubtitle(
     }
 }
 
+private fun buildContinueWatchingEpisodeBadge(
+    playbackId: String,
+    episodeTitle: String,
+    fallback: String?
+): String? {
+    val episodeLabel = buildContinueWatchingSeriesSubtitle(
+        playbackId = playbackId,
+        episodeTitle = episodeTitle
+    )
+
+    return when {
+        !episodeLabel.isNullOrBlank() && !fallback.isNullOrBlank() ->
+            "$episodeLabel • $fallback"
+
+        !episodeLabel.isNullOrBlank() ->
+            episodeLabel
+
+        else ->
+            fallback
+    }
+}
+
 private fun buildNextUpSubtitle(
     season: Int?,
     episode: Int?,
@@ -1048,7 +1070,8 @@ private fun canonicalSeriesId(playbackId: String): String {
 private fun isEpisodePlaybackId(playbackId: String): Boolean {
     val parts = playbackId.split(":")
     if (parts.size < 3) return false
-    return parts[parts.lastIndex - 1].toIntOrNull() != null && parts.last().toIntOrNull() != null
+    return parts[parts.lastIndex - 1].toIntOrNull() != null &&
+        parts.last().toIntOrNull() != null
 }
 
 private fun resolveLatestPreviewItem(
@@ -1079,8 +1102,6 @@ private fun resolveLatestPreviewItem(
             imdbRating = null
         )
     } else {
-        item
-    }
         item
     }
 }
