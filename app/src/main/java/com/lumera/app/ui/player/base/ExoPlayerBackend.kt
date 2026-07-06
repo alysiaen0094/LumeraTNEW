@@ -1058,7 +1058,7 @@ class ExoPlayerBackend(
 
     private fun getOrCreateOkHttpClient(): OkHttpClient {
         return okHttpClient ?: OkHttpClient.Builder()
-            .dns(com.lumera.app.network.GoogleDns.create())
+            .dns(com.lumera.app.network.CloudflareDns.create())
             .connectTimeout(8000, TimeUnit.MILLISECONDS)
             .readTimeout(8000, TimeUnit.MILLISECONDS)
             .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
