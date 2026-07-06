@@ -384,13 +384,9 @@ private fun LinearContent(
                                     leftKeyDebouncer.lastTime = now
 
                                     if (isFirstItem) {
-                                        // Only escape to navbar if this is a deliberate press (not rapid long-press repeat)
-                                        if (!isTopNav && timeSinceLastLeft > navbarEscapeDebounceMs) {
-                                            drawerRequester.requestFocus()
-                                        }
-                                        true // Consume at first item to prevent focus escaping
+                                        true // Block LEFT at first item. Back opens navigation.
                                     } else {
-                                        false // Let normal navigation happen
+                                        false
                                     }
                                 }
                                 keyEvent.key == Key.DirectionUp -> {
@@ -639,13 +635,9 @@ private fun InfiniteGridContent(
                                             leftKeyDebouncer.lastTime = now
                                             
                                             if (isLoopStart) {
-                                                // Only escape to navbar if this is a deliberate press (not rapid long-press repeat)
-                                                if (!isTopNav && timeSinceLastLeft > navbarEscapeDebounceMs) {
-                                                    drawerRequester.requestFocus()
-                                                }
-                                                true // Consume at loop start to prevent focus escaping
+                                                true // Block LEFT at loop start. Back opens navigation.
                                             } else {
-                                                false // Let normal navigation happen
+                                                false
                                             }
                                         }
                                         keyEvent.key == Key.DirectionUp -> {
