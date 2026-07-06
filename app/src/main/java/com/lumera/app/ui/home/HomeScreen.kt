@@ -567,7 +567,7 @@ fun CinematicLayout(
                                     repeatGate = dpadRepeatGate,
                                     isLandscapeCards = isLandscapeContinueWatching,
                                     enrichedItems = state.enrichedMeta,
-                                    rowHeight = if (isLandscapeContinueWatching) 140.dp else 210.dp
+                                    rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
                                 )
                             }
                         }
@@ -770,6 +770,7 @@ private fun buildContinueWatchingItems(
 ): List<MetaItem> {
     val result = mutableListOf<Pair<Long, MetaItem>>()
     val seriesIdsIncluded = mutableSetOf<String>()
+    val nextUpBySeriesId = seriesNextUp.associateBy { it.seriesId }
 
     // 1. In-progress items (partially watched, not completed)
     val inProgress = history.filter { !it.watched }
@@ -799,58 +800,164 @@ private fun buildContinueWatchingItems(
             val canonicalId = canonicalSeriesId(entry.id)
             val chosen = chosenSeries[canonicalId] ?: return@forEach
             if (chosen.id != entry.id) return@forEach
+
+            val nextUp = nextUpBySeriesId[canonicalId]
+            val seriesTitle = nextUp?.title
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: chosen.title
+
             seriesIdsIncluded.add(canonicalId)
-            result.add(chosen.lastWatched to MetaItem(
-                id = canonicalId,
-                type = entry.type,
-                name = entry.title,
-                poster = entry.poster,
-                background = chosen.background,
-                logo = chosen.logo,
-                progress = chosen.progress()
-            ))
+
+            result.add(
+                chosen.lastWatched to MetaItem(
+                    id = canonicalId,
+                    type = entry.type,
+                    name = seriesTitle,
+                    poster = entry.poster,
+                    background = chosen.background ?: chosen.poster,
+                    logo = null,
+                    description = buildContinueWatchingSeriesSubtitle(
+                        playbackId = chosen.id,
+                        episodeTitle = chosen.title
+                    ),
+                    runtime = buildContinueWatchingRemainingText(
+                        position = chosen.position,
+                        duration = chosen.duration
+                    ),
+                    progress = chosen.progress()
+                )
+            )
         } else {
             val chosen = movieById[entry.id] ?: return@forEach
             if (chosen.id != entry.id) return@forEach
-            result.add(entry.lastWatched to MetaItem(
-                id = entry.id,
-                type = entry.type,
-                name = entry.title,
-                poster = entry.poster,
-                background = entry.background,
-                logo = entry.logo,
-                progress = entry.progress()
-            ))
+
+            result.add(
+                entry.lastWatched to MetaItem(
+                    id = entry.id,
+                    type = entry.type,
+                    name = entry.title,
+                    poster = entry.poster,
+                    background = entry.background ?: entry.poster,
+                    logo = null,
+                    description = null,
+                    runtime = buildContinueWatchingRemainingText(
+                        position = entry.position,
+                        duration = entry.duration
+                    ),
+                    progress = entry.progress()
+                )
+            )
         }
     }
 
     // 2. Next-up entries: series where all in-progress episodes are watched,
     //    but there's a next episode available. Only include if the episode has aired.
-    val today = java.time.LocalDate.now().toString() // "2026-04-06"
+    val today = java.time.LocalDate.now().toString()
     for (nextUp in seriesNextUp) {
-        if (nextUp.seriesId in seriesIdsIncluded) continue // already shown as in-progress
+        if (nextUp.seriesId in seriesIdsIncluded) continue
 
-        // Check if the next episode has aired (null = assume aired)
         val released = nextUp.nextReleased
         if (released != null && released > today) continue
 
-        // Complete with no next episode date = truly done, skip
         if (nextUp.isComplete && released == null) continue
 
-        // +1 badge: show was complete (user was caught up) and episode has now aired
         val isReturning = nextUp.isComplete || nextUp.isNewEpisode
 
-        result.add(nextUp.updatedAt to MetaItem(
-            id = nextUp.seriesId,
-            type = "series",
-            name = nextUp.title,
-            poster = nextUp.poster,
-            hasNewEpisode = isReturning
-        ))
+        result.add(
+            nextUp.updatedAt to MetaItem(
+                id = nextUp.seriesId,
+                type = "series",
+                name = nextUp.title,
+                poster = nextUp.poster,
+                background = nextUp.poster,
+                logo = null,
+                description = buildNextUpSubtitle(
+                    season = nextUp.nextSeason,
+                    episode = nextUp.nextEpisode,
+                    episodeTitle = nextUp.nextEpisodeTitle
+                ),
+                runtime = "New episode",
+                hasNewEpisode = isReturning
+            )
+        )
     }
 
-    // Sort all items by most recent activity
     return result.sortedByDescending { it.first }.map { it.second }
+}
+
+private fun buildContinueWatchingSeriesSubtitle(
+    playbackId: String,
+    episodeTitle: String
+): String? {
+    val parts = playbackId.split(":")
+    val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
+    val episode = parts.lastOrNull()?.toIntOrNull()
+
+    if (season == null || episode == null) {
+        return episodeTitle.takeIf { it.isNotBlank() }
+    }
+
+    val cleanEpisodeTitle = episodeTitle.trim()
+
+    return buildString {
+        append("S")
+        append(season.toString().padStart(2, '0'))
+        append(" E")
+        append(episode.toString().padStart(2, '0'))
+
+        if (cleanEpisodeTitle.isNotBlank()) {
+            append(" • ")
+            append(cleanEpisodeTitle)
+        }
+    }
+}
+
+private fun buildNextUpSubtitle(
+    season: Int?,
+    episode: Int?,
+    episodeTitle: String?
+): String? {
+    if (season == null || episode == null) {
+        return episodeTitle?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    val cleanEpisodeTitle = episodeTitle?.trim().orEmpty()
+
+    return buildString {
+        append("S")
+        append(season.toString().padStart(2, '0'))
+        append(" E")
+        append(episode.toString().padStart(2, '0'))
+
+        if (cleanEpisodeTitle.isNotBlank()) {
+            append(" • ")
+            append(cleanEpisodeTitle)
+        }
+    }
+}
+
+private fun buildContinueWatchingRemainingText(
+    position: Long,
+    duration: Long
+): String? {
+    if (duration <= 0L) return null
+
+    val remainingMs = (duration - position).coerceAtLeast(0L)
+    if (remainingMs <= 0L) return null
+
+    val totalMinutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(remainingMs)
+        .coerceAtLeast(1L)
+
+    return when {
+        totalMinutes >= 60L -> {
+            val hours = totalMinutes / 60L
+            val minutes = totalMinutes % 60L
+            if (minutes > 0L) "${hours}h ${minutes}m left" else "${hours}h left"
+        }
+
+        else -> "${totalMinutes}m left"
+    }
 }
 
 private fun canonicalSeriesId(playbackId: String): String {
@@ -1086,7 +1193,7 @@ fun SimpleLayout(
                         pivotFocusRequester = if (heroItems.isNotEmpty()) firstRowPivotRequester else null,
                         isLandscapeCards = isLandscapeContinueWatching,
                         enrichedItems = state.enrichedMeta,
-                        rowHeight = if (isLandscapeContinueWatching) 140.dp else 210.dp
+                        rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
                     )
                 }
             }
