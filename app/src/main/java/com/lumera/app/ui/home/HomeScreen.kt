@@ -97,7 +97,7 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val layoutMode = currentProfile?.layoutFor(tab) ?: "simple"
     val isTopNav = currentProfile?.navPosition == "top"
-    val isLandscapeContinueWatching = true
+    val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
     val infoTopPadding = if (isTopNav) 84.dp else 54.dp
     val startPadding = if (isTopNav) 50.dp else 120.dp
 
