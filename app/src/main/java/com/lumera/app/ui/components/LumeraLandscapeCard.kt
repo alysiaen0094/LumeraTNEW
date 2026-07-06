@@ -3,6 +3,7 @@ package com.lumera.app.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,12 +50,12 @@ import com.lumera.app.ui.theme.LocalRoundCorners
  * ============================================================================
  *
  * Displays a 16:9 landscape card with:
- * - Hero/backdrop image (falls back to poster)
- * - Gradient scrim at bottom for readability
- * - Logo overlay in bottom-left (falls back to text title)
+ * - Stable backdrop image
+ * - Bottom gradient scrim
+ * - Fixed white title text
+ * - Optional subtitle below title
+ * - Optional remaining time at top-right
  * - Progress bar at bottom
- *
- * Matches horizontal hub card sizing (190dp wide, 16:9 aspect).
  * ============================================================================
  */
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -64,6 +65,8 @@ fun LumeraLandscapeCard(
     backdropUrl: String?,
     logoUrl: String?,
     posterUrl: String?,
+    subtitle: String? = null,
+    remainingText: String? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     progress: Float = 0f,
@@ -138,7 +141,7 @@ fun LumeraLandscapeCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.70f)
+                        .fillMaxHeight(0.72f)
                         .align(Alignment.BottomStart)
                         .background(
                             Brush.verticalGradient(
@@ -152,6 +155,30 @@ fun LumeraLandscapeCard(
                             )
                         )
                 )
+
+                if (!remainingText.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.58f),
+                                RoundedCornerShape(999.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = remainingText,
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
 
                 Column(
                     modifier = Modifier
@@ -173,9 +200,8 @@ fun LumeraLandscapeCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                
-                    val subtitle = posterUrl
-                    if (!subtitle.isNullOrBlank() && subtitle.startsWith("S")) {
+
+                    if (!subtitle.isNullOrBlank()) {
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall.copy(
@@ -195,14 +221,17 @@ fun LumeraLandscapeCard(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(9.dp))
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(9.dp)
+                            )
                             .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
-                        androidx.compose.material3.Text(
-                            "+1",
+                        Text(
+                            text = "+1",
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
