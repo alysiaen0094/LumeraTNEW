@@ -349,10 +349,24 @@ class DetailsViewModel @Inject constructor(
 
         if (sortedEpisodes.isEmpty()) return
 
-        // Find the first unwatched episode
-        val nextEpisode = sortedEpisodes.firstOrNull { ep ->
+        // Find the next unwatched episode after the latest watched episode.
+        // This works across seasons too.
+        // Example: if S02E03 is marked watched, Continue Watching should show S02E04,
+        // even if S01 episodes are still unwatched.
+        val latestWatchedIndex = sortedEpisodes.indexOfLast { ep ->
             val key = "S${ep.season}:E${ep.episode}"
-            progressMap[key]?.watched != true
+            progressMap[key]?.watched == true
+        }
+        
+        val nextEpisode = if (latestWatchedIndex >= 0) {
+            sortedEpisodes
+                .drop(latestWatchedIndex + 1)
+                .firstOrNull { ep ->
+                    val key = "S${ep.season}:E${ep.episode}"
+                    progressMap[key]?.watched != true
+                }
+        } else {
+            null
         }
 
         val existing = dao.getSeriesNextUp(seriesId)
