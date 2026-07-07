@@ -566,7 +566,7 @@ fun CinematicLayout(
                                     upKeyDebouncer = upKeyDebouncer,
                                     repeatGate = dpadRepeatGate,
                                     isLandscapeCards = isLandscapeContinueWatching,
-                                    enrichedItems = state.enrichedMeta,
+                                    enrichedItems = emptyMap(),
                                     rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
                                 )
                             }
@@ -1268,7 +1268,7 @@ fun SimpleLayout(
                         repeatGate = dpadRepeatGate,
                         pivotFocusRequester = if (heroItems.isNotEmpty()) firstRowPivotRequester else null,
                         isLandscapeCards = isLandscapeContinueWatching,
-                        enrichedItems = state.enrichedMeta,
+                        enrichedItems = emptyMap(),
                         rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
                     )
                 }
