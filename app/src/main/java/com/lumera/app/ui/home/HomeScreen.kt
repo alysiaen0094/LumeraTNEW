@@ -813,22 +813,33 @@ private fun buildContinueWatchingItems(
                 chosen.lastWatched to MetaItem(
                     id = canonicalId,
                     type = "series",
+            
+                    // Main card title: show name
                     name = seriesTitle,
-                    poster = chosen.poster,
-                    // Landscape Continue Watching should use only real backdrop/background.
-                    // Do not stretch the low-quality poster into a landscape card.
+            
+                    // Card thumbnail: current episode thumbnail/background
+                    poster = chosen.background ?: chosen.poster,
                     background = chosen.background,
+            
+                    // Do not use history logo as real logo; we used it only to carry episode title
                     logo = null,
-
-                    // Keep description free so the cinematic preview can show real series synopsis
-                    // from metadata/TMDB enrichment.
-                    description = null,
-
+            
+                    // Small line below title: S01 E02 • Episode Name
+                    description = buildEpisodeLine(
+                        playbackId = chosen.id,
+                        episodeTitle = chosen.logo
+                    ),
+            
                     imdbRating = null,
-                    // This is the line shown below the series title on the card.
-                    // No remaining-time text here.
-                    runtime = buildSeasonEpisodeLabel(chosen.id),
-                    progress = chosen.progress()
+            
+                    // Top-right: time remaining
+                    runtime = buildContinueWatchingRemainingText(
+                        position = chosen.position,
+                        duration = chosen.duration
+                    ),
+            
+                    progress = chosen.progress(),
+                    hasNewEpisode = false
                 )
             )
         } else {
@@ -871,22 +882,28 @@ private fun buildContinueWatchingItems(
             nextUp.updatedAt to MetaItem(
                 id = nextUp.seriesId,
                 type = "series",
+        
+                // Main card title: show name
                 name = nextUp.title,
+        
+                // Card thumbnail: next episode thumbnail
                 poster = nextUp.poster,
-                // Let enrichment provide the high-quality backdrop.
-                // Do not use the poster as landscape background.
-                background = null,
+                background = nextUp.poster,
+        
                 logo = null,
-
-                // Keep description free so the preview can show the real series synopsis.
-                description = null,
-
-                imdbRating = null,
-                // This is the line below the title. Do not append "New episode" here.
-                runtime = buildSeasonEpisodeLabel(
+        
+                // Small line below title: S01 E03 • Episode Name
+                description = buildEpisodeLine(
                     season = nextUp.nextSeason,
-                    episode = nextUp.nextEpisode
+                    episode = nextUp.nextEpisode,
+                    episodeTitle = nextUp.nextEpisodeTitle
                 ),
+        
+                imdbRating = null,
+        
+                // Top-right: New episode
+                runtime = "New episode",
+        
                 hasNewEpisode = isReturning
             )
         )
@@ -895,30 +912,77 @@ private fun buildContinueWatchingItems(
     return result.sortedByDescending { it.first }.map { it.second }
 }
 
-private fun buildSeasonEpisodeLabel(playbackId: String): String? {
+private fun buildEpisodeLine(
+    playbackId: String,
+    episodeTitle: String?
+): String? {
     val parts = playbackId.split(":")
     val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
     val episode = parts.lastOrNull()?.toIntOrNull()
-    return buildSeasonEpisodeLabel(season, episode)
+
+    return buildEpisodeLine(
+        season = season,
+        episode = episode,
+        episodeTitle = episodeTitle
+    )
 }
 
-private fun buildSeasonEpisodeLabel(
-    season: Int?,
-    episode: Int?
-): String? {
-    if (season == null || episode == null) return null
-    return "S${season.toString().padStart(2, '0')} E${episode.toString().padStart(2, '0')}"
-}
-
-private fun buildNextUpSubtitle(
+private fun buildEpisodeLine(
     season: Int?,
     episode: Int?,
     episodeTitle: String?
 ): String? {
-    // Kept for compatibility if anything else calls it.
-    // Continue Watching no longer uses this for card text because "New episode"
-    // must not be joined with the season/episode line.
-    return buildSeasonEpisodeLabel(season, episode)
+    val seasonEpisode = if (season != null && episode != null) {
+        "S${season.toString().padStart(2, '0')} E${episode.toString().padStart(2, '0')}"
+    } else {
+        null
+    }
+
+    val cleanTitle = cleanEpisodeTitleForCard(episodeTitle)
+
+    return when {
+        !seasonEpisode.isNullOrBlank() && !cleanTitle.isNullOrBlank() ->
+            "$seasonEpisode • $cleanTitle"
+
+        !seasonEpisode.isNullOrBlank() ->
+            seasonEpisode
+
+        !cleanTitle.isNullOrBlank() ->
+            cleanTitle
+
+        else ->
+            null
+    }
+}
+
+private fun cleanEpisodeTitleForCard(rawTitle: String?): String? {
+    val cleaned = rawTitle
+        ?.trim()
+        .orEmpty()
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}\\s*[: ]?\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .replace(
+            Regex(
+                pattern = "^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*",
+                option = RegexOption.IGNORE_CASE
+            ),
+            ""
+        )
+        .trim()
+
+    return cleaned.takeIf { it.isNotBlank() }
 }
 
 private fun buildContinueWatchingRemainingText(
@@ -963,13 +1027,19 @@ private fun resolveLatestPreviewItem(
     historyItems: List<MetaItem>
 ): MetaItem? {
     val item = current ?: return null
+    val isContinueWatchingItem = historyItems.any { it.type == item.type && it.id == item.id }
 
     val enriched = state.enrichedMeta["${item.type}:${item.id}"]
-    if (enriched != null && hasUsefulPreviewMetadata(enriched)) return enriched.copy(
-        // Preserve the continue-watching card line if this item is from CW.
-        runtime = item.runtime ?: enriched.runtime,
-        hasNewEpisode = item.hasNewEpisode || enriched.hasNewEpisode
-    )
+    if (enriched != null && hasUsefulPreviewMetadata(enriched)) {
+        return if (isContinueWatchingItem) {
+            enriched.copy(
+                name = item.name.ifBlank { enriched.name },
+                imdbRating = enriched.imdbRating
+            )
+        } else {
+            enriched
+        }
+    }
 
     val fromHero = state.heroRow?.items?.firstOrNull { it.type == item.type && it.id == item.id }
     if (fromHero != null && hasUsefulPreviewMetadata(fromHero)) return fromHero
@@ -982,10 +1052,14 @@ private fun resolveLatestPreviewItem(
 
     if (fromRows != null && hasUsefulPreviewMetadata(fromRows)) return fromRows
 
-    val isContinueWatchingItem = historyItems.any { it.type == item.type && it.id == item.id }
-
     return if (isContinueWatchingItem) {
         item.copy(
+            // Do not show episode line as large synopsis
+            description = null,
+
+            // Do not show card top-right text in large meta strip
+            runtime = null,
+
             imdbRating = null
         )
     } else {
