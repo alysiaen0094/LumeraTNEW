@@ -282,7 +282,9 @@ fun CinematicLayout(
 
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
-        historyItems.take(15).forEach { item -> onPreviewItemVisible(item) }
+        historyItems.take(15).forEach { item ->
+            onHeroItemVisible(previewLookupItemForFocus(item, historyItems))
+        }
     }
 
     // Redirect stale continue-watching focus key after progress was cleared
@@ -318,7 +320,7 @@ fun CinematicLayout(
             instantFocusItem = first
             displayedItem = first
             if (first != null) {
-                onPreviewItemVisible(first)
+                onPreviewItemVisible(previewLookupItemForFocus(first, historyItems))
             }
         }
 
@@ -381,7 +383,7 @@ fun CinematicLayout(
 
     if (!allowUpdate) return
 
-    onPreviewItemVisible(item)
+    onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
 
     if (instantFocusItem?.id != item.id || instantFocusItem?.type != item.type) {
         instantFocusItem = item
@@ -1021,6 +1023,28 @@ private fun isEpisodePlaybackId(playbackId: String): Boolean {
         parts.last().toIntOrNull() != null
 }
 
+private fun previewLookupItemForFocus(
+    item: MetaItem,
+    historyItems: List<MetaItem>
+): MetaItem {
+    val isContinueWatchingItem = historyItems.any { it.type == item.type && it.id == item.id }
+
+    if (!isContinueWatchingItem) return item
+
+    return item.copy(
+        // Keep only the series identity for enrichment.
+        // Do not let Continue Watching card text/image replace series metadata.
+        poster = null,
+        background = null,
+        logo = null,
+        description = null,
+        runtime = null,
+        imdbRating = null,
+        progress = null,
+        hasNewEpisode = false
+    )
+}
+
 private fun resolveLatestPreviewItem(
     current: MetaItem?,
     state: HomeViewModel.HomeState,
@@ -1113,7 +1137,9 @@ fun SimpleLayout(
 
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
-        historyItems.take(15).forEach { item -> onHeroItemVisible(item) }
+        historyItems.take(15).forEach { item ->
+            onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
+        }
     }
 
     // Redirect stale continue-watching focus key after progress was cleared
