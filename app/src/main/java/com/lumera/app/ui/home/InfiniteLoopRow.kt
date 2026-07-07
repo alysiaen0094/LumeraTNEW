@@ -435,7 +435,9 @@ private fun LinearContent(
                             if (shouldRequestFocus) Modifier.focusRequester(entryRequester)
                             else if (pivotFocusRequester != null && index == listState.firstVisibleItemIndex) Modifier.focusRequester(pivotFocusRequester)
                             else Modifier
-                        )
+                        ),
+                        subtitle = item.description,
+                        statusText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null
                     )
                 } else {
                     val watchedIds = LocalWatchedIds.current
