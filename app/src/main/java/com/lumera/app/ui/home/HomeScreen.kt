@@ -815,7 +815,7 @@ private fun buildContinueWatchingItems(
                     type = "series",
                     name = seriesTitle,
                     poster = chosen.poster,
-                    background = chosen.background ?: chosen.poster,
+                    background = chosen.background,
                     logo = null,
             
                     // Important: do not put episode/season text here.
@@ -840,7 +840,7 @@ private fun buildContinueWatchingItems(
                     type = entry.type,
                     name = entry.title,
                     poster = entry.poster,
-                    background = entry.background ?: entry.poster,
+                    background = entry.background,
                     logo = null,
                     description = null,
                     runtime = buildContinueWatchingRemainingText(
@@ -872,7 +872,7 @@ private fun buildContinueWatchingItems(
                 type = "series",
                 name = nextUp.title,
                 poster = nextUp.poster,
-                background = nextUp.poster,
+                background = null,
                 logo = null,
         
                 // Important: keep description free for real series synopsis.
