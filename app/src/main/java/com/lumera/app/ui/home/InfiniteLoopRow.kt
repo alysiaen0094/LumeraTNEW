@@ -422,15 +422,21 @@ private fun LinearContent(
                     LumeraLandscapeCard(
                         title = buildString {
                             append(item.name)
+                    
                             if (!item.description.isNullOrBlank()) {
                                 append("\n")
                                 append(item.description)
+                            }
+                    
+                            val topRightText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null
+                            if (!topRightText.isNullOrBlank()) {
+                                append("    ")
+                                append(topRightText)
                             }
                         },
                         backdropUrl = cardBackdropUrl,
                         logoUrl = enriched?.logo,
                         posterUrl = item.poster,
-                        remainingText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
                         hasNewEpisode = item.hasNewEpisode,
