@@ -421,8 +421,6 @@ private fun LinearContent(
                 
                     LumeraLandscapeCard(
                         title = item.name,
-                        subtitle = item.description,
-                        statusText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null,
                         backdropUrl = cardBackdropUrl,
                         logoUrl = enriched?.logo,
                         posterUrl = item.poster,
