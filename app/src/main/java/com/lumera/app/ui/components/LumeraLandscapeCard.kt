@@ -72,13 +72,15 @@ fun LumeraLandscapeCard(
     onFocused: (() -> Unit)? = null,
     subtitle: String? = null,
     statusText: String? = null
-) {
+){
     var isFocused by remember { mutableStateOf(false) }
     val glowColor = MaterialTheme.colorScheme.primary
     val roundCorners = LocalRoundCorners.current
 
     val cardShape = if (roundCorners) RoundedCornerShape(14.dp) else RectangleShape
     val focusedCardShape = if (roundCorners) RoundedCornerShape(18.dp) else RectangleShape
+
+    val topRightText = statusText ?: if (hasNewEpisode) "New episode" else null
 
     Box(
         modifier = modifier
