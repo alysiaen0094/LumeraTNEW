@@ -331,7 +331,7 @@ fun DetailsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(500.dp)
-                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 24.dp)
+                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 54.dp)
                     .onFocusChanged { heroHasFocus = it.hasFocus },
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -445,9 +445,14 @@ fun DetailsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = currentMovie.description ?: "",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = textColor,
-                    maxLines = 5
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 17.sp
+                    ),
+                    color = textColor.copy(alpha = 0.82f),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(520.dp)
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -478,6 +483,9 @@ fun DetailsScreen(
                 // handles hero→row transitions reliably after disposal/recomposition.
 
                 val isInWatchlist by viewModel.isInWatchlist.collectAsState()
+                val addonTrailer = remember(currentMovie.videos) {
+                    resolveAddonTrailer(currentMovie.videos)
+                }
 
                 if (type == "series") {
                     val playLabel = if (resumePlaybackId != null) {
@@ -533,12 +541,20 @@ fun DetailsScreen(
                             onClick = { viewModel.openEpisodes() }
                         )
 
-                        val seriesTrailer = state.tmdbTrailer
+                        val seriesTrailer = addonTrailer
+                        val seriesTmdbTrailer = state.tmdbTrailer
+                        
                         if (seriesTrailer != null) {
                             ExpandableIconButton(
                                 label = "Trailer",
                                 icon = Icons.Default.Videocam,
                                 onClick = { onTrailerClick(seriesTrailer.key, seriesTrailer.name) }
+                            )
+                        } else if (seriesTmdbTrailer != null) {
+                            ExpandableIconButton(
+                                label = "Trailer",
+                                icon = Icons.Default.Videocam,
+                                onClick = { onTrailerClick(seriesTmdbTrailer.key, seriesTmdbTrailer.name) }
                             )
                         }
 
@@ -579,12 +595,20 @@ fun DetailsScreen(
                             }
                         )
 
-                        val movieTrailer = state.tmdbTrailer
+                        val movieTrailer = addonTrailer
+                        val movieTmdbTrailer = state.tmdbTrailer
+                        
                         if (movieTrailer != null) {
                             ExpandableIconButton(
                                 label = "Trailer",
                                 icon = Icons.Default.Videocam,
                                 onClick = { onTrailerClick(movieTrailer.key, movieTrailer.name) }
+                            )
+                        } else if (movieTmdbTrailer != null) {
+                            ExpandableIconButton(
+                                label = "Trailer",
+                                icon = Icons.Default.Videocam,
+                                onClick = { onTrailerClick(movieTmdbTrailer.key, movieTmdbTrailer.name) }
                             )
                         }
 
@@ -1393,6 +1417,25 @@ private fun RecommendationCard(item: TmdbMetaPreview, accentColor: Color, modifi
             )
         }
     }
+}
+
+private data class ResolvedTrailer(
+    val key: String,
+    val name: String
+)
+
+private fun resolveAddonTrailer(videos: List<MetaVideo>?): ResolvedTrailer? {
+    return videos
+        ?.firstOrNull { video ->
+            video.title.contains("trailer", ignoreCase = true) ||
+                video.id.contains("trailer", ignoreCase = true)
+        }
+        ?.let { video ->
+            ResolvedTrailer(
+                key = video.id,
+                name = video.title.ifBlank { "Trailer" }
+            )
+        }
 }
 
 private fun extractPrimaryYear(releaseInfo: String?): String {
