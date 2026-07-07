@@ -804,11 +804,17 @@ private fun buildContinueWatchingItems(
             if (chosen.id != entry.id) return@forEach
 
             val nextUp = nextUpBySeriesId[canonicalId]
-            val seriesTitle = nextUp?.title
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-                ?: chosen.title
-
+            val seriesTitle = resolveContinueWatchingSeriesTitle(
+                nextUpTitle = nextUp?.title,
+                historyTitle = chosen.title,
+                canonicalId = canonicalId
+            )
+            
+            val episodeTitle = resolveContinueWatchingEpisodeTitle(
+                historyTitle = chosen.title,
+                storedEpisodeTitle = chosen.logo
+            )
+            
             seriesIdsIncluded.add(canonicalId)
 
             result.add(
@@ -829,7 +835,7 @@ private fun buildContinueWatchingItems(
                     // Small line below title: S01 E02 • Episode Name
                     description = buildEpisodeLine(
                         playbackId = chosen.id,
-                        episodeTitle = chosen.logo
+                        episodeTitle = episodeTitle
                     ),
             
                     imdbRating = null,
@@ -912,6 +918,68 @@ private fun buildContinueWatchingItems(
     }
 
     return result.sortedByDescending { it.first }.map { it.second }
+}
+
+private fun resolveContinueWatchingSeriesTitle(
+    nextUpTitle: String?,
+    historyTitle: String?,
+    canonicalId: String
+): String {
+    val cleanNextUpTitle = nextUpTitle
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+
+    if (cleanNextUpTitle != null) return cleanNextUpTitle
+
+    val raw = historyTitle
+        ?.trim()
+        .orEmpty()
+
+    val looksLikeEpisodeTitle =
+        Regex("^S\\d{1,2}\\s*:?\\s*E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+            .containsMatchIn(raw) ||
+            Regex("^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(raw) ||
+            Regex("^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(raw)
+
+    return if (looksLikeEpisodeTitle) {
+        canonicalId
+    } else {
+        raw.takeIf { it.isNotBlank() } ?: canonicalId
+    }
+}
+
+private fun resolveContinueWatchingEpisodeTitle(
+    historyTitle: String?,
+    storedEpisodeTitle: String?
+): String? {
+    val stored = storedEpisodeTitle
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+
+    if (stored != null) return stored
+
+    val raw = historyTitle
+        ?.trim()
+        .orEmpty()
+
+    val cleaned = raw
+        .replace(
+            Regex("^S\\d{1,2}\\s*:?\\s*E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE),
+            ""
+        )
+        .replace(
+            Regex("^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE),
+            ""
+        )
+        .replace(
+            Regex("^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE),
+            ""
+        )
+        .trim()
+
+    return cleaned.takeIf { it.isNotBlank() }
 }
 
 private fun buildEpisodeLine(
