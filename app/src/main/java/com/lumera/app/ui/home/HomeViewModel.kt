@@ -613,16 +613,28 @@ class HomeViewModel @Inject constructor(
 
             try {
                 // Stage 1: Load only a small first batch so the screen opens quickly.
+                // Catalog/hub failures must not keep Home black.
                 val initialRowsDeferred = async {
-                    repository.getDashboardRows(
-                        screen = screenName,
-                        skipConfigs = 0,
-                        maxConfigs = initialDashboardBatchSize,
-                        catalogTimeoutMs = initialDashboardTimeoutMs
-                    )
+                    runCatching {
+                        repository.getDashboardRows(
+                            screen = screenName,
+                            skipConfigs = 0,
+                            maxConfigs = initialDashboardBatchSize,
+                            catalogTimeoutMs = initialDashboardTimeoutMs
+                        )
+                    }.getOrElse {
+                        emptyList()
+                    }
                 }
-                val hubRowsDeferred = async { repository.getHubRows(screenName) }
-
+            
+                val hubRowsDeferred = async {
+                    runCatching {
+                        repository.getHubRows(screenName)
+                    }.getOrElse {
+                        emptyList()
+                    }
+                }
+            
                 val initialRows = initialRowsDeferred.await()
                 val hubRows = hubRowsDeferred.await()
 
@@ -631,11 +643,13 @@ class HomeViewModel @Inject constructor(
                 val heroConfig = currentProfile?.heroFor(tabEnum)
                 val heroRow = if (heroConfig?.categoryId != null) {
                     initialRows.find { it.configId == heroConfig.categoryId }
-                        ?: repository.getCategoryRowPreview(
-                            configId = heroConfig.categoryId,
-                            maxItems = heroConfig.posterCount,
-                            timeoutMs = initialDashboardTimeoutMs
-                        )
+                        ?: runCatching {
+                            repository.getCategoryRowPreview(
+                                configId = heroConfig.categoryId,
+                                maxItems = heroConfig.posterCount,
+                                timeoutMs = initialDashboardTimeoutMs
+                            )
+                        }.getOrNull()
                 } else null
 
                 // Prefetch first visible images BEFORE updating state.
@@ -664,11 +678,17 @@ class HomeViewModel @Inject constructor(
                 prefetchLikelyVisibleMetadata(rows = initialRows, heroRow = heroRow)
 
                 // Stage 2: Load remaining categories in the background and append.
+                // Background failure must not affect already-rendered Home.
                 launch {
-                    val remainingRows = repository.getDashboardRows(
-                        screen = screenName,
-                        skipConfigs = initialDashboardBatchSize
-                    )
+                    val remainingRows = runCatching {
+                        repository.getDashboardRows(
+                            screen = screenName,
+                            skipConfigs = initialDashboardBatchSize
+                        )
+                    }.getOrElse {
+                        emptyList()
+                    }
+                
                     if (remainingRows.isEmpty()) return@launch
 
                     _state.update { currentState ->
@@ -686,7 +706,7 @@ class HomeViewModel @Inject constructor(
                             else -> null
                         }
 
-                        val mixedList = (hubRows + allRows.map { CategoryRow.fromHomeRow(it) })
+                        val mixedList = (currentState.hubRows + allRows.map { CategoryRow.fromHomeRow(it) })
                             .sortedBy { it.order }
 
                         currentState.copy(
@@ -696,8 +716,19 @@ class HomeViewModel @Inject constructor(
                         )
                     }
                 }
-            } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false) }
+            } catch (_: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        loadedScreen = screenName,
+                        loadedProfileId = currentProfileId,
+                        mixedRows = emptyList(),
+                        rows = emptyList(),
+                        hubRows = emptyList(),
+                        heroRow = null,
+                        tmdbEnabled = currentProfile?.tmdbEnabled == true
+                    )
+                }
             }
         }
     }
