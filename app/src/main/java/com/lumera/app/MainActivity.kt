@@ -687,6 +687,7 @@ class MainActivity : ComponentActivity() {
         playbackLogo: String?,
         seriesId: String,
         seriesTitle: String,
+        currentEpisodeThumbnail: String?,
         nextEpisode: MetaVideo?
     ) {
         val cleanPlaybackId = playbackId.trim()
@@ -705,7 +706,16 @@ class MainActivity : ComponentActivity() {
         }
         
         val cleanPoster = playbackPoster.trim().takeIf { it.isNotBlank() }
-        val cleanBackground = playbackBackground?.trim()?.takeIf { it.isNotBlank() }
+        
+        val cleanBackground = if (isSeriesPlaybackToSave) {
+            currentEpisodeThumbnail
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: playbackBackground?.trim()?.takeIf { it.isNotBlank() }
+        } else {
+            playbackBackground?.trim()?.takeIf { it.isNotBlank() }
+        }
+        
         val cleanLogo = playbackLogo?.trim()?.takeIf { it.isNotBlank() }
 
         val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
@@ -773,7 +783,11 @@ class MainActivity : ComponentActivity() {
                         SeriesNextUpEntity(
                             seriesId = seriesIdToSave,
                             title = cleanSeriesTitle.ifBlank { cleanPlaybackTitle },
-                            poster = cleanPoster,
+                            poster = if (watchedToSave && nextEpisodeToSave != null) {
+                                nextEpisodeToSave.thumbnail?.trim()?.takeIf { it.isNotBlank() } ?: cleanPoster
+                            } else {
+                                cleanBackground ?: cleanPoster
+                            },
                             nextSeason = nextSeasonToSave,
                             nextEpisode = nextEpisodeNumberToSave,
                             nextEpisodeTitle = if (watchedToSave && nextEpisodeToSave != null) {
@@ -881,6 +895,7 @@ class MainActivity : ComponentActivity() {
             var selectedPlaybackType by rememberSaveable { mutableStateOf("movie") }
             var selectedPlaybackTitle by rememberSaveable { mutableStateOf("") }
             var selectedPlaybackPoster by rememberSaveable { mutableStateOf("") }
+            var selectedPlaybackEpisodeThumbnail by rememberSaveable { mutableStateOf("") }
             var previousView by rememberSaveable { mutableStateOf("menu") }
             val playerState = remember { PlayerState() }
 
@@ -1546,6 +1561,13 @@ class MainActivity : ComponentActivity() {
                                 if (logo.isNotBlank()) selectedMovieLogo = logo
                                 playerState.currentEpisodeList = episodes
                                 playerState.currentStream = stream
+                                val currentEpisodeThumbnail = if (isSeriesPlayback) {
+                                    episodes.firstOrNull { episode ->
+                                        episodePlaybackId(selectedMovieId, episode) == playbackId
+                                    }?.thumbnail.orEmpty()
+                                } else {
+                                    ""
+                                }
                                 val subtitlePayload = buildSubtitlePayload(stream, addonSubtitles)
                                 val sourcePayloadInput = if (availableStreams.isNotEmpty()) availableStreams else listOf(stream)
                                 val sourcePayload = buildSourcePayload(streams = sourcePayloadInput, selectedStream = stream)
@@ -1560,6 +1582,7 @@ class MainActivity : ComponentActivity() {
                                     selectedPlaybackType = playbackType
                                     selectedPlaybackTitle = resolvedPlaybackTitle
                                     selectedPlaybackPoster = selectedMoviePoster
+                                    selectedPlaybackEpisodeThumbnail = currentEpisodeThumbnail
                                     selectedTrailerAudioUrl = ""
                                     playerState.selectedPlayerSubtitles = subtitlePayload
                                     playerState.selectedPlayerSources = sourcePayload
@@ -1810,6 +1833,7 @@ class MainActivity : ComponentActivity() {
                                         val nextPlaybackId = episodePlaybackId(selectedMovieId, nextEpisode)
                                         val nextStreamId = episodeStreamId(selectedMovieId, nextEpisode)
                                         val nextPlaybackTitle = episodeDisplayTitle(nextEpisode)
+                                        val nextEpisodeThumbnail = nextEpisode.thumbnail.orEmpty()
 
                                         uiScope.launch {
                                             withContext(Dispatchers.IO) {
@@ -1830,6 +1854,7 @@ class MainActivity : ComponentActivity() {
                                                     playbackLogo = selectedMovieLogo,
                                                     seriesId = selectedMovieId,
                                                     seriesTitle = selectedMovieTitle,
+                                                    currentEpisodeThumbnail = selectedPlaybackEpisodeThumbnail,
                                                     nextEpisode = nextEpisode
                                                 )
                                             }
@@ -1944,6 +1969,7 @@ class MainActivity : ComponentActivity() {
                                             selectedPlaybackId = nextPlaybackId
                                             selectedPlaybackType = "series"
                                             selectedPlaybackTitle = nextPlaybackTitle
+                                            selectedPlaybackEpisodeThumbnail = nextEpisodeThumbnail
                                             playerState.selectedPlayerSubtitles = subtitlePayload
                                             playerState.selectedPlayerSources = sourcePayload
                                             selectedVideoUrl = nextUrl
@@ -2193,6 +2219,7 @@ class MainActivity : ComponentActivity() {
                                             playbackLogo = playbackLogoToSave,
                                             seriesId = seriesIdToSave,
                                             seriesTitle = seriesTitleToSave,
+                                            currentEpisodeThumbnail = selectedPlaybackEpisodeThumbnail,
                                             nextEpisode = nextEpisodeToSave
                                         )
 
