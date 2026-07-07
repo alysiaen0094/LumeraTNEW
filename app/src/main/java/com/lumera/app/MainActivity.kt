@@ -793,7 +793,7 @@ class MainActivity : ComponentActivity() {
                             nextEpisodeTitle = if (watchedToSave && nextEpisodeToSave != null) {
                                 episodeDisplayTitle(nextEpisodeToSave)
                             } else {
-                                cleanPlaybackTitle
+                                null
                             },
                             nextReleased = null,
                             isComplete = watchedToSave && nextEpisodeToSave == null,
@@ -2173,9 +2173,14 @@ class MainActivity : ComponentActivity() {
                                         playerState.currentStream = streamToPlay
                                         playerState.pendingEpisodeSwitch = null
 
+                                        val pendingEpisodeThumbnail = playerState.currentEpisodeList.firstOrNull { episode ->
+                                            episodePlaybackId(selectedMovieId, episode) == pending.playbackId
+                                        }?.thumbnail.orEmpty()
+                                        
                                         selectedPlaybackId = pending.playbackId
                                         selectedPlaybackType = "series"
                                         selectedPlaybackTitle = pending.playbackTitle
+                                        selectedPlaybackEpisodeThumbnail = pendingEpisodeThumbnail
                                         playerState.selectedPlayerSubtitles = subtitlePayload
                                         playerState.selectedPlayerSources = sourcePayload
                                         selectedVideoUrl = sourceUrl
