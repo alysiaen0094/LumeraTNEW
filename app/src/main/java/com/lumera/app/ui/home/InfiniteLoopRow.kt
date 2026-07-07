@@ -421,6 +421,8 @@ private fun LinearContent(
                 
                     LumeraLandscapeCard(
                         title = item.name,
+                        subtitle = item.description,
+                        statusText = item.runtime,
                         backdropUrl = cardBackdropUrl,
                         logoUrl = enriched?.logo,
                         posterUrl = item.poster,
@@ -441,6 +443,8 @@ private fun LinearContent(
                     val watchedIds = LocalWatchedIds.current
                     LumeraCard(
                         title = item.name,
+                        subtitle = item.description,
+                        statusText = item.runtime,
                         posterUrl = item.poster,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
