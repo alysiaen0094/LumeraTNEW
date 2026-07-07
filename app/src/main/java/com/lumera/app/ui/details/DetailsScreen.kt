@@ -331,7 +331,7 @@ fun DetailsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(500.dp)
-                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 54.dp)
+                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 72.dp)
                     .onFocusChanged { heroHasFocus = it.hasFocus },
                 verticalArrangement = Arrangement.Bottom
             ) {
