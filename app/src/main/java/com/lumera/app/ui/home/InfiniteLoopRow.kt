@@ -420,12 +420,17 @@ private fun LinearContent(
                         ?: item.poster
                 
                     LumeraLandscapeCard(
-                        title = item.name,
-                        subtitle = item.description,
-                        statusText = item.runtime,
+                        title = buildString {
+                            append(item.name)
+                            if (!item.description.isNullOrBlank()) {
+                                append("\n")
+                                append(item.description)
+                            }
+                        },
                         backdropUrl = cardBackdropUrl,
                         logoUrl = enriched?.logo,
                         posterUrl = item.poster,
+                        remainingText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
                         hasNewEpisode = item.hasNewEpisode,
