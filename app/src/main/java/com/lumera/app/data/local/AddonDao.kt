@@ -284,18 +284,21 @@ interface AddonDao {
         hubRowItems: List<HubRowItemEntity>,
         watchHistory: List<WatchHistoryEntity>,
         watchlist: List<WatchlistEntity>,
-        seriesNextUp: List<SeriesNextUpEntity>
+        seriesNextUp: List<SeriesNextUpEntity>,
+        clearUserState: Boolean = false
     ) {
         clearHubRowItems()
         clearHubRows()
         clearCatalogConfigs()
         clearAddons()
-    
-        // User/activity state must be cleared when switching, restoring,
-        // or initializing profile runtime state.
-        clearWatchHistory()
-        clearWatchlist()
-        clearSeriesNextUp()
+        
+        // Only clear user/activity state when explicitly requested.
+        // Normal app restart/profile reload should preserve saves.
+        if (clearUserState) {
+            clearWatchHistory()
+            clearWatchlist()
+            clearSeriesNextUp()
+        }
     
         if (addons.isNotEmpty()) insertAddons(addons)
         if (catalogConfigs.isNotEmpty()) saveCatalogConfigs(catalogConfigs)
