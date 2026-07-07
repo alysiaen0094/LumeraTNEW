@@ -148,7 +148,8 @@ class ProfileConfigurationManager @Inject constructor(
             hubRowItems = snapshot.hubRowItems,
             watchHistory = snapshot.watchHistory,
             watchlist = snapshot.watchlist,
-            seriesNextUp = snapshot.seriesNextUp
+            seriesNextUp = snapshot.seriesNextUp,
+            clearUserState = false
         )
         stremioAuthManager.loadCredentialsForProfile(profileId)
         setLastActiveProfileId(profileId)
@@ -185,9 +186,10 @@ class ProfileConfigurationManager @Inject constructor(
             catalogConfigs = configOnlySnapshot.catalogConfigs,
             hubRows = configOnlySnapshot.hubRows,
             hubRowItems = configOnlySnapshot.hubRowItems,
-            watchHistory = configOnlySnapshot.watchHistory,
-            watchlist = configOnlySnapshot.watchlist,
-            seriesNextUp = configOnlySnapshot.seriesNextUp
+            watchHistory = emptyList(),
+            watchlist = emptyList(),
+            seriesNextUp = emptyList(),
+            clearUserState = true
         )
     
         stremioAuthManager.copyCredentialsBetweenProfiles(sourceProfileId, targetProfileId)
