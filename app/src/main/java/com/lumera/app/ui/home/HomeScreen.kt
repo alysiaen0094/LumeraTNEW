@@ -823,13 +823,9 @@ private fun buildContinueWatchingItems(
                     description = null,
             
                     imdbRating = null,
-                    runtime = buildContinueWatchingEpisodeBadge(
+                    runtime = buildContinueWatchingSeriesSubtitle(
                         playbackId = chosen.id,
-                        episodeTitle = chosen.title,
-                        fallback = buildContinueWatchingRemainingText(
-                            position = chosen.position,
-                            duration = chosen.duration
-                        )
+                        episodeTitle = chosen.title
                     ),
                     progress = chosen.progress()
                 )
@@ -887,7 +883,7 @@ private fun buildContinueWatchingItems(
                     season = nextUp.nextSeason,
                     episode = nextUp.nextEpisode,
                     episodeTitle = nextUp.nextEpisodeTitle
-                ) ?: "Next episode",
+                )?.let { "$it • New episode" } ?: "New episode",
                 hasNewEpisode = isReturning
             )
         )
@@ -943,28 +939,6 @@ private fun buildContinueWatchingSeriesSubtitle(
             append(" • ")
             append(cleanEpisodeTitle)
         }
-    }
-}
-
-private fun buildContinueWatchingEpisodeBadge(
-    playbackId: String,
-    episodeTitle: String,
-    fallback: String?
-): String? {
-    val episodeLabel = buildContinueWatchingSeriesSubtitle(
-        playbackId = playbackId,
-        episodeTitle = episodeTitle
-    )
-
-    return when {
-        !episodeLabel.isNullOrBlank() && !fallback.isNullOrBlank() ->
-            "$episodeLabel • $fallback"
-
-        !episodeLabel.isNullOrBlank() ->
-            episodeLabel
-
-        else ->
-            fallback
     }
 }
 
