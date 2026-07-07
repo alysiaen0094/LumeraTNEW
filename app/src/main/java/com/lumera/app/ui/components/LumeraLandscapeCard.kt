@@ -62,11 +62,11 @@ import com.lumera.app.ui.theme.LocalRoundCorners
 @Composable
 fun LumeraLandscapeCard(
     title: String,
+    subtitle: String? = null,
+    statusText: String? = null,
     backdropUrl: String?,
     logoUrl: String?,
     posterUrl: String?,
-    subtitle: String? = null,
-    remainingText: String? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     progress: Float = 0f,
@@ -156,7 +156,8 @@ fun LumeraLandscapeCard(
                         )
                 )
 
-                if (!remainingText.isNullOrBlank()) {
+                val topRightText = statusText ?: if (hasNewEpisode) "New episode" else null
+                if (!topRightText.isNullOrBlank()) {    
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -168,7 +169,7 @@ fun LumeraLandscapeCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = remainingText,
+                            text = topRightText,
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
@@ -212,26 +213,6 @@ fun LumeraLandscapeCard(
                             color = Color.White.copy(alpha = 0.78f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                if (hasNewEpisode) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(9.dp)
-                            )
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "+1",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
