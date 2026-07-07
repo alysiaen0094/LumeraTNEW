@@ -283,7 +283,7 @@ fun CinematicLayout(
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
         historyItems.take(15).forEach { item ->
-            onHeroItemVisible(previewLookupItemForFocus(item, historyItems))
+            onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
         }
     }
 
@@ -1032,15 +1032,14 @@ private fun previewLookupItemForFocus(
     if (!isContinueWatchingItem) return item
 
     return item.copy(
-        // Keep only the series identity for enrichment.
-        // Do not let Continue Watching card text/image replace series metadata.
+        // Keep only series identity for metadata lookup.
+        // Do not let Continue Watching card text/image overwrite series metadata.
         poster = null,
         background = null,
         logo = null,
         description = null,
         runtime = null,
         imdbRating = null,
-        progress = null,
         hasNewEpisode = false
     )
 }
@@ -1078,12 +1077,16 @@ private fun resolveLatestPreviewItem(
 
     return if (isContinueWatchingItem) {
         item.copy(
-            // Do not show episode line as large synopsis
+            // Do not show Continue Watching card text in the main metadata area.
             description = null,
-
-            // Do not show card top-right text in large meta strip
             runtime = null,
-
+    
+            // Do not let the main metadata image use the episode thumbnail/card image.
+            // The focused top area should wait for/use enriched series metadata.
+            poster = null,
+            background = null,
+            logo = null,
+    
             imdbRating = null
         )
     } else {
@@ -1138,7 +1141,7 @@ fun SimpleLayout(
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
         historyItems.take(15).forEach { item ->
-            onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
+            onHeroItemVisible(previewLookupItemForFocus(item, historyItems))
         }
     }
 
