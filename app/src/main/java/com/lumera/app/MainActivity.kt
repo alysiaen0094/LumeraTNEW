@@ -1984,6 +1984,7 @@ class MainActivity : ComponentActivity() {
                                         val epPlaybackId = episodePlaybackId(selectedMovieId, episode)
                                         val epStreamId = episodeStreamId(selectedMovieId, episode)
                                         val epTitle = episodeDisplayTitle(episode)
+                                        val epThumbnail = episode.thumbnail.orEmpty()
 
                                         uiScope.launch {
                                             // Show loading feedback immediately
@@ -2110,6 +2111,7 @@ class MainActivity : ComponentActivity() {
                                             selectedPlaybackId = epPlaybackId
                                             selectedPlaybackType = "series"
                                             selectedPlaybackTitle = epTitle
+                                            selectedPlaybackEpisodeThumbnail = epThumbnail
                                             playerState.selectedPlayerSubtitles = subtitlePayload
                                             playerState.selectedPlayerSources = sourcePayload
                                             selectedVideoUrl = epUrl
