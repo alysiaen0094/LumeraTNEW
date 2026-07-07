@@ -165,7 +165,7 @@ fun GlassSidebar(
     GlassSidebarScaffold(
         visible = isVisible,
         onDismiss = onDismiss,
-        panelWidth = 620.dp
+        panelWidth = 760.dp
     ) {
         Crossfade(targetState = state, label = "Sidebar") { current ->
             when (current) {
