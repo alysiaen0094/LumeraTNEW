@@ -716,7 +716,13 @@ class MainActivity : ComponentActivity() {
             playbackBackground?.trim()?.takeIf { it.isNotBlank() }
         }
         
-        val cleanLogo = playbackLogo?.trim()?.takeIf { it.isNotBlank() }
+        val cleanEpisodeTitle = playbackTitle.trim()
+        
+        val cleanLogo = if (isSeriesPlaybackToSave) {
+            cleanEpisodeTitle.takeIf { it.isNotBlank() && it != cleanPlaybackTitle }
+        } else {
+            playbackLogo?.trim()?.takeIf { it.isNotBlank() }
+        }
 
         val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
         val durationToSave = sessionResult.durationMs?.coerceAtLeast(0L) ?: 0L
