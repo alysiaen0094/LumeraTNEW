@@ -815,18 +815,19 @@ private fun buildContinueWatchingItems(
                     type = "series",
                     name = seriesTitle,
                     poster = chosen.poster,
+                    // Landscape Continue Watching should use only real backdrop/background.
+                    // Do not stretch the low-quality poster into a landscape card.
                     background = chosen.background,
                     logo = null,
-            
-                    // Important: do not put episode/season text here.
-                    // The cinematic preview uses description as synopsis.
+
+                    // Keep description free so the cinematic preview can show real series synopsis
+                    // from metadata/TMDB enrichment.
                     description = null,
-            
+
                     imdbRating = null,
-                    runtime = buildContinueWatchingSeriesSubtitle(
-                        playbackId = chosen.id,
-                        episodeTitle = chosen.title
-                    ),
+                    // This is the line shown below the series title on the card.
+                    // No remaining-time text here.
+                    runtime = buildSeasonEpisodeLabel(chosen.id),
                     progress = chosen.progress()
                 )
             )
@@ -872,18 +873,20 @@ private fun buildContinueWatchingItems(
                 type = "series",
                 name = nextUp.title,
                 poster = nextUp.poster,
+                // Let enrichment provide the high-quality backdrop.
+                // Do not use the poster as landscape background.
                 background = null,
                 logo = null,
-        
-                // Important: keep description free for real series synopsis.
+
+                // Keep description free so the preview can show the real series synopsis.
                 description = null,
-        
+
                 imdbRating = null,
-                runtime = buildNextUpSubtitle(
+                // This is the line below the title. Do not append "New episode" here.
+                runtime = buildSeasonEpisodeLabel(
                     season = nextUp.nextSeason,
-                    episode = nextUp.nextEpisode,
-                    episodeTitle = nextUp.nextEpisodeTitle
-                )?.let { "$it • New episode" } ?: "New episode",
+                    episode = nextUp.nextEpisode
+                ),
                 hasNewEpisode = isReturning
             )
         )
@@ -892,54 +895,19 @@ private fun buildContinueWatchingItems(
     return result.sortedByDescending { it.first }.map { it.second }
 }
 
-private fun buildContinueWatchingSeriesSubtitle(
-    playbackId: String,
-    episodeTitle: String
-): String? {
+private fun buildSeasonEpisodeLabel(playbackId: String): String? {
     val parts = playbackId.split(":")
     val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
     val episode = parts.lastOrNull()?.toIntOrNull()
+    return buildSeasonEpisodeLabel(season, episode)
+}
 
-    val cleanEpisodeTitle = episodeTitle
-        .trim()
-        .replace(
-            Regex(
-                pattern = "^S\\d{1,2}\\s*[: ]?\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .replace(
-            Regex(
-                pattern = "^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .replace(
-            Regex(
-                pattern = "^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .trim()
-
-    if (season == null || episode == null) {
-        return cleanEpisodeTitle.takeIf { it.isNotBlank() }
-    }
-
-    return buildString {
-        append("S")
-        append(season.toString().padStart(2, '0'))
-        append(" E")
-        append(episode.toString().padStart(2, '0'))
-
-        if (cleanEpisodeTitle.isNotBlank()) {
-            append(" • ")
-            append(cleanEpisodeTitle)
-        }
-    }
+private fun buildSeasonEpisodeLabel(
+    season: Int?,
+    episode: Int?
+): String? {
+    if (season == null || episode == null) return null
+    return "S${season.toString().padStart(2, '0')} E${episode.toString().padStart(2, '0')}"
 }
 
 private fun buildNextUpSubtitle(
@@ -947,47 +915,10 @@ private fun buildNextUpSubtitle(
     episode: Int?,
     episodeTitle: String?
 ): String? {
-    val cleanEpisodeTitle = episodeTitle
-        ?.trim()
-        .orEmpty()
-        .replace(
-            Regex(
-                pattern = "^S\\d{1,2}\\s*[: ]?\\s*E\\d{1,2}\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .replace(
-            Regex(
-                pattern = "^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .replace(
-            Regex(
-                pattern = "^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*",
-                option = RegexOption.IGNORE_CASE
-            ),
-            ""
-        )
-        .trim()
-
-    if (season == null || episode == null) {
-        return cleanEpisodeTitle.takeIf { it.isNotBlank() }
-    }
-
-    return buildString {
-        append("S")
-        append(season.toString().padStart(2, '0'))
-        append(" E")
-        append(episode.toString().padStart(2, '0'))
-
-        if (cleanEpisodeTitle.isNotBlank()) {
-            append(" • ")
-            append(cleanEpisodeTitle)
-        }
-    }
+    // Kept for compatibility if anything else calls it.
+    // Continue Watching no longer uses this for card text because "New episode"
+    // must not be joined with the season/episode line.
+    return buildSeasonEpisodeLabel(season, episode)
 }
 
 private fun buildContinueWatchingRemainingText(
@@ -1034,7 +965,11 @@ private fun resolveLatestPreviewItem(
     val item = current ?: return null
 
     val enriched = state.enrichedMeta["${item.type}:${item.id}"]
-    if (enriched != null && hasUsefulPreviewMetadata(enriched)) return enriched
+    if (enriched != null && hasUsefulPreviewMetadata(enriched)) return enriched.copy(
+        // Preserve the continue-watching card line if this item is from CW.
+        runtime = item.runtime ?: enriched.runtime,
+        hasNewEpisode = item.hasNewEpisode || enriched.hasNewEpisode
+    )
 
     val fromHero = state.heroRow?.items?.firstOrNull { it.type == item.type && it.id == item.id }
     if (fromHero != null && hasUsefulPreviewMetadata(fromHero)) return fromHero
@@ -1550,17 +1485,19 @@ private fun HomeMetaStrip(item: MetaItem) {
         HomeMetaDot()
         Text(text = yearLabel, style = textStyle, color = valueColor)
 
-        item.runtime
+        val runtimeMinutes = item.runtime
             ?.trim()
-            ?.takeIf { runtime -> runtime.matches(Regex("^\\d+$")) }
+            ?.let { Regex("^\\d{1,4}m$").matchEntire(it)?.value }
+            ?.removeSuffix("m")
             ?.toIntOrNull()
-            ?.let { mins ->
-                HomeMetaDot()
-                val hours = mins / 60
-                val m = mins % 60
-                val display = if (hours > 0) "${hours}h ${m}m" else "${m}m"
-                Text(text = display, style = textStyle, color = valueColor)
-            }
+
+        runtimeMinutes?.let { mins ->
+            HomeMetaDot()
+            val hours = mins / 60
+            val m = mins % 60
+            val display = if (hours > 0) "${hours}h ${m}m" else "${m}m"
+            Text(text = display, style = textStyle, color = valueColor)
+        }
 
         item.imdbRating?.takeIf { it.isNotBlank() }?.let { rating ->
             HomeMetaDot()
