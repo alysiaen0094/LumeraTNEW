@@ -415,9 +415,9 @@ private fun LinearContent(
                 if (isLandscapeCards) {
                     val enriched = enrichedItems["${item.type}:${item.id}"]
                 
-                    val cardBackdropUrl = enriched?.background
-                        ?: item.background
-                        ?: item.poster
+                    val cardBackdropUrl = item.background
+                    ?: enriched?.background
+                    ?: item.poster
                 
                     LumeraLandscapeCard(
                         title = item.name,
