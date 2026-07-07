@@ -446,8 +446,8 @@ fun DetailsScreen(
                 Text(
                     text = currentMovie.description ?: "",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.sp,
-                        lineHeight = 17.sp
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     ),
                     color = textColor.copy(alpha = 0.82f),
                     maxLines = 4,
