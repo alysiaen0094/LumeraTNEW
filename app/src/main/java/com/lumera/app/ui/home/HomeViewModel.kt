@@ -99,7 +99,7 @@ class HomeViewModel @Inject constructor(
     private val metadataRequestsInFlight = mutableSetOf<String>()
     private val hubInitialLoadCount = 100
     private val initialDashboardBatchSize = 6
-    private val initialDashboardTimeoutMs = 2_500L
+    private val initialDashboardTimeoutMs = 5_000L
 
     // UI batching: per-row pending buffers and dedup tracking
     companion object {
@@ -677,13 +677,13 @@ class HomeViewModel @Inject constructor(
                 // Start a tiny metadata warmup pass for items likely to render first.
                 prefetchLikelyVisibleMetadata(rows = initialRows, heroRow = heroRow)
 
-                // Stage 2: Load remaining categories in the background and append.
-                // Background failure must not affect already-rendered Home.
+                // Stage 2: Reload all categories in the background.
+                // This fills rows that timed out during the quick initial load.
                 launch {
                     val remainingRows = runCatching {
                         repository.getDashboardRows(
                             screen = screenName,
-                            skipConfigs = initialDashboardBatchSize
+                            skipConfigs = 0
                         )
                     }.getOrElse {
                         emptyList()
