@@ -439,17 +439,16 @@ private fun LinearContent(
                     )
                 } else {
                     val watchedIds = LocalWatchedIds.current
-                    LumeraCard(
+                    LumeraLandscapeCard(
                         title = item.name,
-                        subtitle = item.description,
-                        statusText = item.runtime,
+                        backdropUrl = cardBackdropUrl,
+                        logoUrl = enriched?.logo,
                         posterUrl = item.poster,
                         onClick = { onMovieClick(item) },
                         progress = item.progress,
-                        isWatched = rowIndex != -1 && item.id in watchedIds,
                         hasNewEpisode = item.hasNewEpisode,
                         onFocused = {
-                            ImagePrefetcher.prefetchAround(context, imageUrls, index)
+                            ImagePrefetcher.prefetchAroundLandscape(context, imageUrls, index)
                             onFocused(item, uniqueKey)
                         },
                         modifier = Modifier.then(
