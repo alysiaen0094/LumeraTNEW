@@ -62,8 +62,6 @@ import com.lumera.app.ui.theme.LocalRoundCorners
 @Composable
 fun LumeraLandscapeCard(
     title: String,
-    subtitle: String? = null,
-    statusText: String? = null,
     backdropUrl: String?,
     logoUrl: String?,
     posterUrl: String?,
@@ -71,7 +69,9 @@ fun LumeraLandscapeCard(
     modifier: Modifier = Modifier,
     progress: Float = 0f,
     hasNewEpisode: Boolean = false,
-    onFocused: (() -> Unit)? = null
+    onFocused: (() -> Unit)? = null,
+    subtitle: String? = null,
+    statusText: String? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val glowColor = MaterialTheme.colorScheme.primary
