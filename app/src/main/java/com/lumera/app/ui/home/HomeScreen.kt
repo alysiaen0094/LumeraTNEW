@@ -931,6 +931,7 @@ private fun buildContinueWatchingItems(
         val isReturning = nextUp.isComplete || nextUp.isNewEpisode
 
         val continueWatchingBackground = continueWatchingBackgroundBySeriesId[nextUp.seriesId]
+                ?: cleanContinueWatchingBackground(nextUp.poster)
         
         result.add(
             nextUp.updatedAt to MetaItem(
