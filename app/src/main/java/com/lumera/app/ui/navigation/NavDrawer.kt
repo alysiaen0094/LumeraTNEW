@@ -299,7 +299,7 @@ fun SidebarItem(
         label = "contentColor"
     )
 
-    val iconStartPadding = 16.dp
+    val iconStartPadding = if (isMenuExpanded) 16.dp else 20.dp
 
     val indicatorWidth by animateDpAsState(
         targetValue = if (showIndicator) 4.dp else 0.dp,
@@ -472,7 +472,7 @@ fun ProfileAvatarItem(
                 // Avatar circle with border on focus
                 Box(
                     modifier = Modifier
-                        .padding(start = 13.dp)
+                        .padding(start = if (isMenuExpanded) 13.dp else 18.dp)
                         .size(26.dp)
                         .graphicsLayer {
                             scaleX = avatarScale
