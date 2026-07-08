@@ -1190,19 +1190,17 @@ private fun PlayerControlsOverlay(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(196.dp)
+                .height(250.dp)
                 .align(Alignment.BottomCenter)
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.0f to Color.Transparent,
-                            0.15f to Color.Black.copy(alpha = 0.05f),
-                            0.3f to Color.Black.copy(alpha = 0.14f),
-                            0.45f to Color.Black.copy(alpha = 0.28f),
-                            0.6f to Color.Black.copy(alpha = 0.44f),
-                            0.75f to Color.Black.copy(alpha = 0.60f),
-                            0.88f to Color.Black.copy(alpha = 0.74f),
-                            1.0f to Color.Black.copy(alpha = 0.82f)
+                            0.18f to Color.Black.copy(alpha = 0.10f),
+                            0.36f to Color.Black.copy(alpha = 0.30f),
+                            0.58f to Color.Black.copy(alpha = 0.58f),
+                            0.78f to Color.Black.copy(alpha = 0.78f),
+                            1.0f to Color.Black.copy(alpha = 0.92f)
                         )
                     )
                 )
@@ -1212,8 +1210,28 @@ private fun PlayerControlsOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 28.dp, vertical = 20.dp)
+                .padding(horizontal = 46.dp, vertical = 28.dp)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = formatTime(currentPositionMs),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color.White.copy(alpha = 0.92f)
+                )
+
+                Text(
+                    text = formatTime(durationMs),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.62f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             FocusableSeekBar(
                 currentPosition = currentPositionMs,
                 duration = durationMs,
@@ -1223,7 +1241,7 @@ private fun PlayerControlsOverlay(
                 downFocusRequester = playPauseFocusRequester
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1231,7 +1249,7 @@ private fun PlayerControlsOverlay(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ControlButton(
@@ -1241,8 +1259,9 @@ private fun PlayerControlsOverlay(
                         focusRequester = playPauseFocusRequester,
                         onFocused = onResetHideTimer,
                         upFocusRequester = seekBarFocusRequester,
-                        buttonSize = 54.dp,
-                        iconSize = 29.dp
+                        buttonSize = 62.dp,
+                        iconSize = 34.dp,
+                        primary = true
                     )
 
                     if (showSubtitleControl) {
@@ -1250,9 +1269,7 @@ private fun PlayerControlsOverlay(
                             icon = Icons.Default.ClosedCaption,
                             contentDescription = "Subtitles",
                             onClick = onShowSubtitlePanel,
-                            onFocused = onResetHideTimer,
-                            buttonSize = 36.dp,
-                            iconSize = 18.dp
+                            onFocused = onResetHideTimer
                         )
                     }
 
@@ -1261,9 +1278,7 @@ private fun PlayerControlsOverlay(
                             icon = Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = "Audio tracks",
                             onClick = onShowAudioPanel,
-                            onFocused = onResetHideTimer,
-                            buttonSize = 36.dp,
-                            iconSize = 20.dp
+                            onFocused = onResetHideTimer
                         )
                     }
 
@@ -1272,34 +1287,30 @@ private fun PlayerControlsOverlay(
                             icon = Icons.Default.VideoLibrary,
                             contentDescription = "Episodes",
                             onClick = onShowEpisodesPanel,
-                            onFocused = onResetHideTimer,
-                            buttonSize = 36.dp,
-                            iconSize = 18.dp
+                            onFocused = onResetHideTimer
                         )
                     }
 
                     if (showSourceControl || showAudioControl || showSubtitleControl) {
                         ControlButton(
                             icon = Icons.Default.SwapHoriz,
-                            contentDescription = "More sources",
+                            contentDescription = "Sources",
                             onClick = onShowSourcesPanel,
-                            onFocused = onResetHideTimer,
-                            buttonSize = 36.dp,
-                            iconSize = 18.dp
+                            onFocused = onResetHideTimer
                         )
                     }
                 }
 
                 Text(
-                    text = "${formatTime(currentPositionMs)} \u2022 ${formatTime(durationMs)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.95f)
+                    text = remainingTimeText(currentPositionMs, durationMs),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                    color = Color.White.copy(alpha = 0.78f),
+                    maxLines = 1
                 )
             }
         }
     }
 }
-
 @Composable
 private fun ControlButton(
     icon: ImageVector,
@@ -1309,9 +1320,12 @@ private fun ControlButton(
     onFocused: (() -> Unit)? = null,
     upFocusRequester: FocusRequester? = null,
     downFocusRequester: FocusRequester? = null,
-    buttonSize: Dp = 40.dp,
-    iconSize: Dp = 20.dp
+    buttonSize: Dp = 44.dp,
+    iconSize: Dp = 22.dp,
+    primary: Boolean = false
 ) {
+    val accentColor = MaterialTheme.colorScheme.primary
+
     IconButton(
         onClick = onClick,
         modifier = Modifier
@@ -1328,9 +1342,13 @@ private fun ControlButton(
                 if (it.isFocused) onFocused?.invoke()
             },
         colors = IconButtonDefaults.colors(
-            containerColor = Color.Transparent,
-            focusedContainerColor = Color.White,
-            contentColor = Color.White,
+            containerColor = if (primary) {
+                Color.White.copy(alpha = 0.14f)
+            } else {
+                Color.White.copy(alpha = 0.08f)
+            },
+            focusedContainerColor = if (primary) accentColor else Color.White,
+            contentColor = Color.White.copy(alpha = 0.92f),
             focusedContentColor = Color.Black
         ),
         shape = IconButtonDefaults.shape(shape = CircleShape)
@@ -1418,12 +1436,13 @@ private fun ProgressBar(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(18.dp)
+            .height(if (isFocused) 24.dp else 20.dp)
     ) {
-        val trackHeight = if (isFocused) 5.dp else 4.dp
-        val thumbSize = if (isFocused) 12.dp else 9.dp
+        val trackHeight = if (isFocused) 7.dp else 5.dp
+        val thumbSize = if (isFocused) 16.dp else 11.dp
         val clampedProgress = animatedProgress.coerceIn(0f, 1f)
         val thumbOffset = (maxWidth - thumbSize) * clampedProgress
+        val primaryColor = MaterialTheme.colorScheme.primary
 
         Box(
             modifier = Modifier
@@ -1431,10 +1450,8 @@ private fun ProgressBar(
                 .fillMaxWidth()
                 .height(trackHeight)
                 .clip(RoundedCornerShape(999.dp))
-                .background(Color.White.copy(alpha = 0.34f))
+                .background(Color.White.copy(alpha = 0.24f))
         )
-
-        val primaryColor = MaterialTheme.colorScheme.primary
 
         Box(
             modifier = Modifier
@@ -1442,7 +1459,14 @@ private fun ProgressBar(
                 .fillMaxWidth(clampedProgress)
                 .height(trackHeight)
                 .clip(RoundedCornerShape(999.dp))
-                .background(primaryColor)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.85f),
+                            primaryColor
+                        )
+                    )
+                )
         )
 
         Box(
@@ -1451,7 +1475,8 @@ private fun ProgressBar(
                 .offset(x = thumbOffset)
                 .size(thumbSize)
                 .clip(CircleShape)
-                .background(primaryColor)
+                .background(Color.White)
+                .border(3.dp, primaryColor, CircleShape)
         )
     }
 }
@@ -3343,6 +3368,12 @@ private fun formatTime(millis: Long): String {
     } else {
         String.format("%d:%02d", minutes, seconds)
     }
+}
+
+private fun remainingTimeText(positionMs: Long, durationMs: Long): String {
+    if (durationMs <= 0L) return ""
+    val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
+    return "${formatTime(remainingMs)} left"
 }
 
 private fun resolveHeaderInfo(
