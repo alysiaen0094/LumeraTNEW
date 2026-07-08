@@ -760,14 +760,9 @@ class MainActivity : ComponentActivity() {
         
         val cleanPoster = playbackPoster.trim().takeIf { it.isNotBlank() }
         
-        val cleanBackground = if (isSeriesPlaybackToSave) {
-            currentEpisodeThumbnail
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-                ?: playbackBackground?.trim()?.takeIf { it.isNotBlank() }
-        } else {
-            playbackBackground?.trim()?.takeIf { it.isNotBlank() }
-        }
+        val cleanBackground = playbackBackground
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
         
         val cleanEpisodeTitle = playbackTitle.trim()
         
@@ -838,11 +833,7 @@ class MainActivity : ComponentActivity() {
                         SeriesNextUpEntity(
                             seriesId = seriesIdToSave,
                             title = cleanPlaybackTitle,
-                            poster = if (watchedToSave && nextEpisodeToSave != null) {
-                                nextEpisodeToSave.thumbnail?.trim()?.takeIf { it.isNotBlank() } ?: cleanPoster
-                            } else {
-                                cleanBackground ?: cleanPoster
-                            },
+                            poster = cleanBackground,
                             nextSeason = nextSeasonToSave,
                             nextEpisode = nextEpisodeNumberToSave,
                             nextEpisodeTitle = if (watchedToSave && nextEpisodeToSave != null) {
