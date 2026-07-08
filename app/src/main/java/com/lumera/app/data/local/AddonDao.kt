@@ -86,7 +86,94 @@ interface AddonDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertHistory(item: WatchHistoryEntity)
-
+    
+    @Transaction
+    suspend fun upsertHistoryMerged(item: WatchHistoryEntity) {
+        val existing = getHistoryItem(item.id)
+    
+        if (existing == null) {
+            upsertHistory(item)
+            return
+        }
+    
+        val isSeries = item.type.equals("series", ignoreCase = true) ||
+            item.type.equals("tv", ignoreCase = true)
+    
+        val mergedTitle = if (isSeries) {
+            item.title
+                .trim()
+                .takeIf { it.isNotBlank() }
+                ?.takeIf { !isLikelyHistoryImageOrUrl(it) }
+                ?.takeIf { !looksLikeEpisodeTitle(it) }
+                ?.takeIf { !looksLikeMediaFallbackId(it) }
+                ?: existing.title
+        } else {
+            item.title
+                .trim()
+                .takeIf { it.isNotBlank() }
+                ?.takeIf { !isLikelyHistoryImageOrUrl(it) }
+                ?: existing.title
+        }
+    
+        val mergedLogo = item.logo
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.takeIf { !isLikelyHistoryImageOrUrl(it) }
+            ?: existing.logo
+    
+        val mergedPoster = item.poster
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: existing.poster
+    
+        val mergedBackground = item.background
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: existing.background
+    
+        upsertHistory(
+            item.copy(
+                title = mergedTitle,
+                logo = mergedLogo,
+                poster = mergedPoster,
+                background = mergedBackground
+            )
+        )
+    }
+    
+    private fun isLikelyHistoryImageOrUrl(value: String): Boolean {
+        val clean = value.trim()
+    
+        return clean.startsWith("http://", ignoreCase = true) ||
+            clean.startsWith("https://", ignoreCase = true) ||
+            clean.contains(".jpg", ignoreCase = true) ||
+            clean.contains(".jpeg", ignoreCase = true) ||
+            clean.contains(".png", ignoreCase = true) ||
+            clean.contains(".webp", ignoreCase = true) ||
+            clean.contains("/poster", ignoreCase = true) ||
+            clean.contains("/background", ignoreCase = true) ||
+            clean.contains("/logo", ignoreCase = true)
+    }
+    
+    private fun looksLikeEpisodeTitle(value: String): Boolean {
+        val clean = value.trim()
+    
+        return Regex("^S\\d{1,2}\\s*:?\\s*E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+            .containsMatchIn(clean) ||
+            Regex("^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean) ||
+            Regex("^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean)
+    }
+    
+    private fun looksLikeMediaFallbackId(value: String): Boolean {
+        val clean = value.trim()
+    
+        return clean.matches(Regex("^tt\\d+$", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^tmdb[:_\\-].+", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^\\d{3,}$"))
+    }
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertHistoryItems(items: List<WatchHistoryEntity>)
 
