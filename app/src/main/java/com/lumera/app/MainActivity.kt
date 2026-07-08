@@ -745,7 +745,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        addonDao.upsertHistory(
+        addonDao.upsertHistoryMerged(
             WatchHistoryEntity(
                 id = cleanPlaybackId,
                 title = cleanPlaybackTitle,
