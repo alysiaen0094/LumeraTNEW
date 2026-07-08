@@ -185,36 +185,54 @@ fun ActivationScreen(
 
 @Composable
 private fun AuthCodeInput(value: String) {
-    Box(
-        modifier = Modifier
-            .width(472.dp)
-            .height(72.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.10f))
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(horizontal = 26.dp),
-        contentAlignment = Alignment.Center
+    Row(
+        modifier = Modifier.height(72.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = value.ifBlank { "ACTIVATION CODE" },
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 26.sp,
-                letterSpacing = if (value.isBlank()) 1.6.sp else 2.6.sp
-            ),
-            color = if (value.isBlank()) {
-                Color.White.copy(alpha = 0.34f)
-            } else {
-                Color.White.copy(alpha = 0.98f)
-            },
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Clip
-        )
+        repeat(MAX_AUTH_CODE_LENGTH) { index ->
+            val char = value.getOrNull(index)?.toString().orEmpty()
+            val isActive = index == value.length.coerceAtMost(MAX_AUTH_CODE_LENGTH - 1)
+            val hasValue = char.isNotEmpty()
+
+            Box(
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(64.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Color.White.copy(
+                            alpha = when {
+                                hasValue -> 0.16f
+                                isActive -> 0.12f
+                                else -> 0.075f
+                            }
+                        )
+                    )
+                    .border(
+                        width = if (isActive) 2.dp else 1.dp,
+                        color = if (isActive) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.95f)
+                        } else {
+                            Color.White.copy(alpha = 0.16f)
+                        },
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = char,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 27.sp,
+                        letterSpacing = 0.sp
+                    ),
+                    color = Color.White.copy(alpha = if (hasValue) 0.98f else 0.22f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 
