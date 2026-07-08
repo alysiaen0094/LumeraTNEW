@@ -784,4 +784,17 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+    private fun canonicalWatchedSeriesId(id: String): String {
+        val parts = id.split(":")
+        if (parts.size < 3) return id
+    
+        val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
+        val episode = parts.lastOrNull()?.toIntOrNull()
+    
+        return if (season != null && episode != null) {
+            parts.dropLast(2).joinToString(":")
+        } else {
+            id
+        }
+    }
 }
