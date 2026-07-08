@@ -1282,7 +1282,7 @@ private fun PlayerControlsOverlay(
                 }
 
                 Text(
-                    text = "${formatTime(currentPositionMs)}/${formatTime(durationMs)}",
+                    text = "${formatTime(currentPositionMs)} / ${formatTime(durationMs)}",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                     color = Color.White.copy(alpha = 0.78f),
                     maxLines = 1
