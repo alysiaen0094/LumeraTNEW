@@ -605,9 +605,18 @@ class HomeViewModel @Inject constructor(
             // Load watched IDs for all tabs (watched indicator on posters)
             launch {
                 dao.getWatchedIds().collect { ids ->
-                    _state.update {
-                        it.copy(watchedIds = ids.toSet())
-                    }
+                    val canonicalIds = ids.flatMap { id ->
+                        val cleanId = id.trim()
+                        val canonicalId = canonicalWatchedSeriesId(cleanId)
+            
+                        if (canonicalId == cleanId) {
+                            listOf(cleanId)
+                        } else {
+                            listOf(cleanId, canonicalId)
+                        }
+                    }.toSet()
+            
+                    _state.update { it.copy(watchedIds = canonicalIds) }
                 }
             }
 
