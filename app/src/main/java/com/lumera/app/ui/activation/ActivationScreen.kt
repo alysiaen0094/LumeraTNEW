@@ -2,7 +2,7 @@ package com.lumera.app.ui.activation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,7 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -187,29 +187,29 @@ fun ActivationScreen(
 private fun AuthCodeInput(value: String) {
     Box(
         modifier = Modifier
-            .width(452.dp)
-            .height(68.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.085f))
+            .width(472.dp)
+            .height(72.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.10f))
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.13f),
-                shape = RoundedCornerShape(18.dp)
+                color = Color.White.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(20.dp)
             )
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 26.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = value.ifBlank { "ACTIVATION CODE" },
             style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = 25.sp,
-                letterSpacing = 2.0.sp
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 26.sp,
+                letterSpacing = if (value.isBlank()) 1.6.sp else 2.6.sp
             ),
             color = if (value.isBlank()) {
-                Color.White.copy(alpha = 0.30f)
+                Color.White.copy(alpha = 0.34f)
             } else {
-                Color.White.copy(alpha = 0.97f)
+                Color.White.copy(alpha = 0.98f)
             },
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -277,11 +277,11 @@ private fun ActivationKeyboard(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(9.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         rows.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 row.forEachIndexed { index, key ->
@@ -290,8 +290,8 @@ private fun ActivationKeyboard(
                     ActivationKeyButton(
                         text = key,
                         enabled = !isLoading && (value.isNotEmpty() || !isBackspace),
-                        width = if (isBackspace) 74.dp else 48.dp,
-                        height = 45.dp,
+                        width = if (isBackspace) 78.dp else 50.dp,
+                        height = 46.dp,
                         focusRequester = if (rowIndex == 0 && index == 0) firstKeyRequester else null,
                         onClick = {
                             if (isBackspace) {
@@ -329,17 +329,13 @@ private fun ActivationKeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
-        label = "activationKeyScale"
-    )
-
     val background by animateColorAsState(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.035f)
-            isFocused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
-            else -> Color.White.copy(alpha = 0.075f)
+            isFocused -> Color.White.copy(alpha = 0.92f)
+            else -> Color.White.copy(alpha = 0.085f)
         },
+        animationSpec = snap(),
         label = "activationKeyBackground"
     )
 
@@ -347,17 +343,19 @@ private fun ActivationKeyButton(
         targetValue = when {
             !enabled -> Color.Transparent
             isFocused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.95f)
-            else -> Color.White.copy(alpha = 0.10f)
+            else -> Color.White.copy(alpha = 0.12f)
         },
+        animationSpec = snap(),
         label = "activationKeyBorder"
     )
 
     val contentColor by animateColorAsState(
         targetValue = when {
             !enabled -> Color.White.copy(alpha = 0.18f)
-            isFocused -> Color.White.copy(alpha = 0.98f)
-            else -> Color.White.copy(alpha = 0.84f)
+            isFocused -> Color.Black.copy(alpha = 0.96f)
+            else -> Color.White.copy(alpha = 0.86f)
         },
+        animationSpec = snap(),
         label = "activationKeyContent"
     )
 
@@ -371,14 +369,17 @@ private fun ActivationKeyButton(
         modifier = Modifier
             .width(width)
             .height(height)
-            .scale(scale)
             .then(requesterModifier)
-            .clip(RoundedCornerShape(10.dp))
+            .graphicsLayer {
+                scaleX = if (isFocused) 1.035f else 1f
+                scaleY = if (isFocused) 1.035f else 1f
+            }
+            .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(
-                width = if (isFocused) 1.5.dp else 1.dp,
+                width = if (isFocused) 2.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .clickable(
                 enabled = enabled,
@@ -404,9 +405,9 @@ private fun ActivationKeyButton(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = if (text == "⌫") 18.sp else 15.sp,
-                letterSpacing = 0.4.sp
+                fontWeight = FontWeight.SemiBold,
+                fontSize = if (text == "⌫") 19.sp else 15.sp,
+                letterSpacing = 0.35.sp
             ),
             color = contentColor,
             textAlign = TextAlign.Center,
