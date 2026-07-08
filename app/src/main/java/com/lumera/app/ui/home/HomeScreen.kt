@@ -776,6 +776,22 @@ private fun cleanContinueWatchingBackground(url: String?): String? {
         }
 }
 
+private fun findNextUpForCurrentSeries(
+    canonicalId: String,
+    nextUpBySeriesId: Map<String, com.lumera.app.data.model.SeriesNextUpEntity>
+): com.lumera.app.data.model.SeriesNextUpEntity? {
+    nextUpBySeriesId[canonicalId]?.let { return it }
+
+    val cleanCanonical = canonicalId.trim()
+    if (cleanCanonical.isBlank()) return null
+
+    return nextUpBySeriesId.entries.firstOrNull { (seriesId, _) ->
+        seriesId == cleanCanonical ||
+            seriesId.endsWith(":$cleanCanonical") ||
+            cleanCanonical.endsWith(":$seriesId")
+    }?.value
+}
+
 private fun buildContinueWatchingItems(
     history: List<WatchHistoryEntity>,
     seriesNextUp: List<com.lumera.app.data.model.SeriesNextUpEntity> = emptyList()
@@ -825,7 +841,10 @@ private fun buildContinueWatchingItems(
             val chosen = chosenSeries[canonicalId] ?: return@forEach
             if (chosen.id != entry.id) return@forEach
 
-            val nextUp = nextUpBySeriesId[canonicalId]
+            val nextUp = findNextUpForCurrentSeries(
+                canonicalId = canonicalId,
+                nextUpBySeriesId = nextUpBySeriesId
+            )
 
             val continueWatchingBackground = continueWatchingBackgroundBySeriesId[canonicalId]
                 ?: cleanContinueWatchingBackground(chosen.background)
