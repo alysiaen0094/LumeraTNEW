@@ -1212,26 +1212,6 @@ private fun PlayerControlsOverlay(
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 46.dp, vertical = 28.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = formatTime(currentPositionMs),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White.copy(alpha = 0.92f)
-                )
-
-                Text(
-                    text = formatTime(durationMs),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.62f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             FocusableSeekBar(
                 currentPosition = currentPositionMs,
                 duration = durationMs,
@@ -1505,8 +1485,9 @@ private fun SeekOverlay(
         ) {
             Text(
                 text = "${formatTime(currentPositionMs)} / ${formatTime(durationMs)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f)
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                color = Color.White.copy(alpha = 0.78f),
+                maxLines = 1
             )
         }
     }
