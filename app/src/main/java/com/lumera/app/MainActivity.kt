@@ -848,6 +848,29 @@ class MainActivity : ComponentActivity() {
                         )
                     )
 
+                    if (watchedToSave && nextEpisodeToSave == null) {
+                        addonDao.upsertHistoryMerged(
+                            WatchHistoryEntity(
+                                id = seriesIdToSave,
+                                title = cleanPlaybackTitle,
+                                poster = cleanPoster,
+                                background = cleanBackground,
+                                logo = null,
+                                position = durationToSave.takeIf { it > 0L } ?: positionToSave,
+                                duration = durationToSave,
+                                lastWatched = System.currentTimeMillis(),
+                                type = "series",
+                                watched = true,
+                                scrobbled = false
+                            )
+                        )
+                    
+                        android.util.Log.d(
+                            "LumeraWatchHistory",
+                            "Marked full series watched series=$seriesIdToSave title=$cleanPlaybackTitle"
+                        )
+                    }
+
                     android.util.Log.d(
                         "LumeraWatchHistory",
                         "Saved series next-up series=$seriesIdToSave s=$nextSeasonToSave e=$nextEpisodeNumberToSave complete=${watchedToSave && nextEpisodeToSave == null}"
