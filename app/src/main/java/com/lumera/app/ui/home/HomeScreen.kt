@@ -99,7 +99,7 @@ fun HomeScreen(
     val isTopNav = currentProfile?.navPosition == "top"
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
     val infoTopPadding = if (isTopNav) 84.dp else 54.dp
-    val startPadding = if (isTopNav) 50.dp else 120.dp
+    val startPadding = if (isTopNav) 50.dp else 88.dp
 
     // Avoid rendering heavy rows during navigation transition.
     var isTransitioning by remember { mutableStateOf(true) }
