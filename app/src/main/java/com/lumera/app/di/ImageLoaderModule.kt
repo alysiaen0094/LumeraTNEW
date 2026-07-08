@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import javax.inject.Singleton
+import coil.request.CachePolicy
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -23,9 +24,11 @@ object ImageLoaderModule {
         okHttpClient: OkHttpClient
     ): ImageLoader {
         return ImageLoader.Builder(context)
-            // Use shared OkHttpClient with connection pooling
+            // Use shared OkHttpClient with connection pooling and timeouts
             .okHttpClient(okHttpClient)
-            // Large memory cache for TV (25% of available memory for smooth scrolling)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .networkCachePolicy(CachePolicy.ENABLED)
             .memoryCache {
                 MemoryCache.Builder(context)
                     .maxSizePercent(0.25)
