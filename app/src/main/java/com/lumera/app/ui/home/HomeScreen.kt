@@ -808,7 +808,6 @@ private fun buildContinueWatchingItems(
                 .sortedByDescending { it.lastWatched }
                 .firstNotNullOfOrNull { entry ->
                     cleanContinueWatchingBackground(entry.background)
-                        ?: cleanContinueWatchingBackground(entry.poster)
                 }
         }
 
@@ -848,7 +847,6 @@ private fun buildContinueWatchingItems(
 
             val continueWatchingBackground = continueWatchingBackgroundBySeriesId[canonicalId]
                 ?: cleanContinueWatchingBackground(chosen.background)
-                ?: cleanContinueWatchingBackground(chosen.poster)
             
             val seriesTitle = resolveContinueWatchingSeriesTitle(
                 nextUpTitle = nextUp?.title,
@@ -933,7 +931,6 @@ private fun buildContinueWatchingItems(
         val isReturning = nextUp.isComplete || nextUp.isNewEpisode
 
         val continueWatchingBackground = continueWatchingBackgroundBySeriesId[nextUp.seriesId]
-            ?: cleanContinueWatchingBackground(nextUp.poster)
         
         result.add(
             nextUp.updatedAt to MetaItem(
