@@ -73,7 +73,7 @@ fun NavDrawer(
     var isMenuFocused by remember { mutableStateOf(false) }
 
     val width by animateDpAsState(
-        targetValue = if (isMenuFocused) 200.dp else 80.dp,
+        targetValue = if (isMenuFocused) 170.dp else 62.dp,
         label = "NavWidth",
         animationSpec = tween(300)
     )
@@ -172,7 +172,7 @@ fun NavDrawer(
                 .fillMaxHeight()
                 .zIndex(2f)
                 .onFocusChanged { isMenuFocused = it.hasFocus }
-                .padding(top = 30.dp, bottom = 30.dp)
+                .padding(top = 24.dp, bottom = 24.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -212,7 +212,7 @@ fun NavDrawer(
 
                 // 1. Profile Avatar (Custom component)
                 Column(
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
@@ -299,7 +299,7 @@ fun SidebarItem(
         label = "contentColor"
     )
 
-    val iconStartPadding = 20.dp
+    val iconStartPadding = 16.dp
 
     val indicatorWidth by animateDpAsState(
         targetValue = if (showIndicator) 4.dp else 0.dp,
@@ -326,7 +326,7 @@ fun SidebarItem(
 
     Box(
         modifier = modifier
-            .height(50.dp)
+            .height(44.dp)
             .fillMaxWidth()
     ) {
         Surface(
@@ -360,7 +360,7 @@ fun SidebarItem(
 
                 Text(
                     text = displayText,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = contentColor,
                     maxLines = 1,
                     softWrap = false,
@@ -446,7 +446,7 @@ fun ProfileAvatarItem(
     
     Box(
         modifier = modifier
-            .height(50.dp)
+            .height(44.dp)
             .fillMaxWidth()
     ) {
         Surface(
@@ -472,8 +472,8 @@ fun ProfileAvatarItem(
                 // Avatar circle with border on focus
                 Box(
                     modifier = Modifier
-                        .padding(start = 15.dp)
-                        .size(30.dp)
+                        .padding(start = 13.dp)
+                        .size(26.dp)
                         .graphicsLayer {
                             scaleX = avatarScale
                             scaleY = avatarScale
@@ -511,7 +511,7 @@ fun ProfileAvatarItem(
                 ) {
                     Text(
                         text = displayName,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         color = contentColor,
                         maxLines = 1,
                         softWrap = false,
@@ -519,7 +519,7 @@ fun ProfileAvatarItem(
                     )
                     Text(
                         text = "Change Profile",
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
                         softWrap = false,
