@@ -605,18 +605,14 @@ class HomeViewModel @Inject constructor(
             // Load watched IDs for all tabs (watched indicator on posters)
             launch {
                 dao.getWatchedIds().collect { ids ->
-                    val canonicalIds = ids.flatMap { id ->
-                        val cleanId = id.trim()
-                        val canonicalId = canonicalWatchedSeriesId(cleanId)
-            
-                        if (canonicalId == cleanId) {
-                            listOf(cleanId)
-                        } else {
-                            listOf(cleanId, canonicalId)
-                        }
-                    }.toSet()
-            
-                    _state.update { it.copy(watchedIds = canonicalIds) }
+                    _state.update {
+                        it.copy(
+                            watchedIds = ids
+                                .map { id -> id.trim() }
+                                .filter { id -> id.isNotBlank() }
+                                .toSet()
+                        )
+                    }
                 }
             }
 
@@ -782,19 +778,6 @@ class HomeViewModel @Inject constructor(
             } catch (_: Exception) {
                 // Ignore error
             }
-        }
-    }
-    private fun canonicalWatchedSeriesId(id: String): String {
-        val parts = id.split(":")
-        if (parts.size < 3) return id
-    
-        val season = parts.getOrNull(parts.size - 2)?.toIntOrNull()
-        val episode = parts.lastOrNull()?.toIntOrNull()
-    
-        return if (season != null && episode != null) {
-            parts.dropLast(2).joinToString(":")
-        } else {
-            id
         }
     }
 }
