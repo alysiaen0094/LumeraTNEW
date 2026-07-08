@@ -36,11 +36,33 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
+        val dispatcher = okhttp3.Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 12
+        }
+    
         return OkHttpClient.Builder()
+            .dispatcher(dispatcher)
+            .connectionPool(
+                okhttp3.ConnectionPool(
+                    maxIdleConnections = 8,
+                    keepAliveDuration = 90,
+                    timeUnit = TimeUnit.SECONDS
+                )
+            )
+    
+            // Keep Cloudflare DNS if it is working for you.
+            // If timeout still happens after this change, remove this line and use system DNS.
             .dns(com.lumera.app.network.CloudflareDns.create())
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+    
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
+    
+            // Most important fix: prevents total request from hanging forever.
+            .callTimeout(35, TimeUnit.SECONDS)
+    
+            .retryOnConnectionFailure(true)
             .build()
     }
 
