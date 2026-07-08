@@ -766,6 +766,16 @@ private fun resolveCinematicPreviewItem(
     return row.items.firstOrNull { it.id == itemToken }
 }
 
+private fun cleanContinueWatchingBackground(url: String?): String? {
+    return url
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?.takeIf {
+            it.startsWith("http://", ignoreCase = true) ||
+                it.startsWith("https://", ignoreCase = true)
+        }
+}
+
 private fun buildContinueWatchingItems(
     history: List<WatchHistoryEntity>,
     seriesNextUp: List<com.lumera.app.data.model.SeriesNextUpEntity> = emptyList()
@@ -773,6 +783,18 @@ private fun buildContinueWatchingItems(
     val result = mutableListOf<Pair<Long, MetaItem>>()
     val seriesIdsIncluded = mutableSetOf<String>()
     val nextUpBySeriesId = seriesNextUp.associateBy { it.seriesId }
+    
+    val continueWatchingBackgroundBySeriesId = history
+        .filter { it.type == "series" }
+        .groupBy { canonicalSeriesId(it.id) }
+        .mapValues { (_, entries) ->
+            entries
+                .sortedByDescending { it.lastWatched }
+                .firstNotNullOfOrNull { entry ->
+                    cleanContinueWatchingBackground(entry.background)
+                        ?: cleanContinueWatchingBackground(entry.poster)
+                }
+        }
 
     // 1. In-progress items (partially watched, not completed)
     val inProgress = history.filter { !it.watched }
@@ -804,6 +826,11 @@ private fun buildContinueWatchingItems(
             if (chosen.id != entry.id) return@forEach
 
             val nextUp = nextUpBySeriesId[canonicalId]
+
+            val continueWatchingBackground = continueWatchingBackgroundBySeriesId[canonicalId]
+                ?: cleanContinueWatchingBackground(chosen.background)
+                ?: cleanContinueWatchingBackground(chosen.poster)
+            
             val seriesTitle = resolveContinueWatchingSeriesTitle(
                 nextUpTitle = nextUp?.title,
                 historyTitle = chosen.title,
@@ -825,9 +852,9 @@ private fun buildContinueWatchingItems(
                     // Main card title: show name
                     name = seriesTitle,
             
-                    // Card thumbnail: current episode thumbnail/background
-                    poster = chosen.background ?: chosen.poster,
-                    background = chosen.background,
+                    // Card thumbnail: stable series background only
+                    poster = continueWatchingBackground,
+                    background = continueWatchingBackground,
             
                     // Do not use history logo as real logo; we used it only to carry episode title
                     logo = null,
@@ -886,6 +913,9 @@ private fun buildContinueWatchingItems(
 
         val isReturning = nextUp.isComplete || nextUp.isNewEpisode
 
+        val continueWatchingBackground = continueWatchingBackgroundBySeriesId[nextUp.seriesId]
+            ?: cleanContinueWatchingBackground(nextUp.poster)
+        
         result.add(
             nextUp.updatedAt to MetaItem(
                 id = nextUp.seriesId,
@@ -894,9 +924,9 @@ private fun buildContinueWatchingItems(
                 // Main card title: show name
                 name = nextUp.title,
         
-                // Card thumbnail: next episode thumbnail
-                poster = nextUp.poster,
-                background = nextUp.poster,
+                // Card thumbnail: stable series background only
+                poster = continueWatchingBackground,
+                background = continueWatchingBackground,
         
                 logo = null,
         
