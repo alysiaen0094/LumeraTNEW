@@ -652,6 +652,36 @@ private class GridRestoreState {
     var scrollOffset: Int = 0
 }
 
+private fun validSeriesTitleForHistory(value: String?): String? {
+    val clean = value?.trim().orEmpty()
+    if (clean.isBlank()) return null
+
+    val looksLikeId =
+        clean.matches(Regex("^tt\\d+$", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^tmdb[:_\\-].+", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^\\d{3,}$"))
+
+    val looksLikeEpisodeTitle =
+        Regex("^S\\d{1,2}\\s*:?\\s*E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+            .containsMatchIn(clean) ||
+            Regex("^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean) ||
+            Regex("^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean)
+
+    val looksLikeUrl =
+        clean.startsWith("http://", ignoreCase = true) ||
+            clean.startsWith("https://", ignoreCase = true) ||
+            clean.contains(".jpg", ignoreCase = true) ||
+            clean.contains(".jpeg", ignoreCase = true) ||
+            clean.contains(".png", ignoreCase = true) ||
+            clean.contains(".webp", ignoreCase = true)
+
+    return clean.takeIf {
+        !looksLikeId && !looksLikeEpisodeTitle && !looksLikeUrl
+    }
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
@@ -697,10 +727,33 @@ class MainActivity : ComponentActivity() {
             cleanPlaybackType.equals("series", ignoreCase = true) ||
                 cleanPlaybackType.equals("tv", ignoreCase = true)
         
-        val cleanSeriesTitle = seriesTitle.trim()
+        val idParts = cleanPlaybackId.split(":")
+        val seriesIdToSave = if (isSeriesPlaybackToSave) {
+            seriesId.trim().ifBlank {
+                if (idParts.size >= 3) idParts.dropLast(2).joinToString(":") else cleanPlaybackId
+            }
+        } else {
+            ""
+        }
+        
+        val existingHistory = if (cleanPlaybackId.isNotBlank()) {
+            addonDao.getHistoryItem(cleanPlaybackId)
+        } else {
+            null
+        }
+        
+        val existingNextUp = if (isSeriesPlaybackToSave && seriesIdToSave.isNotBlank()) {
+            addonDao.getSeriesNextUp(seriesIdToSave)
+        } else {
+            null
+        }
         
         val cleanPlaybackTitle = if (isSeriesPlaybackToSave) {
-            cleanSeriesTitle.ifBlank { playbackTitle.trim() }
+            validSeriesTitleForHistory(seriesTitle)
+                ?: validSeriesTitleForHistory(existingNextUp?.title)
+                ?: validSeriesTitleForHistory(existingHistory?.title)
+                ?: validSeriesTitleForHistory(playbackTitle)
+                ?: seriesIdToSave.ifBlank { cleanPlaybackId }
         } else {
             playbackTitle.trim()
         }
@@ -764,12 +817,8 @@ class MainActivity : ComponentActivity() {
         val isSeriesToSave = isSeriesPlaybackToSave
 
         if (isSeriesToSave) {
-            val idParts = cleanPlaybackId.split(":")
             val parsedSeason = idParts.getOrNull(idParts.size - 2)?.toIntOrNull()
             val parsedEpisode = idParts.getOrNull(idParts.size - 1)?.toIntOrNull()
-            val seriesIdToSave = seriesId.trim().ifBlank {
-                if (idParts.size >= 3) idParts.dropLast(2).joinToString(":") else cleanPlaybackId
-            }
 
             if (seriesIdToSave.isNotBlank() && parsedSeason != null && parsedEpisode != null) {
                 val nextEpisodeToSave = if (watchedToSave) nextEpisode else null
@@ -788,7 +837,7 @@ class MainActivity : ComponentActivity() {
                     addonDao.upsertSeriesNextUp(
                         SeriesNextUpEntity(
                             seriesId = seriesIdToSave,
-                            title = cleanSeriesTitle.ifBlank { cleanPlaybackTitle },
+                            title = cleanPlaybackTitle,
                             poster = if (watchedToSave && nextEpisodeToSave != null) {
                                 nextEpisodeToSave.thumbnail?.trim()?.takeIf { it.isNotBlank() } ?: cleanPoster
                             } else {
