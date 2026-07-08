@@ -12,12 +12,10 @@ object CloudflareDns {
 
         return DnsOverHttps.Builder()
             .client(bootstrapClient)
-            .url("https://cloudflare-dns.com/dns-query".toHttpUrl())
+            .url("https://dns.google/dns-query".toHttpUrl())
             .bootstrapDnsHosts(
-                InetAddress.getByName("1.1.1.1"),
-                InetAddress.getByName("1.0.0.1"),
-                InetAddress.getByName("2606:4700:4700::1111"),
-                InetAddress.getByName("2606:4700:4700::1001")
+                InetAddress.getByName("8.8.8.8"),
+                InetAddress.getByName("8.8.4.4")
             )
             .build()
     }
