@@ -1529,7 +1529,7 @@ private fun PlayerHeader(
             Text(
                 text = "Ends at $endTime",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f)
+                color = Color.White
             )
         }
     }
