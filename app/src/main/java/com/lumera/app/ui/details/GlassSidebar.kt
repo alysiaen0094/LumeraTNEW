@@ -164,7 +164,7 @@ fun GlassSidebar(
     GlassSidebarScaffold(
         visible = isVisible,
         onDismiss = onDismiss,
-        panelWidth = 560.dp
+        panelWidth = 920.dp
     ) {
         Crossfade(targetState = state, label = "Sidebar") { current ->
             when (current) {
@@ -627,15 +627,15 @@ fun EpisodeItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    title,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                    overview,
+                    color = Color.White.copy(0.76f),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
                     ),
-                    maxLines = 1,
+                    maxLines = 4,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.padding(top = 6.dp)
                 )
         
                 Spacer(Modifier.width(10.dp))
@@ -796,7 +796,7 @@ private fun formatEpisodeDate(date: String?): String? {
 
 private fun condenseEpisodeSynopsis(
     text: String?,
-    maxChars: Int = 300
+    maxChars: Int = 420
 ): String {
     val clean = text
         ?.trim()
@@ -810,8 +810,8 @@ private fun condenseEpisodeSynopsis(
     val lastSpace = cut.lastIndexOf(" ")
 
     val endIndex = when {
-        lastSentence >= 140 -> lastSentence + 1
-        lastSpace >= 140 -> lastSpace
+        lastSentence >= 220 -> lastSentence + 1
+        lastSpace >= 220 -> lastSpace
         else -> maxChars
     }
 
