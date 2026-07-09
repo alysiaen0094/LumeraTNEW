@@ -331,7 +331,7 @@ fun DetailsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(500.dp)
-                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 75.dp)
+                    .padding(start = 48.dp, end = 48.dp, top = 60.dp, bottom = 21.dp)
                     .onFocusChanged { heroHasFocus = it.hasFocus },
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -446,8 +446,8 @@ fun DetailsScreen(
                 Text(
                     text = currentMovie.description ?: "",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 18.sp,
-                        lineHeight = 23.sp
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     ),
                     color = textColor.copy(alpha = 0.82f),
                     maxLines = 4,
