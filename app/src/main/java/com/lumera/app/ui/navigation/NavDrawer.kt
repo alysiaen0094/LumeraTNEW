@@ -103,7 +103,25 @@ fun NavDrawer(
     Box(modifier = Modifier.fillMaxSize()) {
 
         // LAYER 1: Content
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { event ->
+                    if (
+                        event.type == KeyEventType.KeyDown &&
+                        event.key == Key.DirectionLeft &&
+                        !isMenuExpanded &&
+                        currentDestination != NavDestination.Settings &&
+                        currentDestination != NavDestination.Profile
+                    ) {
+                        isDrawerOpen = true
+                        drawerRequesters[currentDestination]?.requestFocus()
+                        true
+                    } else {
+                        false
+                    }
+                }
+        ) {
             content()
         }
 
@@ -174,7 +192,12 @@ fun NavDrawer(
                 .width(width)
                 .fillMaxHeight()
                 .zIndex(2f)
-                .onFocusChanged { isMenuFocused = it.hasFocus }
+                .onFocusChanged { focusState ->
+                    isMenuFocused = focusState.hasFocus
+                    if (focusState.hasFocus) {
+                        isDrawerOpen = true
+                    }
+                }
                 .padding(top = 24.dp, bottom = 24.dp)
         ) {
             Column(
@@ -193,14 +216,15 @@ fun NavDrawer(
                         screen = dest,
                         customLabel = label,
                         isSelected = isSelected,
-                        isMenuExpanded = isMenuFocused,
-                        isDrawerActive = isMenuFocused,
+                        isMenuExpanded = isMenuExpanded,
+                        isDrawerActive = isMenuExpanded,
                         onNavigate = onNavigate,
                         modifier = Modifier
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
                                 if (it.type == KeyEventType.KeyDown) {
                                     if (it.key == Key.DirectionRight || it.key == Key.Back) {
+                                        isDrawerOpen = false
                                         onClose()
                                         true
                                     } else {
@@ -221,7 +245,7 @@ fun NavDrawer(
                     Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
                         ProfileAvatarItem(
                             profile = currentProfile,
-                            isMenuExpanded = isMenuFocused,
+                            isMenuExpanded = isMenuExpanded,
                             onNavigate = { onNavigate(NavDestination.Profile) },
                             modifier = Modifier
                                 .focusRequester(drawerRequesters[NavDestination.Profile]!!)
@@ -309,10 +333,7 @@ fun SidebarItem(
         label = "IndicatorWidth"
     )
 
-    val textScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        label = "TextScale"
-    )
+    val textScale = 1f
 
     val textAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
@@ -420,16 +441,8 @@ fun ProfileAvatarItem(
         label = "borderColor"
     )
     
-    val avatarScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        animationSpec = tween(200),
-        label = "avatarScale"
-    )
-    
-    val textScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        label = "TextScale"
-    )
+    val avatarScale = 1f
+    val textScale = 1f
     
     // Text only appears when profile item is focused
     val textAlpha by animateFloatAsState(
