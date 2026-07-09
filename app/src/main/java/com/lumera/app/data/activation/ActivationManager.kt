@@ -43,6 +43,10 @@ class ActivationManager @Inject constructor(
             ?.takeIf { it.isNotEmpty() }
     }
 
+    fun getAuthCode(): String {
+        return getUserId().orEmpty()
+    }
+
     fun getUserAddonManifestUrl(): String? {
         val userId = getUserId() ?: return null
         return "$TROY_BASE_URL/$userId/manifest.json"
