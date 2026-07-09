@@ -74,6 +74,11 @@ fun NavDrawer(
     var isDrawerOpen by remember { mutableStateOf(false) }
     val isMenuExpanded = isDrawerOpen || isMenuFocused
 
+    LaunchedEffect(currentDestination) {
+        isDrawerOpen = false
+        isMenuFocused = false
+    }
+
     val width by animateDpAsState(
         targetValue = if (isMenuExpanded) 170.dp else 62.dp,
         label = "NavWidth",
@@ -103,25 +108,7 @@ fun NavDrawer(
     Box(modifier = Modifier.fillMaxSize()) {
 
         // LAYER 1: Content
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .onPreviewKeyEvent { event ->
-                    if (
-                        event.type == KeyEventType.KeyDown &&
-                        event.key == Key.DirectionLeft &&
-                        !isMenuExpanded &&
-                        currentDestination != NavDestination.Settings &&
-                        currentDestination != NavDestination.Profile
-                    ) {
-                        isDrawerOpen = true
-                        drawerRequesters[currentDestination]?.requestFocus()
-                        true
-                    } else {
-                        false
-                    }
-                }
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
 
@@ -334,7 +321,7 @@ fun SidebarItem(
         label = "contentColor"
     )
 
-    val iconStartPadding = if (isMenuExpanded) 16.dp else 23.dp
+    val iconStartPadding = 23.dp
 
     val indicatorWidth by animateDpAsState(
         targetValue = if (showIndicator) 4.dp else 0.dp,
@@ -348,11 +335,7 @@ fun SidebarItem(
         animationSpec = tween(300),
         label = "TextAlpha"
     )
-    val textOffset by animateFloatAsState(
-        targetValue = if (isMenuExpanded) 0f else -20f,
-        animationSpec = tween(300),
-        label = "TextOffset"
-    )
+    val textOffset = 0f
 
     val displayText = customLabel ?: screen.label
 
@@ -496,7 +479,7 @@ fun ProfileAvatarItem(
                 // Avatar circle with border on focus
                 Box(
                     modifier = Modifier
-                        .padding(start = if (isMenuExpanded) 13.dp else 21.dp)
+                        .padding(start = 21.dp)
                         .size(26.dp)
                         .graphicsLayer {
                             scaleX = avatarScale
