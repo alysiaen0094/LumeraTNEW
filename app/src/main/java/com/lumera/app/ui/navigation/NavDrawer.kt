@@ -95,6 +95,7 @@ fun NavDrawer(
     // Standard BackHandler for when the drawer container is focused
     BackHandler(enabled = isMenuExpanded) {
         isDrawerOpen = false
+        isMenuFocused = false
         onClose()
     }
 
@@ -181,9 +182,6 @@ fun NavDrawer(
                 .zIndex(2f)
                 .onFocusChanged { focusState ->
                     isMenuFocused = focusState.hasFocus
-                    if (focusState.hasFocus) {
-                        isDrawerOpen = true
-                    }
                 }
                 .padding(top = 24.dp, bottom = 24.dp)
         ) {
@@ -207,6 +205,7 @@ fun NavDrawer(
                         isDrawerActive = isMenuExpanded,
                         onNavigate = { destination ->
                             isDrawerOpen = false
+                            isMenuFocused = false
                             onClose()
                             onNavigate(destination)
                         },
@@ -216,6 +215,7 @@ fun NavDrawer(
                                 if (it.type == KeyEventType.KeyDown) {
                                     if (it.key == Key.DirectionRight || it.key == Key.Back) {
                                         isDrawerOpen = false
+                                        isMenuFocused = false
                                         onClose()
                                         true
                                     } else {
@@ -239,6 +239,7 @@ fun NavDrawer(
                             isMenuExpanded = isMenuExpanded,
                             onNavigate = {
                                 isDrawerOpen = false
+                                isMenuFocused = false
                                 onClose()
                                 onNavigate(NavDestination.Profile)
                             },
@@ -247,6 +248,8 @@ fun NavDrawer(
                                 .onPreviewKeyEvent {
                                     if (it.type == KeyEventType.KeyDown) {
                                         if (it.key == Key.DirectionRight || it.key == Key.Back) {
+                                            isDrawerOpen = false
+                                            isMenuFocused = false
                                             onClose()
                                             true
                                         } else {
@@ -442,11 +445,7 @@ fun ProfileAvatarItem(
         label = "TextAlpha"
     )
     
-    val textOffset by animateFloatAsState(
-        targetValue = if (isFocused) 0f else -20f,
-        animationSpec = tween(200),
-        label = "TextOffset"
-    )
+    val textOffset = 0f
     
     val avatarSource = profile?.let { ProfileAssets.getAvatarSource(it.avatarRef) }
     val displayName = profile?.name ?: "Profile"
