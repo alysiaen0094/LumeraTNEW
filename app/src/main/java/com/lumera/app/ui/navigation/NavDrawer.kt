@@ -89,7 +89,7 @@ fun NavDrawer(
     val extraItemsAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
         label = "ExtraItemsAlpha",
-        animationSpec = tween(300)
+        animationSpec = if (isMenuExpanded) tween(300) else snap()
     )
 
     // Standard BackHandler for when the drawer container is focused
@@ -97,6 +97,15 @@ fun NavDrawer(
         isDrawerOpen = false
         isMenuFocused = false
         onClose()
+    }
+    BackHandler(
+        enabled = !isMenuExpanded &&
+            (currentDestination == NavDestination.Settings || currentDestination == NavDestination.Search)
+    ) {
+        isDrawerOpen = false
+        isMenuFocused = false
+        onClose()
+        onNavigate(NavDestination.Home)
     }
 
     val showStaticMask = currentDestination in listOf(
@@ -145,7 +154,7 @@ fun NavDrawer(
         androidx.compose.animation.AnimatedVisibility(
             visible = isMenuExpanded,
             enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)),
-            exit = androidx.compose.animation.fadeOut(animationSpec = tween(300)),
+            exit = androidx.compose.animation.fadeOut(animationSpec = snap()),
             modifier = Modifier.zIndex(1.5f).fillMaxSize()
         ) {
             Box(
@@ -207,6 +216,11 @@ fun NavDrawer(
                             isDrawerOpen = false
                             isMenuFocused = false
                             onClose()
+                        
+                            if (destination == NavDestination.Search || destination == NavDestination.Settings) {
+                                onNavigate(NavDestination.Home)
+                            }
+                        
                             onNavigate(destination)
                         },
                         modifier = Modifier
@@ -335,7 +349,7 @@ fun SidebarItem(
 
     val textAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
-        animationSpec = tween(300),
+        animationSpec = if (isMenuExpanded) tween(300) else snap(),
         label = "TextAlpha"
     )
     val textOffset = 0f
