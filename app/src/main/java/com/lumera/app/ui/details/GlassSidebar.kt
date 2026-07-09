@@ -164,7 +164,7 @@ fun GlassSidebar(
     GlassSidebarScaffold(
         visible = isVisible,
         onDismiss = onDismiss,
-        panelWidth = 620.dp
+        panelWidth = 560.dp
     ) {
         Crossfade(targetState = state, label = "Sidebar") { current ->
             when (current) {
@@ -539,7 +539,7 @@ fun EpisodeItem(
     val thumbnail = enrichment?.thumbnail ?: episode.thumbnail
     val runtime = enrichment?.runtimeMinutes
     val releaseDate = remember(enrichment?.airDate, episode.released) {
-        enrichment?.airDate ?: episode.released?.take(10)
+        formatEpisodeDate(enrichment?.airDate ?: episode.released?.take(10))
     }
 
     Row(
@@ -551,7 +551,7 @@ fun EpisodeItem(
         // Thumbnail
         Box(
             thumbnailModifier
-                .width(200.dp)
+                .width(180.dp)
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(6.dp))
                 .border(
@@ -626,6 +626,20 @@ fun EpisodeItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+        
+                Spacer(Modifier.width(10.dp))
+        
                 WatchedToggleButton(
                     isWatched = isWatched,
                     isFocused = buttonFocused,
@@ -634,51 +648,38 @@ fun EpisodeItem(
                     onFocusChanged = { buttonFocused = it },
                     onClick = onToggleWatched
                 )
-        
-                Spacer(Modifier.width(8.dp))
-        
-                Text(
-                    title,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
             }
         
             if (overview.isNotBlank()) {
                 Text(
                     overview,
-                    color = Color.White.copy(0.62f),
+                    color = Color.White.copy(0.72f),
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp
                     ),
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
         
             Row(
-                modifier = Modifier.padding(top = 5.dp),
+                modifier = Modifier.padding(top = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (runtime != null) {
                     Text(
                         "(${runtime} min)",
-                        color = Color.White.copy(0.4f),
+                        color = Color.White.copy(0.45f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 if (releaseDate != null) {
                     Text(
                         releaseDate,
-                        color = Color.White.copy(0.35f),
+                        color = Color.White.copy(0.4f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -764,9 +765,38 @@ private fun WatchedToggleButton(
     }
 }
 
+private fun formatEpisodeDate(date: String?): String? {
+    val clean = date?.take(10)?.trim().orEmpty()
+    if (clean.isBlank()) return null
+
+    // Input usually comes as yyyy-MM-dd
+    val parts = clean.split("-")
+    if (parts.size != 3) return clean
+
+    val year = parts[0]
+    val month = when (parts[1]) {
+        "01" -> "JAN"
+        "02" -> "FEB"
+        "03" -> "MAR"
+        "04" -> "APR"
+        "05" -> "MAY"
+        "06" -> "JUN"
+        "07" -> "JUL"
+        "08" -> "AUG"
+        "09" -> "SEP"
+        "10" -> "OCT"
+        "11" -> "NOV"
+        "12" -> "DEC"
+        else -> parts[1]
+    }
+    val day = parts[2]
+
+    return "$day-$month-$year"
+}
+
 private fun condenseEpisodeSynopsis(
     text: String?,
-    maxChars: Int = 135
+    maxChars: Int = 300
 ): String {
     val clean = text
         ?.trim()
@@ -780,8 +810,8 @@ private fun condenseEpisodeSynopsis(
     val lastSpace = cut.lastIndexOf(" ")
 
     val endIndex = when {
-        lastSentence >= 60 -> lastSentence + 1
-        lastSpace >= 60 -> lastSpace
+        lastSentence >= 140 -> lastSentence + 1
+        lastSpace >= 140 -> lastSpace
         else -> maxChars
     }
 
