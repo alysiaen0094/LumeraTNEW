@@ -482,8 +482,11 @@ fun DetailsScreen(
                 // handles hero→row transitions reliably after disposal/recomposition.
 
                 val isInWatchlist by viewModel.isInWatchlist.collectAsState()
-                val addonTrailer = remember(currentMovie.videos) {
-                    resolveAddonTrailer(currentMovie.videos)
+                val addonTrailer = remember(currentMovie.trailers, currentMovie.videos) {
+                    resolveAddonTrailer(
+                        trailers = currentMovie.trailers,
+                        videos = currentMovie.videos
+                    )
                 }
 
                 if (type == "series") {
@@ -1423,7 +1426,22 @@ private data class ResolvedTrailer(
     val name: String
 )
 
-private fun resolveAddonTrailer(videos: List<MetaVideo>?): ResolvedTrailer? {
+private fun resolveAddonTrailer(
+    trailers: List<com.lumera.app.data.model.stremio.MetaTrailer>?,
+    videos: List<MetaVideo>?
+): ResolvedTrailer? {
+    trailers
+        ?.firstOrNull { trailer ->
+            trailer.source.isNotBlank() &&
+                trailer.type.equals("Trailer", ignoreCase = true)
+        }
+        ?.let { trailer ->
+            return ResolvedTrailer(
+                key = trailer.source,
+                name = trailer.type.ifBlank { "Trailer" }
+            )
+        }
+
     return videos
         ?.firstOrNull { video ->
             video.title.contains("trailer", ignoreCase = true) ||
