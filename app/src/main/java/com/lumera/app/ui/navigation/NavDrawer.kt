@@ -77,7 +77,7 @@ fun NavDrawer(
     val width by animateDpAsState(
         targetValue = if (isMenuExpanded) 170.dp else 62.dp,
         label = "NavWidth",
-        animationSpec = tween(300)
+        animationSpec = if (isMenuExpanded) tween(300) else snap()
     )
 
     // VISIBILITY ANIMATION:
@@ -218,7 +218,11 @@ fun NavDrawer(
                         isSelected = isSelected,
                         isMenuExpanded = isMenuExpanded,
                         isDrawerActive = isMenuExpanded,
-                        onNavigate = onNavigate,
+                        onNavigate = { destination ->
+                            isDrawerOpen = false
+                            onClose()
+                            onNavigate(destination)
+                        },
                         modifier = Modifier
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
@@ -246,7 +250,11 @@ fun NavDrawer(
                         ProfileAvatarItem(
                             profile = currentProfile,
                             isMenuExpanded = isMenuExpanded,
-                            onNavigate = { onNavigate(NavDestination.Profile) },
+                            onNavigate = {
+                                isDrawerOpen = false
+                                onClose()
+                                onNavigate(NavDestination.Profile)
+                            },
                             modifier = Modifier
                                 .focusRequester(drawerRequesters[NavDestination.Profile]!!)
                                 .onPreviewKeyEvent {
