@@ -1239,8 +1239,8 @@ private fun PlayerControlsOverlay(
                         focusRequester = playPauseFocusRequester,
                         onFocused = onResetHideTimer,
                         upFocusRequester = seekBarFocusRequester,
-                        buttonSize = 62.dp,
-                        iconSize = 34.dp,
+                        buttonSize = 50.dp,
+                        iconSize = 28.dp,
                         primary = true
                     )
 
