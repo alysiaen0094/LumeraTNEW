@@ -1278,7 +1278,7 @@ class MainActivity : ComponentActivity() {
                                                                 selectedPlaybackTitle = movie.name
                                                                 selectedPlaybackPoster = movie.poster ?: ""
                                                                 previousView = "menu"
-                                                                activeView = "details"
+                                                                activeView = "details_loading"
                                                             },
                                                             onViewMore = { title, items, configId ->
                                                                 gridViewTitle = title
@@ -1309,7 +1309,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             searchFocusTarget = "poster"
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         },
                                                         onViewMore = { title, items ->
                                                             searchFocusTarget = if (title == "Movies") "movies" else "series"
@@ -1339,7 +1339,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             searchFocusTarget = "discover"
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         },
                                                         entryRequester = searchEntryRequester,
                                                         drawerRequester = drawerRequesters[NavDestination.Search]!!
@@ -1369,7 +1369,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackTitle = movie.name
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         }
                                                     )
                                                 }
@@ -1430,7 +1430,7 @@ class MainActivity : ComponentActivity() {
                                                                 selectedPlaybackTitle = movie.name
                                                                 selectedPlaybackPoster = movie.poster ?: ""
                                                                 previousView = "menu"
-                                                                activeView = "details"
+                                                                activeView = "details_loading"
                                                             },
                                                             onViewMore = { title, items, configId ->
                                                                 gridViewTitle = title
@@ -1461,7 +1461,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             searchFocusTarget = "poster"
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         },
                                                         onViewMore = { title, items ->
                                                             searchFocusTarget = if (title == "Movies") "movies" else "series"
@@ -1491,7 +1491,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             searchFocusTarget = "discover"
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         },
                                                         entryRequester = searchEntryRequester,
                                                         drawerRequester = drawerRequesters[NavDestination.Search]!!
@@ -1521,7 +1521,7 @@ class MainActivity : ComponentActivity() {
                                                             selectedPlaybackTitle = movie.name
                                                             selectedPlaybackPoster = movie.poster ?: ""
                                                             previousView = "menu"
-                                                            activeView = "details"
+                                                            activeView = "details_loading"
                                                         }
                                                     )
                                                 }
@@ -1567,7 +1567,7 @@ class MainActivity : ComponentActivity() {
                                     selectedPlaybackTitle = movie.name
                                     selectedPlaybackPoster = movie.poster ?: ""
                                     previousView = "grid"
-                                    activeView = "details"
+                                    activeView = "details_loading"
                                 },
                                 onBack = { 
                                     gridRestoreState.focusedIndex = null  // Reset for next time
@@ -1597,6 +1597,22 @@ class MainActivity : ComponentActivity() {
                                         gridViewItems = updatedRow.items
                                     }
                                 }
+                            }
+                        } else if (view == "details_loading") {
+                            LaunchedEffect(selectedMovieId, selectedMovieType) {
+                                delay(120)
+                                activeView = "details"
+                            }
+                        
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         } else if (view == "details" || (view == "player" && selectedPlaybackId.startsWith("trailer_"))) {
                             val detailsNavController = rememberNavController()
