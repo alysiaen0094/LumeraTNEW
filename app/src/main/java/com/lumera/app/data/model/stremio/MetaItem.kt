@@ -22,9 +22,16 @@ data class MetaItem(
     val runtime: String? = null,
     val genres: List<String>? = null,
     val videos: List<MetaVideo>? = null,
+    val trailers: List<MetaTrailer>? = null,
     @Transient val progress: Float = 0f, // Watch progress (0.0–1.0), used by Continue Watching
     @Transient val addonBaseUrl: String? = null, // Origin addon URL, used for preferred meta resolution
     @Transient val hasNewEpisode: Boolean = false // True when a next-up episode recently aired
+)
+
+@Immutable
+data class MetaTrailer(
+    val source: String = "",
+    val type: String = ""
 )
 
 @Immutable
