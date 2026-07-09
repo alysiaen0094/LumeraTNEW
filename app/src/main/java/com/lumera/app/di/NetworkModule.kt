@@ -63,6 +63,13 @@ object NetworkModule {
             .callTimeout(35, TimeUnit.SECONDS)
     
             .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "Lumera_VHfbFBaqTXRpIJIA")
+                    .build()
+            
+                chain.proceed(request)
+            }
             .build()
     }
 
