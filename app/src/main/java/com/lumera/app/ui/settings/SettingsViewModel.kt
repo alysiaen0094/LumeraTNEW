@@ -236,4 +236,30 @@ class SettingsViewModel @Inject constructor(
             if (profile != null) dao.insertProfile(profile.copy(sourceExcludedFormats = formats))
         }
     }
+
+    fun applyPlaybackDefaults(profileId: Int) {
+        viewModelScope.launch(Dispatchers.IO + NonCancellable) {
+            val profile = dao.getProfileById(profileId)
+            if (profile != null) {
+                dao.insertProfile(
+                    profile.copy(
+                        mapDV7ToHevc = true,
+                        decoderPriority = 1, // Prefer Device
+                        playerPreference = "internal",
+                        rememberSourceSelection = false,
+                        autoSelectSource = true,
+                        skipIntro = true,
+                        autoplayNextEpisode = true,
+                        autoplayThresholdMode = "percentage",
+                        preferredAudioLanguage = "en",
+                        preferredSubtitleLanguage = "en",
+                        subtitleSize = 120,
+                        subtitleTextColor = 0xFFBDBDBDL,
+                        subtitleBackgroundColor = 0x00000000L,
+                        assRendererEnabled = false
+                    )
+                )
+            }
+        }
+    }
 }
