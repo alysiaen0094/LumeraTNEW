@@ -1,9 +1,6 @@
 package com.lumera.app.ui.details
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -694,18 +691,6 @@ fun EpisodeItem(
                 }
             }
         }
-
-            // Mark as watched button — top-right
-            WatchedToggleButton(
-                isWatched = isWatched,
-                isFocused = buttonFocused,
-                focusRequester = buttonRequester,
-                thumbnailRequester = thumbnailRequester,
-                onFocusChanged = { buttonFocused = it },
-                onClick = onToggleWatched,
-                modifier = Modifier.align(Alignment.TopEnd)
-            )
-        }
     }
 }
 
@@ -721,12 +706,7 @@ private fun WatchedToggleButton(
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
-    val targetWidth = 24.dp
-    val animatedWidth by animateDpAsState(
-        targetValue = targetWidth,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "watchedBtnWidth"
-    )
+    val buttonWidth = if (isWatched) 86.dp else 132.dp
 
     val bgColor = when {
         isWatched && isFocused -> primary.copy(0.2f)
@@ -747,7 +727,7 @@ private fun WatchedToggleButton(
 
     Row(
         modifier = modifier
-            .width(animatedWidth)
+            .width(buttonWidth)
             .height(24.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
@@ -774,15 +754,13 @@ private fun WatchedToggleButton(
             style = MaterialTheme.typography.labelMedium
         )
 
-        if (isFocused) {
-            Spacer(Modifier.width(4.dp))
-            Text(
-                if (isWatched) "Watched" else "Mark as watched",
-                color = if (isWatched) primary else Color.White,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1
-            )
-        }
+        Spacer(Modifier.width(4.dp))
+        Text(
+            if (isWatched) "Watched" else "Mark as watched",
+            color = if (isWatched) primary else Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1
+        )
     }
 }
 
