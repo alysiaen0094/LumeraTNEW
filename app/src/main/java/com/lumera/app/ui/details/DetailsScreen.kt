@@ -445,14 +445,13 @@ fun DetailsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = currentMovie.description ?: "",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 15.sp,
-                        lineHeight = 20.sp
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
                     ),
-                    color = textColor.copy(alpha = 0.82f),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(520.dp)
+                    color = textColor,
+                    maxLines = 8,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
