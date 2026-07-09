@@ -71,6 +71,8 @@ class DetailsViewModel @Inject constructor(
         val isLoading: Boolean = true,
         val isLoadingStreams: Boolean = false,
         val resumePlaybackId: String? = null,
+        val resumePositionMs: Long? = null,
+        val resumeDurationMs: Long? = null,
         val isMovieWatched: Boolean = false,
         val autoPlayStream: Stream? = null,
         val addonSubtitles: List<AddonSubtitle> = emptyList(),
@@ -158,10 +160,17 @@ class DetailsViewModel @Inject constructor(
                 loadedContentKey = requestKey
                 // Use resolved ID for streams — guarantees IMDb format for stream addons
                 val streamFetchId = if (details.id.startsWith("tt")) details.id else resolvedId
+                val resumeHistory = if (details.type == "series") {
+                    dao.getLatestSeriesEpisodeHistory("${streamFetchId}:%")
+                        ?.takeIf { !it.watched }
+                } else {
+                    dao.getHistoryItem(streamFetchId)
+                        ?.takeIf { !it.watched }
+                }
+                
                 val resumePlaybackId = if (details.type == "series") {
-                    val latest = dao.getLatestSeriesEpisodeHistory("${streamFetchId}:%")
-                    if (latest != null && !latest.watched) {
-                        latest.id // In-progress episode — resume it
+                    if (resumeHistory != null) {
+                        resumeHistory.id // In-progress episode — resume it
                     } else {
                         // All episodes watched or no history — use next-up if aired
                         val nextUp = dao.getSeriesNextUp(streamFetchId)
@@ -173,8 +182,7 @@ class DetailsViewModel @Inject constructor(
                         } else null
                     }
                 } else {
-                    val movieHistory = dao.getHistoryItem(streamFetchId)
-                    if (movieHistory?.watched == true) null else movieHistory?.id
+                    resumeHistory?.id
                 }
                 val isMovieWatched = if (details.type != "series") {
                     dao.getHistoryItem(streamFetchId)?.watched == true
@@ -190,6 +198,8 @@ class DetailsViewModel @Inject constructor(
                     contentKey = requestKey,
                     isLoading = false,
                     resumePlaybackId = resumePlaybackId,
+                    resumePositionMs = resumeHistory?.position,
+                    resumeDurationMs = resumeHistory?.duration,
                     isMovieWatched = isMovieWatched,
                     episodeProgressMap = episodeProgressMap,
                     autoPlayStream = null,
@@ -248,10 +258,17 @@ class DetailsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val resumeHistory = if (meta.type == "series") {
+                dao.getLatestSeriesEpisodeHistory("${meta.id}:%")
+                    ?.takeIf { !it.watched }
+            } else {
+                dao.getHistoryItem(meta.id)
+                    ?.takeIf { !it.watched }
+            }
+            
             val resumePlaybackId = if (meta.type == "series") {
-                val latest = dao.getLatestSeriesEpisodeHistory("${meta.id}:%")
-                if (latest != null && !latest.watched) {
-                    latest.id
+                if (resumeHistory != null) {
+                    resumeHistory.id
                 } else {
                     val nextUp = dao.getSeriesNextUp(meta.id)
                     val today = java.time.LocalDate.now().toString()
@@ -262,8 +279,7 @@ class DetailsViewModel @Inject constructor(
                     } else null
                 }
             } else {
-                val movieHistory = dao.getHistoryItem(meta.id)
-                if (movieHistory?.watched == true) null else movieHistory?.id
+                resumeHistory?.id
             }
             val isMovieWatched = if (meta.type != "series") {
                 dao.getHistoryItem(meta.id)?.watched == true
@@ -274,6 +290,8 @@ class DetailsViewModel @Inject constructor(
                 } else emptyMap()
                 _state.value = _state.value.copy(
                     resumePlaybackId = resumePlaybackId,
+                    resumePositionMs = resumeHistory?.position,
+                    resumeDurationMs = resumeHistory?.duration,
                     isMovieWatched = isMovieWatched,
                     autoPlayStream = null,
                     episodeProgressMap = episodeProgressMap
@@ -548,7 +566,9 @@ class DetailsViewModel @Inject constructor(
             }
             _state.value = _state.value.copy(
                 isMovieWatched = !isCurrentlyWatched,
-                resumePlaybackId = null
+                resumePlaybackId = null,
+                resumePositionMs = null,
+                resumeDurationMs = null
             )
         }
     }
@@ -802,6 +822,8 @@ class DetailsViewModel @Inject constructor(
 
             _state.value = _state.value.copy(
                 resumePlaybackId = null,
+                resumePositionMs = null,
+                resumeDurationMs = null,
                 episodeProgressMap = updatedMap
             )
         }
