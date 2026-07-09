@@ -59,7 +59,7 @@ data class ProfileEntity(
     val preferredSubtitleLanguage: String = "en",
     val preferredSubtitleLanguageSecondary: String = "",
 
-    val subtitleSize: Int = 120,                     // 50-200%
+    val subtitleSize: Int = 110,                     // 50-200%
     val subtitleOffset: Int = 0,                     // -20 to 20%
     val subtitleTextColor: Long = 0xFFBDBDBDL,       // White (ARGB)
     val subtitleBackgroundColor: Long = 0x00000000L, // Transparent
