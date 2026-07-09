@@ -35,17 +35,17 @@ data class ProfileEntity(
     val seriesHeroAutoScrollSeconds: Int = 0,
 
     val tunnelingEnabled: Boolean = false,
-    val mapDV7ToHevc: Boolean = false,
+    val mapDV7ToHevc: Boolean = true,
     val decoderPriority: Int = 1,       // 0=device only, 1=prefer device, 2=prefer app
     val frameRateMatching: Boolean = false,
     val playerPreference: String = "internal",  // "internal", "external", "ask"
-    val autoplayNextEpisode: Boolean = false,
+    val autoplayNextEpisode: Boolean = true,
     val autoplayThresholdMode: String = "percentage",  // "percentage" or "time"
     val autoplayThresholdPercent: Int = 95,             // 50..99
     val autoplayThresholdSeconds: Int = 30,             // 10..300
-    val autoSelectSource: Boolean = false,
-    val rememberSourceSelection: Boolean = true,
-    val sourceSortingEnabled: Boolean = true,
+    val autoSelectSource: Boolean = true,
+    val rememberSourceSelection: Boolean = false,
+    val sourceSortingEnabled: Boolean = false,
     val sourceSortPrimary: String = "quality",    // "quality", "size", "seeds"
     val sourceSortSecondary: String = "size",     // "quality", "size", "seeds"
     val sourceEnabledQualities: String = "4k,1080p,720p,unknown",
@@ -54,14 +54,14 @@ data class ProfileEntity(
     val sourceExcludedFormats: String = "",       // comma-separated: "dv,hdr,dts,dolby,hevc,av1,3d"
     val skipIntro: Boolean = true,
 
-    val preferredAudioLanguage: String = "",
+    val preferredAudioLanguage: String = "en",
     val preferredAudioLanguageSecondary: String = "",
-    val preferredSubtitleLanguage: String = "",
+    val preferredSubtitleLanguage: String = "en",
     val preferredSubtitleLanguageSecondary: String = "",
 
-    val subtitleSize: Int = 100,                     // 50-200%
+    val subtitleSize: Int = 120,                     // 50-200%
     val subtitleOffset: Int = 0,                     // -20 to 20%
-    val subtitleTextColor: Long = 0xFFFFFFFFL,       // White (ARGB)
+    val subtitleTextColor: Long = 0xFFBDBDBDL,       // White (ARGB)
     val subtitleBackgroundColor: Long = 0x00000000L, // Transparent
     val assRendererEnabled: Boolean = false,          // Styled ASS/SSA subtitles via libass
 
