@@ -71,22 +71,25 @@ fun NavDrawer(
     content: @Composable () -> Unit
 ) {
     var isMenuFocused by remember { mutableStateOf(false) }
+    var isDrawerOpen by remember { mutableStateOf(false) }
+    val isMenuExpanded = isDrawerOpen || isMenuFocused
 
     val width by animateDpAsState(
-        targetValue = if (isMenuFocused) 170.dp else 62.dp,
+        targetValue = if (isMenuExpanded) 170.dp else 62.dp,
         label = "NavWidth",
         animationSpec = tween(300)
     )
 
     // VISIBILITY ANIMATION:
     val extraItemsAlpha by animateFloatAsState(
-        targetValue = if (isMenuFocused) 1f else 0f,
+        targetValue = if (isMenuExpanded) 1f else 0f,
         label = "ExtraItemsAlpha",
         animationSpec = tween(300)
     )
 
     // Standard BackHandler for when the drawer container is focused
-    BackHandler(enabled = isMenuFocused) {
+    BackHandler(enabled = isMenuExpanded) {
+        isDrawerOpen = false
         onClose()
     }
 
@@ -134,7 +137,7 @@ fun NavDrawer(
 
         // LAYER 3: Dynamic Expansion Shadow
         androidx.compose.animation.AnimatedVisibility(
-            visible = isMenuFocused,
+            visible = isMenuExpanded,
             enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)),
             exit = androidx.compose.animation.fadeOut(animationSpec = tween(300)),
             modifier = Modifier.zIndex(1.5f).fillMaxSize()
