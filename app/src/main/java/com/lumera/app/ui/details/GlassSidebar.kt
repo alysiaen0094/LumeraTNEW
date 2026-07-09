@@ -627,19 +627,19 @@ fun EpisodeItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    overview,
-                    color = Color.White.copy(0.76f),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp
+                    title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
                     ),
-                    maxLines = 4,
+                    maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 6.dp)
+                    modifier = Modifier.weight(1f)
                 )
-        
+            
                 Spacer(Modifier.width(10.dp))
-        
+            
                 WatchedToggleButton(
                     isWatched = isWatched,
                     isFocused = buttonFocused,
@@ -649,16 +649,16 @@ fun EpisodeItem(
                     onClick = onToggleWatched
                 )
             }
-        
+            
             if (overview.isNotBlank()) {
                 Text(
                     overview,
-                    color = Color.White.copy(0.72f),
+                    color = Color.White.copy(0.76f),
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 13.sp,
-                        lineHeight = 16.sp
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
                     ),
-                    maxLines = 3,
+                    maxLines = 4,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 6.dp)
                 )
