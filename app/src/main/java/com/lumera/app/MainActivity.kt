@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1144,11 +1143,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // Focus restoration after navPosition change (Crossfade animation)
+                        // Focus restoration after navPosition change
                         val navPosition = currentProfile?.navPosition ?: "left"
                         LaunchedEffect(navPosition) {
                             if (activeView == "menu" && currentNav == NavDestination.Settings) {
-                                delay(450) // Wait for Crossfade (400ms) + buffer
+                                delay(80)
                                 settingsEntryRequester.requestFocus()
                             }
                         }
@@ -1234,8 +1233,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                 ) {
-                                Crossfade(targetState = navPosition, animationSpec = tween(400), label = "NavSwitcher") { position ->
-                                if (position == "top") {
+                                if (navPosition == "top") {
                                     TopNavigationBar(
                                         currentDestination = currentNav,
                                         currentProfile = currentProfile,
@@ -1544,7 +1542,6 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
-                                } // Crossfade end
                                 } // Double-back Box end
                         } else if (view == "grid") {
                             val gridVm = hiltViewModel<HomeViewModel>()
