@@ -445,13 +445,14 @@ fun DetailsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = currentMovie.description ?: "",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.5.sp,
+                        lineHeight = 18.5.sp
                     ),
-                    color = textColor,
-                    maxLines = 8,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    color = textColor.copy(alpha = 0.86f),
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(560.dp)
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -472,9 +473,16 @@ fun DetailsScreen(
                         null
                     }
                 }
+
+                val timeRemainingText = formatTimeRemaining(
+                    positionMs = state.resumePositionMs,
+                    durationMs = state.resumeDurationMs
+                )
+                
                 val parsedResumeSeasonEpisode = remember(resumePlaybackId) {
                     parseSeasonEpisodeFromPlaybackId(resumePlaybackId)
                 }
+                
                 val firstEpisodeSeason = firstEpisode?.season?.takeIf { it > 0 } ?: 1
                 val firstEpisodeNumber = firstEpisode?.episode?.takeIf { it > 0 } ?: 1
 
@@ -494,7 +502,10 @@ fun DetailsScreen(
                         val resumeSeason = resumeEpisode?.season?.takeIf { it > 0 } ?: parsedResumeSeasonEpisode?.first
                         val resumeNumber = resumeEpisode?.episode?.takeIf { it > 0 } ?: parsedResumeSeasonEpisode?.second
                         if (resumeSeason != null && resumeNumber != null) {
-                            "Resume S${resumeSeason} E${resumeNumber}"
+                            buildString {
+                                append("Resume S${resumeSeason} E${resumeNumber}")
+                                if (timeRemainingText != null) append(" • ").append(timeRemainingText)
+                            }
                         } else {
                             "Resume"
                         }
@@ -586,7 +597,11 @@ fun DetailsScreen(
                         }
                     ) {
                         ExpandableIconButton(
-                            label = if (resumePlaybackId != null) "Resume" else "Play Movie",
+                            label = if (resumePlaybackId != null) {
+                                timeRemainingText?.let { "Resume • $it" } ?: "Resume"
+                            } else {
+                                "Play Movie"
+                            },
                             icon = Icons.Default.PlayArrow,
                             modifier = Modifier.focusRequester(firstButtonFocusRequester),
                             onClick = {
@@ -1510,4 +1525,21 @@ private fun resolvePlayableUrl(stream: com.lumera.app.data.model.stremio.Stream)
     return stream.url
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
+}
+
+private fun formatTimeRemaining(positionMs: Long?, durationMs: Long?): String? {
+    val position = positionMs ?: return null
+    val duration = durationMs ?: return null
+    if (duration <= 0L || position <= 0L || position >= duration) return null
+
+    val remainingMs = duration - position
+    val totalMinutes = (remainingMs / 60_000L).coerceAtLeast(1L)
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return if (hours > 0) {
+        "${hours}h ${minutes}m left"
+    } else {
+        "${minutes}m left"
+    }
 }
