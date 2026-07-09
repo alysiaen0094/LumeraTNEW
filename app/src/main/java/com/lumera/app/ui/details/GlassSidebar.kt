@@ -36,6 +36,8 @@ import com.lumera.app.data.model.stremio.Stream
 import com.lumera.app.data.tmdb.TmdbEpisodeEnrichment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 // --- STATE & UTILS ---
 
@@ -165,7 +167,7 @@ fun GlassSidebar(
     GlassSidebarScaffold(
         visible = isVisible,
         onDismiss = onDismiss,
-        panelWidth = 760.dp
+        panelWidth = 420.dp
     ) {
         Crossfade(targetState = state, label = "Sidebar") { current ->
             when (current) {
@@ -260,8 +262,9 @@ fun EpisodesContent(
         }
 
         LazyColumn(
-            state = listState, // Using the hoisted state
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(top = 0.dp, bottom = 24.dp),
             modifier = Modifier.dpadNavigation(onDismiss, trapLeft = false, repeatGate = repeatGate)
         ) {
             if (episodes.isEmpty()) item { Text("No episodes found.", color = Color.Gray) }
@@ -535,7 +538,7 @@ fun EpisodeItem(
     val title = enrichment?.title
         ?: episode.title.takeIf { it.isNotBlank() && it != "Episode" }
         ?: "Episode ${episode.episode}"
-    val overview = enrichment?.overview ?: episode.overview
+    val overview = condenseEpisodeSynopsis(enrichment?.overview ?: episode.overview)
     val thumbnail = enrichment?.thumbnail ?: episode.thumbnail
     val runtime = enrichment?.runtimeMinutes
     val releaseDate = remember(enrichment?.airDate, episode.released) {
@@ -619,63 +622,78 @@ fun EpisodeItem(
 
         Spacer(Modifier.width(14.dp))
 
-        // Episode info with mark-as-watched button at bottom-right
-        Box(Modifier.weight(1f)) {
-            Column {
-                // Title
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                WatchedToggleButton(
+                    isWatched = isWatched,
+                    isFocused = buttonFocused,
+                    focusRequester = buttonRequester,
+                    thumbnailRequester = thumbnailRequester,
+                    onFocusChanged = { buttonFocused = it },
+                    onClick = onToggleWatched
+                )
+        
+                Spacer(Modifier.width(8.dp))
+        
                 Text(
                     title,
-                    color = when {
-                        isWatched -> Color.White.copy(0.4f)
-                        isFocused -> Color.White
-                        else -> Color.White.copy(0.85f)
-                    },
-                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-
-                // Synopsis
-                if (!overview.isNullOrBlank()) {
+            }
+        
+            if (overview.isNotBlank()) {
+                Text(
+                    overview,
+                    color = Color.White.copy(0.62f),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp
+                    ),
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        
+            Row(
+                modifier = Modifier.padding(top = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (runtime != null) {
                     Text(
-                        overview,
-                        color = Color.White.copy(0.5f),
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 4,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp)
+                        "(${runtime} min)",
+                        color = Color.White.copy(0.4f),
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
-
-                // Runtime + release date + status
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (runtime != null) {
-                        Text(
-                            "(${runtime} min)",
-                            color = Color.White.copy(0.4f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    if (releaseDate != null) {
-                        Text(
-                            releaseDate,
-                            color = Color.White.copy(0.35f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    if (isPlaying) {
-                        Text(
-                            "Playing",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = primary
-                        )
-                    }
+                if (releaseDate != null) {
+                    Text(
+                        releaseDate,
+                        color = Color.White.copy(0.35f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (isPlaying) {
+                    Text(
+                        "Playing",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = primary
+                    )
                 }
             }
+        }
 
             // Mark as watched button — top-right
             WatchedToggleButton(
@@ -703,7 +721,7 @@ private fun WatchedToggleButton(
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
-    val targetWidth = if (isFocused) if (isWatched) 100.dp else 138.dp else 24.dp
+    val targetWidth = 24.dp
     val animatedWidth by animateDpAsState(
         targetValue = targetWidth,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
@@ -766,6 +784,33 @@ private fun WatchedToggleButton(
             )
         }
     }
+}
+
+private fun condenseEpisodeSynopsis(
+    text: String?,
+    maxChars: Int = 135
+): String {
+    val clean = text
+        ?.trim()
+        ?.replace(Regex("\\s+"), " ")
+        .orEmpty()
+
+    if (clean.length <= maxChars) return clean
+
+    val cut = clean.take(maxChars)
+    val lastSentence = cut.lastIndexOf(". ")
+    val lastSpace = cut.lastIndexOf(" ")
+
+    val endIndex = when {
+        lastSentence >= 60 -> lastSentence + 1
+        lastSpace >= 60 -> lastSpace
+        else -> maxChars
+    }
+
+    return clean
+        .take(endIndex)
+        .trimEnd('.', ',', ';', ':')
+        .trim() + "…"
 }
 
 @Composable
