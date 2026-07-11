@@ -892,26 +892,27 @@ fun DetailsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
                         ) {
-                            val cancelFocusRequester = remember { FocusRequester() }
+                            val clearFocusRequester = remember { FocusRequester() }
 
                             DialogButton(
                                 text = "Cancel",
-                                modifier = Modifier.width(120.dp).focusRequester(cancelFocusRequester),
+                                modifier = Modifier.width(120.dp),
                                 onClick = { showClearProgressDialog = false }
                             )
+                            
                             DialogButton(
                                 text = "Clear",
                                 isDestructive = true,
-                                modifier = Modifier.width(120.dp),
+                                modifier = Modifier.width(120.dp).focusRequester(clearFocusRequester),
                                 onClick = {
                                     showClearProgressDialog = false
                                     viewModel.confirmClearProgress()
                                 }
                             )
-
+                            
                             LaunchedEffect(Unit) {
                                 kotlinx.coroutines.delay(200)
-                                runCatching { cancelFocusRequester.requestFocus() }
+                                runCatching { clearFocusRequester.requestFocus() }
                             }
                         }
                     }
