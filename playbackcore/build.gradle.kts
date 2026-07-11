@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    val media3Version = "1.6.1"
+    val media3Version = "1.10.0-beta01"
 
     api("androidx.media3:media3-common:$media3Version")
     api("androidx.media3:media3-container:$media3Version")
