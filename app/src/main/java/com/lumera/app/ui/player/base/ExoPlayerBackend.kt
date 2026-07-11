@@ -151,7 +151,8 @@ class ExoPlayerBackend(
     private var subtitleVerticalOffsetPercent: Int = 0
     private var subtitleSizePercent: Int = 100
     private val subtitleDelayUs = AtomicLong(0L)
-    private var subtitleTextColor: Int = 0xFFFFFFFF.toInt()
+    private var subtitleTextColor: Int = android.graphics.Color.WHITE
+    private var subtitleBackgroundColor: Int = android.graphics.Color.TRANSPARENT
     private var subtitleBackgroundColor: Int = 0x00000000
     private var lastCueGroup: androidx.media3.common.text.CueGroup? = null
     private companion object {
@@ -744,7 +745,7 @@ class ExoPlayerBackend(
     private fun applySubtitleCaptionStyle(pv: PlayerView) {
         pv.subtitleView?.setStyle(
             CaptionStyleCompat(
-                subtitleTextColor,
+                android.graphics.Color.WHITE,
                 subtitleBackgroundColor,
                 android.graphics.Color.TRANSPARENT,
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE,
