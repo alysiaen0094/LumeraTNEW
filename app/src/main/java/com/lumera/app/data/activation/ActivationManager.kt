@@ -4,12 +4,10 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.lumera.app.data.identity.ClientIdentityStore
 
 @Singleton
 class ActivationManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val clientIdentityStore: ClientIdentityStore
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val PREFS_FILE = "activation_prefs"
@@ -51,12 +49,7 @@ class ActivationManager @Inject constructor(
 
     fun getUserAddonManifestUrl(): String? {
         val userId = getUserId() ?: return null
-        val rawUrl = "$TROY_BASE_URL/$userId/manifest.json"
-    
-        return clientIdentityStore.appendToken(
-            rawUrl = rawUrl,
-            authCode = getAuthCode()
-        )
+        return "$TROY_BASE_URL/$userId/manifest.json"
     }
 
     fun getDefaultAddonManifestUrls(): List<String> {
