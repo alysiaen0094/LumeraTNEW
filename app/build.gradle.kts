@@ -30,15 +30,6 @@ android {
     namespace = "com.lumera.app"
     compileSdk = 35
 
-    signingConfigs {
-        create("release") {
-            storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
-            storePassword = keystoreProperties.getProperty("storePassword")
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-        }
-    }
-
     defaultConfig {
         applicationId = "com.lumera.app"
         minSdk = 23
@@ -68,17 +59,10 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".test"
-            versionNameSuffix = "-test"
             resValue("string", "app_name", "Lumera")
-
-            isMinifyEnabled = true
-            isShrinkResources = true
-
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+        
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
         release {
             isMinifyEnabled = true
