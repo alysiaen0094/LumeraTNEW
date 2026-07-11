@@ -61,6 +61,8 @@ android {
         debug {
             applicationIdSuffix = ".test"
             resValue("string", "app_name", "Lumera Test")
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
         release {
             isMinifyEnabled = true
