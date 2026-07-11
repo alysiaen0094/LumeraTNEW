@@ -69,6 +69,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
+import androidx.media3.datasource.DefaultHttpDataSource
 
 
 private const val SUBTITLE_OFF_ID = "#none"
@@ -1081,13 +1082,20 @@ class ExoPlayerBackend(
         }
 
         val userInfo = sourceUri.userInfo
-        val okHttpFactory = OkHttpDataSource.Factory(getOrCreateOkHttpClient())
+
+        val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("Lumera_VHfbFBaqTXRpIJIA")
-            
+            .setConnectTimeoutMs(20_000)
+            .setReadTimeoutMs(0)
+            .setAllowCrossProtocolRedirects(true)
+        
         if (!userInfo.isNullOrEmpty() && userInfo.contains(':')) {
             val authorization = "Basic " + Base64.getEncoder()
                 .encodeToString(userInfo.toByteArray(Charsets.UTF_8))
-            okHttpFactory.setDefaultRequestProperties(mapOf("Authorization" to authorization))
+        
+            httpFactory.setDefaultRequestProperties(
+                mapOf("Authorization" to authorization)
+            )
         }
 
         val urlLower = sourceUrl.lowercase(Locale.US)
@@ -1098,7 +1106,7 @@ class ExoPlayerBackend(
         // DefaultMediaSourceFactory handles SubtitleConfigurations natively,
         // so for non-HLS/non-DASH (e.g. MKV) pass the full mediaItem directly.
         if (!isHls && !isDash) {
-            val factory = DefaultMediaSourceFactory(okHttpFactory, sharedExtractorsFactory)
+            val factory = DefaultMediaSourceFactory(httpFactory, sharedExtractorsFactory)
             return factory.createMediaSource(mediaItem)
         }
 
@@ -1114,18 +1122,18 @@ class ExoPlayerBackend(
         }
 
         val mainSource = if (isHls) {
-            HlsMediaSource.Factory(okHttpFactory)
+            HlsMediaSource.Factory(httpFactory)
                 .setAllowChunklessPreparation(true)
                 .createMediaSource(mainMediaItem)
         } else {
-            DashMediaSource.Factory(okHttpFactory)
+            DashMediaSource.Factory(httpFactory)
                 .createMediaSource(mainMediaItem)
         }
 
         if (subtitleConfigs.isEmpty()) return mainSource
 
         val subtitleSources = subtitleConfigs.map { config ->
-            SingleSampleMediaSource.Factory(okHttpFactory)
+            SingleSampleMediaSource.Factory(httpFactory)
                 .createMediaSource(config, C.TIME_UNSET)
         }
         return MergingMediaSource(mainSource, *subtitleSources.toTypedArray())
