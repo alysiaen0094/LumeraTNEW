@@ -16,6 +16,12 @@ val localProperties = Properties().apply {
     val localPropsFile = rootProject.file("local.properties")
     if (localPropsFile.exists()) load(localPropsFile.inputStream())
 }
+
+val keystoreProperties = Properties().apply {
+    val keystoreFile = rootProject.file("keystore.properties")
+    if (keystoreFile.exists()) load(keystoreFile.inputStream())
+}
+
 val tmdbApiKey: String = localProperties.getProperty("tmdb.api_key", "")
 val traktClientId: String = localProperties.getProperty("TRAKT_CLIENT_ID", "")
 val traktClientSecret: String = localProperties.getProperty("TRAKT_CLIENT_SECRET", "")
@@ -23,6 +29,15 @@ val traktClientSecret: String = localProperties.getProperty("TRAKT_CLIENT_SECRET
 android {
     namespace = "com.lumera.app"
     compileSdk = 35
+
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+            storePassword = keystoreProperties.getProperty("storePassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.lumera.app"
@@ -68,6 +83,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
+        
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
