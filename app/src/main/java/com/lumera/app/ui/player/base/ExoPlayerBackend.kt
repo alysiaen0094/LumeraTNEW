@@ -1082,11 +1082,8 @@ class ExoPlayerBackend(
 
         val userInfo = sourceUri.userInfo
         val okHttpFactory = OkHttpDataSource.Factory(getOrCreateOkHttpClient())
-            .setUserAgent(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-
+            .setUserAgent("Lumera_VHfbFBaqTXRpIJIA")
+            
         if (!userInfo.isNullOrEmpty() && userInfo.contains(':')) {
             val authorization = "Basic " + Base64.getEncoder()
                 .encodeToString(userInfo.toByteArray(Charsets.UTF_8))
@@ -1143,6 +1140,13 @@ class ExoPlayerBackend(
             .retryOnConnectionFailure(true)
             .followRedirects(true)
             .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "Lumera_VHfbFBaqTXRpIJIA")
+                    .build()
+    
+                chain.proceed(request)
+            }
             .build()
             .also { okHttpClient = it }
     }
