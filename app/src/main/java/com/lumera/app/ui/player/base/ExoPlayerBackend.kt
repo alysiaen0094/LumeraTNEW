@@ -748,7 +748,7 @@ class ExoPlayerBackend(
                 android.graphics.Color.TRANSPARENT,
                 CaptionStyleCompat.EDGE_TYPE_OUTLINE,
                 android.graphics.Color.BLACK,
-                android.graphics.Typeface.DEFAULT
+                android.graphics.Typeface.DEFAULT_BOLD
             )
         )
     }
