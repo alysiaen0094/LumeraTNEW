@@ -13,6 +13,13 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import com.lumera.app.data.sync.LumeraBackupRepository
 
+import com.lumera.app.data.identity.ClientIdentityStore
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+
 data class ActivationUiState(
     val authCode: String = "",
     val isLoading: Boolean = false,
@@ -24,7 +31,9 @@ data class ActivationUiState(
 class ActivationViewModel @Inject constructor(
     private val activationManager: ActivationManager,
     private val addonRepository: AddonRepository,
-    private val lumeraBackupRepository: LumeraBackupRepository
+    private val lumeraBackupRepository: LumeraBackupRepository,
+    private val clientIdentityStore: ClientIdentityStore,
+    private val okHttpClient: OkHttpClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -53,7 +62,7 @@ class ActivationViewModel @Inject constructor(
             .uppercase()
             .filter { it.isLetterOrDigit() }
             .take(8)
-
+    
         if (userId.length != 8) {
             _uiState.value = _uiState.value.copy(
                 authCode = userId,
@@ -61,29 +70,27 @@ class ActivationViewModel @Inject constructor(
             )
             return
         }
-
+    
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 authCode = userId,
                 isLoading = true,
                 error = null
             )
-
-            val manifestUrl = "${ActivationManager.TROY_BASE_URL}/$userId/manifest.json"
-
-            val isValid = withContext(Dispatchers.IO) {
+    
+            val activationResult = withContext(Dispatchers.IO) {
                 runCatching {
-                    addonRepository.fetchManifest(manifestUrl)
-                }.isSuccess
+                    activateWithVod(userId)
+                }.getOrDefault(false)
             }
-
-            if (isValid) {
+    
+            if (activationResult) {
                 activationManager.markActivated(userId)
-            
+    
                 withContext(Dispatchers.IO) {
                     lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
                 }
-            
+    
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     activated = true,
@@ -96,6 +103,31 @@ class ActivationViewModel @Inject constructor(
                     error = "Auth code invalid or expired"
                 )
             }
+        }
+    }
+
+    private fun activateWithVod(authCode: String): Boolean {
+        val token = clientIdentityStore.buildToken(authCode)
+    
+        val payload = JSONObject()
+            .put("auth", authCode)
+            .put("token", token)
+            .toString()
+    
+        val request = Request.Builder()
+            .url("${ActivationManager.TROY_BASE_URL}/api/activate")
+            .post(payload.toRequestBody("application/json".toMediaType()))
+            .build()
+    
+        okHttpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return false
+    
+            val body = response.body?.string().orEmpty()
+            if (body.isBlank()) return false
+    
+            val json = JSONObject(body)
+    
+            return json.optBoolean("activated", false)
         }
     }
 }
