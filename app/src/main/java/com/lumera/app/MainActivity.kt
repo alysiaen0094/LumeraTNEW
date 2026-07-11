@@ -107,6 +107,12 @@ import com.lumera.app.ui.activation.ActivationScreen
 import com.lumera.app.data.sync.LumeraBackupRepository
 import com.lumera.app.data.model.WatchHistoryEntity
 import com.lumera.app.data.model.SeriesNextUpEntity
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
 import java.util.Locale
 import javax.inject.Inject
@@ -704,7 +710,34 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var activationManager: ActivationManager
     @Inject
+    lateinit var okHttpClient: OkHttpClient
+    @Inject
     lateinit var lumeraBackupRepository: LumeraBackupRepository
+
+    private suspend fun isVodAuthStillActive(authCode: String): Boolean {
+    return withContext(Dispatchers.IO) {
+        runCatching {
+            val payload = JSONObject()
+                .put("auth", authCode)
+                .toString()
+
+            val request = Request.Builder()
+                .url("${ActivationManager.TROY_BASE_URL}/api/status")
+                .post(payload.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext false
+
+                val body = response.body?.string().orEmpty()
+                if (body.isBlank()) return@withContext false
+
+                val json = JSONObject(body)
+                json.optBoolean("active", false)
+            }
+        }.getOrDefault(false)
+    }
+}
 
     private suspend fun saveLumeraPlaybackState(
         sessionResult: PlayerSessionResult,
@@ -921,12 +954,32 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
+            var didCheckVodStatus by rememberSaveable { mutableStateOf(false) }
+        
+            LaunchedEffect(isActivated) {
+                if (!isActivated || didCheckVodStatus) return@LaunchedEffect
+        
+                didCheckVodStatus = true
+        
+                val authCode = activationManager.getAuthCode()
+                val stillActive = if (authCode.isBlank()) {
+                    false
+                } else {
+                    isVodAuthStillActive(authCode)
+                }
+        
+                if (!stillActive) {
+                    activationManager.clearActivation()
+                    isActivated = false
+                }
+            }
         
             if (!isActivated) {
                 LumeraTheme(theme = DefaultThemes.VOID) {
                     LumeraBackground {
                         ActivationScreen(
                             onActivated = {
+                                didCheckVodStatus = false
                                 isActivated = true
                             },
                             onExit = {
