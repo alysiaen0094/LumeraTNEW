@@ -59,15 +59,12 @@ android {
 
     buildTypes {
         debug {
-            resValue("string", "app_name", "Lumera")
-        
-            isMinifyEnabled = true
-            isShrinkResources = true
+            applicationIdSuffix = ".test"
+            resValue("string", "app_name", "Lumera Test")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
