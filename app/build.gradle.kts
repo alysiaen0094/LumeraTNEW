@@ -22,12 +22,12 @@ val traktClientSecret: String = localProperties.getProperty("TRAKT_CLIENT_SECRET
 
 android {
     namespace = "com.lumera.app"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.lumera.app"
-        minSdk = 26
-        targetSdk = 34
+        minSdk = 23
+        targetSdk = 35
         versionCode = 9
         versionName = "0.1.8-beta"
 
