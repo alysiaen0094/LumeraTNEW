@@ -13,7 +13,6 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import com.lumera.app.data.sync.LumeraBackupRepository
 
-import com.lumera.app.data.identity.ClientIdentityStore
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -32,7 +31,6 @@ class ActivationViewModel @Inject constructor(
     private val activationManager: ActivationManager,
     private val addonRepository: AddonRepository,
     private val lumeraBackupRepository: LumeraBackupRepository,
-    private val clientIdentityStore: ClientIdentityStore,
     private val okHttpClient: OkHttpClient
 ) : ViewModel() {
 
@@ -107,11 +105,8 @@ class ActivationViewModel @Inject constructor(
     }
 
     private fun activateWithVod(authCode: String): Boolean {
-        val token = clientIdentityStore.buildToken(authCode)
-    
         val payload = JSONObject()
             .put("auth", authCode)
-            .put("token", token)
             .toString()
     
         val request = Request.Builder()
