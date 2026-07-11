@@ -45,6 +45,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.text.font.FontWeight
 
 enum class NavDestination(
     @DrawableRes val iconRes: Int,
@@ -80,7 +81,7 @@ fun NavDrawer(
     }
 
     val width by animateDpAsState(
-        targetValue = if (isMenuExpanded) 170.dp else 62.dp,
+        targetValue = if (isMenuExpanded) 185.dp else 62.dp,
         label = "NavWidth",
         animationSpec = if (isMenuExpanded) tween(300) else snap()
     )
@@ -392,7 +393,8 @@ fun SidebarItem(
 
                 Text(
                     text = displayText,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = contentColor,
                     maxLines = 1,
                     softWrap = false,
@@ -530,9 +532,10 @@ fun ProfileAvatarItem(
                         }
                 ) {
                     Text(
-                        text = displayName,
-                        fontSize = 12.sp,
-                        color = contentColor,
+                        text = "Change Profile",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Visible
