@@ -28,7 +28,7 @@ val traktClientSecret: String = localProperties.getProperty("TRAKT_CLIENT_SECRET
 
 android {
     namespace = "com.lumera.app"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.lumera.app"
