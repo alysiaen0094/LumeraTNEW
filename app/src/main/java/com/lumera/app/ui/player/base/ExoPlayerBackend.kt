@@ -153,7 +153,6 @@ class ExoPlayerBackend(
     private val subtitleDelayUs = AtomicLong(0L)
     private var subtitleTextColor: Int = android.graphics.Color.WHITE
     private var subtitleBackgroundColor: Int = android.graphics.Color.TRANSPARENT
-    private var subtitleBackgroundColor: Int = 0x00000000
     private var lastCueGroup: androidx.media3.common.text.CueGroup? = null
     private companion object {
         private const val DEFAULT_SUBTITLE_BOTTOM_PADDING_FRACTION = 0.08f
