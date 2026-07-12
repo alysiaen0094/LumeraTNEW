@@ -108,6 +108,14 @@ fun NavDrawer(
         onClose()
         onNavigate(NavDestination.Home)
     }
+    
+    BackHandler(
+        enabled = !isMenuExpanded && currentDestination == NavDestination.Watchlist
+    ) {
+        isDrawerOpen = true
+        isMenuFocused = true
+        drawerRequesters[NavDestination.Watchlist]?.requestFocus()
+    }
 
     val showStaticMask = currentDestination in listOf(
         NavDestination.Home,
