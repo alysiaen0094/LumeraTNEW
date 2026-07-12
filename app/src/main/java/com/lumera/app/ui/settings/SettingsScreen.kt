@@ -90,11 +90,11 @@ fun SettingsScreen(
     // 1. Side Nav (Always)
     // 2. Top Nav AND Screen is Focused (Handle = Open Nav/Go Back)
     // Disabled when Top Nav AND Screen NOT Focused (Nav is focused) -> Let Nav handle Close.
-    BackHandler(enabled = !isTopNav || isScreenFocused) {
+    BackHandler(enabled = isScreenFocused) {
         if (isContentFocused) {
             itemRequesters[selectedSection]?.requestFocus()
         } else {
-            drawerRequester.requestFocus()
+            onBack()
         }
     }
     
@@ -183,7 +183,7 @@ fun SettingsScreen(
                                 if (it.type == KeyEventType.KeyDown) {
                                     when (it.key) {
                                         Key.DirectionLeft -> {
-                                            true // Block LEFT. Back opens navigation.
+                                            false
                                         }
                                         Key.Back -> {
                                             if (!isTransitioning) {
