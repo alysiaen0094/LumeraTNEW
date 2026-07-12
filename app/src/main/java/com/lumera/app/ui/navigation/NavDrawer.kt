@@ -366,13 +366,13 @@ fun SidebarItem(
     val displayText = customLabel ?: screen.label
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .height(44.dp)
             .fillMaxWidth()
     ) {
         Surface(
             onClick = { onNavigate(screen) },
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .onFocusChanged { isFocused = it.isFocused },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -475,13 +475,13 @@ fun ProfileAvatarItem(
     val displayName = profile?.name ?: "Profile"
     
     Box(
-        modifier = modifier
+        modifier = Modifier
             .height(44.dp)
             .fillMaxWidth()
     ) {
         Surface(
             onClick = onNavigate,
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .onFocusChanged { isFocused = it.isFocused },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
