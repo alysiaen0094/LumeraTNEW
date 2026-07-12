@@ -116,6 +116,7 @@ class ProfileViewModel @Inject constructor(
                         themeId = tempThemeId,
                         navPosition = "left",
                         homeTabLayout = "cinematic",
+                        continueWatchingShape = "landscape",
                         roundCorners = true
                     )
                 ).toInt()
