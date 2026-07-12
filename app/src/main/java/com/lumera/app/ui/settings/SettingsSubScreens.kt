@@ -188,7 +188,9 @@ fun PersonalizationSettings(
         SettingRow("Continue Watching") {
             VoidSegmentedControl(
                 options = listOf("Poster" to "poster", "Landscape" to "landscape"),
-                selectedOption = currentProfile.continueWatchingShape,
+                selectedOption = currentProfile.continueWatchingShape
+                    .takeIf { it == "poster" || it == "landscape" }
+                    ?: "landscape",
                 onOptionSelected = { viewModel.updateContinueWatchingShape(currentProfile.id, it) },
                 onBack = onGoBack,
                 blockUp = false
