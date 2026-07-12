@@ -256,10 +256,10 @@ fun NavDrawer(
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
+                    if (isMenuExpanded) {
                         ProfileAvatarItem(
                             profile = currentProfile,
-                            isMenuExpanded = isMenuExpanded,
+                            isMenuExpanded = true,
                             onNavigate = {
                                 isDrawerOpen = false
                                 isMenuFocused = false
@@ -309,15 +309,11 @@ fun NavDrawer(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Settings (Invisible when collapsed)
-                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
+                    if (isMenuExpanded) {
                         DrawerItem(NavDestination.Settings)
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Exit (Invisible when collapsed)
-                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
+                
+                        Spacer(modifier = Modifier.height(4.dp))
+                
                         DrawerItem(NavDestination.Exit)
                     }
                 }
