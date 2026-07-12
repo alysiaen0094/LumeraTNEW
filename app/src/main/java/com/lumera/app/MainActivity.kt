@@ -1198,10 +1198,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 NavDestination.Watchlist -> {
                                     delay(200)
-                                
-                                    // Empty Watchlist may not have any focusable content.
-                                    // Keep focus on the drawer item so the user can still move Home/Search/etc.
-                                    drawerRequesters[NavDestination.Watchlist]?.requestFocus()
+                                    watchlistEntryRequester.requestFocus()
                                 }
                                 else -> Unit
                             }
@@ -1254,7 +1251,7 @@ class MainActivity : ComponentActivity() {
                                 
                                                     NavDestination.Search -> searchEntryRequester.requestFocus()
                                                     NavDestination.Settings -> settingsEntryRequester.requestFocus()
-                                                    NavDestination.Watchlist -> drawerRequesters[NavDestination.Watchlist]?.requestFocus()
+                                                    NavDestination.Watchlist -> watchlistEntryRequester.requestFocus()
                                 
                                                     else -> {}
                                                 }
@@ -1284,17 +1281,6 @@ class MainActivity : ComponentActivity() {
                                         .onPreviewKeyEvent { event ->
                                             if (event.type != KeyEventType.KeyDown) {
                                                 return@onPreviewKeyEvent false
-                                            }
-                                
-                                            // Empty Watchlist has no reliable content focus target.
-                                            // LEFT/BACK should return focus to the left drawer instead of exiting.
-                                            if (
-                                                activeView == "menu" &&
-                                                currentNav == NavDestination.Watchlist &&
-                                                (event.key == Key.DirectionLeft || event.key == Key.Back)
-                                            ) {
-                                                drawerRequesters[NavDestination.Watchlist]?.requestFocus()
-                                                return@onPreviewKeyEvent true
                                             }
                                 
                                             if (settingsContentFocused) return@onPreviewKeyEvent false
