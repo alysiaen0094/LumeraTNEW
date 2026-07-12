@@ -26,6 +26,14 @@ import com.lumera.app.data.model.stremio.MetaItem
 import com.lumera.app.ui.home.DpadRepeatGate
 import com.lumera.app.ui.home.InfiniteLoopRow
 import com.lumera.app.ui.home.UpKeyDebouncer
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import kotlinx.coroutines.delay
 
 @Composable
 fun WatchlistScreen(
@@ -87,7 +95,32 @@ fun WatchlistScreen(
     androidx.compose.runtime.CompositionLocalProvider(com.lumera.app.ui.components.LocalWatchedIds provides watchedIds) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (movies.isEmpty() && series.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            LaunchedEffect(Unit) {
+                delay(150)
+                entryRequester.requestFocus()
+            }
+        
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(entryRequester)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) {
+                            return@onPreviewKeyEvent false
+                        }
+        
+                        when (event.key) {
+                            Key.DirectionLeft, Key.Back -> {
+                                drawerRequester.requestFocus()
+                                true
+                            }
+        
+                            else -> false
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     text = "Your watchlist is empty",
                     style = MaterialTheme.typography.titleMedium,
