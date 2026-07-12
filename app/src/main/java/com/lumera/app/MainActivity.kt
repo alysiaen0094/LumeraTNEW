@@ -99,7 +99,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.lumera.app.data.local.AddonDao
 import com.lumera.app.data.profile.ProfileConfigurationManager
 import com.lumera.app.data.activation.ActivationManager
@@ -116,6 +115,8 @@ import org.json.JSONObject
 
 import java.util.Locale
 import javax.inject.Inject
+
+import androidx.compose.runtime.mutableIntStateOf
 
 private const val DOUBLE_BACK_EXIT_WINDOW_MS = 400L
 private const val SOURCE_SELECTION_COMMIT_MIN_POSITION_MS = 5_000L
@@ -955,6 +956,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
             var didCheckVodStatus by rememberSaveable { mutableStateOf(false) }
+
+            var profileReloadKey by rememberSaveable { mutableIntStateOf(0) }
         
             LaunchedEffect(isActivated) {
                 if (!isActivated || didCheckVodStatus) return@LaunchedEffect
@@ -1122,8 +1125,13 @@ class MainActivity : ComponentActivity() {
                         forceProfileSelector = false
                         sessionProfileId = it.id
                         sessionRestoreAttemptedProfileId = null
+                        startupRestoreFinished = true
+                
+                        // Force Home/Movie/Series hubs to reload cleanly for this profile.
+                        profileReloadKey++
+                
                         mainViewModel.login(it.id)
-                    
+                
                         lifecycleScope.launch(Dispatchers.IO) {
                             val pushed = lumeraBackupRepository.pushAccountBackup()
                             android.util.Log.d("LumeraBackup", "manual profile-select backup pushed=$pushed")
@@ -1304,9 +1312,11 @@ class MainActivity : ComponentActivity() {
                                                     val tab = if(currentNav == NavDestination.Home) "home" else if(currentNav == NavDestination.Movies) "movies" else "series"
                                                     val dashboardTab = DashboardTab.fromString(tab)
 
-                                                    key(tab) {
-                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
+                                                    key(tab, currentProfile?.id, profileReloadKey) {
+                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished, profileReloadKey) {
                                                             if (!startupRestoreFinished) return@LaunchedEffect
+                                                    
+                                                            vm.invalidate()
                                                             vm.loadScreen(tab, currentProfile)
                                                         }
                                                         HomeScreen(
@@ -1456,9 +1466,11 @@ class MainActivity : ComponentActivity() {
                                                     val tab = if(currentNav == NavDestination.Home) "home" else if(currentNav == NavDestination.Movies) "movies" else "series"
                                                     val dashboardTab = DashboardTab.fromString(tab)
 
-                                                    key(tab) {
-                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
+                                                    key(tab, currentProfile?.id, profileReloadKey) {
+                                                        LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished, profileReloadKey) {
                                                             if (!startupRestoreFinished) return@LaunchedEffect
+                                                    
+                                                            vm.invalidate()
                                                             vm.loadScreen(tab, currentProfile)
                                                         }
                                                         HomeScreen(
