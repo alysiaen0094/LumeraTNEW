@@ -41,10 +41,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.ui.text.font.FontWeight
 
 enum class NavDestination(
@@ -101,7 +97,6 @@ fun NavDrawer(
             (currentDestination == NavDestination.Settings || currentDestination == NavDestination.Search)
     ) {
         isDrawerOpen = false
-        isMenuFocused = false
         onClose()
         onNavigate(NavDestination.Home)
     }
@@ -110,7 +105,6 @@ fun NavDrawer(
         enabled = !isMenuExpanded && currentDestination == NavDestination.Watchlist
     ) {
         isDrawerOpen = true
-        isMenuFocused = true
         drawerRequesters[NavDestination.Watchlist]?.requestFocus()
     }
 
@@ -224,7 +218,7 @@ fun NavDrawer(
                             }
                         
                             onNavigate(destination)
-                        }
+                        },
                         modifier = Modifier
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
@@ -261,7 +255,6 @@ fun NavDrawer(
                             isMenuExpanded = true,
                             onNavigate = {
                                 isDrawerOpen = false
-                                isMenuFocused = false
                                 onClose()
                                 onNavigate(NavDestination.Profile)
                             },
@@ -269,13 +262,19 @@ fun NavDrawer(
                                 .focusRequester(drawerRequesters[NavDestination.Profile]!!)
                                 .onPreviewKeyEvent {
                                     if (it.type == KeyEventType.KeyDown) {
-                                        if (it.key == Key.DirectionRight || it.key == Key.Back) {
-                                            isDrawerOpen = false
-                                            isMenuFocused = false
-                                            onClose()
-                                            true
-                                        } else {
-                                            false
+                                       when (it.key) {
+                                            Key.DirectionLeft -> {
+                                                isDrawerOpen = true
+                                                true
+                                            }
+                                        
+                                            Key.DirectionRight, Key.Back -> {
+                                                isDrawerOpen = false
+                                                onClose()
+                                                true
+                                            }
+                                        
+                                            else -> false
                                         }
                                     } else {
                                         false
@@ -535,17 +534,19 @@ fun ProfileAvatarItem(
                         }
                 ) {
                     Text(
-                        text = "Change Profile",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = contentColor.copy(alpha = 0.7f),
+                        text = displayName,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor,
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Visible
                     )
+                    
                     Text(
                         text = "Change Profile",
-                        fontSize = 9.sp,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
                         softWrap = false,
