@@ -71,13 +71,11 @@ fun NavDrawer(
     onClose: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    var isMenuFocused by remember { mutableStateOf(false) }
     var isDrawerOpen by remember { mutableStateOf(false) }
-    val isMenuExpanded = isDrawerOpen || isMenuFocused
+    val isMenuExpanded = isDrawerOpen
 
     LaunchedEffect(currentDestination) {
         isDrawerOpen = false
-        isMenuFocused = false
     }
 
     val width by animateDpAsState(
@@ -96,7 +94,6 @@ fun NavDrawer(
     // Standard BackHandler for when the drawer container is focused
     BackHandler(enabled = isMenuExpanded) {
         isDrawerOpen = false
-        isMenuFocused = false
         onClose()
     }
     BackHandler(
@@ -198,9 +195,6 @@ fun NavDrawer(
                 .width(width)
                 .fillMaxHeight()
                 .zIndex(2f)
-                .onFocusChanged { focusState ->
-                    isMenuFocused = focusState.hasFocus
-                }
                 .padding(top = 24.dp, bottom = 24.dp)
         ) {
             Column(
@@ -223,7 +217,6 @@ fun NavDrawer(
                         isDrawerActive = isMenuExpanded,
                         onNavigate = { destination ->
                             isDrawerOpen = false
-                            isMenuFocused = false
                             onClose()
                         
                             if (destination == NavDestination.Search || destination == NavDestination.Settings) {
@@ -231,18 +224,24 @@ fun NavDrawer(
                             }
                         
                             onNavigate(destination)
-                        },
+                        }
                         modifier = Modifier
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
                                 if (it.type == KeyEventType.KeyDown) {
-                                    if (it.key == Key.DirectionRight || it.key == Key.Back) {
-                                        isDrawerOpen = false
-                                        isMenuFocused = false
-                                        onClose()
-                                        true
-                                    } else {
-                                        false
+                                    when (it.key) {
+                                        Key.DirectionLeft -> {
+                                            isDrawerOpen = true
+                                            true
+                                        }
+                            
+                                        Key.DirectionRight, Key.Back -> {
+                                            isDrawerOpen = false
+                                            onClose()
+                                            true
+                                        }
+                            
+                                        else -> false
                                     }
                                 } else {
                                     false
