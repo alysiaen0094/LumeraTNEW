@@ -334,9 +334,7 @@ fun CinematicLayout(
     }
 
     LaunchedEffect(instantFocusItem) {
-        val target = instantFocusItem ?: return@LaunchedEffect
-        delay(300)
-        displayedItem = target
+        displayedItem = instantFocusItem
     }
 
     val density = LocalDensity.current
@@ -394,12 +392,7 @@ fun CinematicLayout(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
-        val bgItem = if (!state.tmdbEnabled || renderedPreviewItem == null ||
-            state.tmdbEnrichedIds.contains("${renderedPreviewItem.type}:${renderedPreviewItem.id}")) {
-            renderedPreviewItem
-        } else null
-        CinematicBackground(bgItem)
-
+        CinematicBackground(renderedPreviewItem)
         Column(modifier = Modifier.fillMaxSize().zIndex(2f)) {
             // INFO SECTION
             Box(
@@ -416,8 +409,7 @@ fun CinematicLayout(
                 ) { item ->
                     if (item != null) {
                         // Hide info content while waiting for TMDB enrichment
-                        val itemReady = !state.tmdbEnabled || state.tmdbEnrichedIds.contains("${item.type}:${item.id}")
-                        Column(modifier = Modifier.alpha(if (itemReady) 1f else 0f)) {
+                        Column(modifier = Modifier.alpha(1f)) {
                             Box(
                                 modifier = Modifier
                                     .width(700.dp)
@@ -1635,8 +1627,8 @@ fun CinematicBackground(item: MetaItem?) {
     Box(modifier = Modifier.fillMaxSize().zIndex(0f)) {
         Box(modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.65f).fillMaxHeight(0.65f)) {
             Crossfade(
-                targetState = item, 
-                animationSpec = tween(700), 
+                targetState = item,
+                animationSpec = tween(0),
                 label = "HeroBg"
             ) { currentItem ->
                 if (currentItem != null) {
