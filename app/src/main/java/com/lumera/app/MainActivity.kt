@@ -1320,8 +1320,11 @@ class MainActivity : ComponentActivity() {
                                                     key(tab, currentProfile?.id, profileReloadKey) {
                                                         LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished, profileReloadKey) {
                                                             if (!startupRestoreFinished) return@LaunchedEffect
-                                                    
-                                                            vm.invalidate()
+                                                        
+                                                            if (profileReloadKey > 0) {
+                                                                vm.invalidate()
+                                                            }
+                                                        
                                                             vm.loadScreen(tab, currentProfile)
                                                         }
                                                         HomeScreen(
