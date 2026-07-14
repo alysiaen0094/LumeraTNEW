@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
 
 enum class NavDestination(
     @DrawableRes val iconRes: Int,
@@ -70,8 +71,19 @@ fun NavDrawer(
     var isDrawerOpen by remember { mutableStateOf(false) }
     val isMenuExpanded = isDrawerOpen
 
+    fun openDrawer() {
+        isDrawerOpen = true
+    }
+
     LaunchedEffect(currentDestination) {
         isDrawerOpen = false
+    }
+
+    LaunchedEffect(isDrawerOpen, currentDestination) {
+        if (isDrawerOpen) {
+            delay(80)
+            drawerRequesters[currentDestination]?.requestFocus()
+        }
     }
 
     val width by animateDpAsState(
@@ -87,25 +99,13 @@ fun NavDrawer(
         animationSpec = if (isMenuExpanded) tween(300) else snap()
     )
 
-    // Standard BackHandler for when the drawer container is focused
-    BackHandler(enabled = isMenuExpanded) {
-        isDrawerOpen = false
-        onClose()
-    }
-    BackHandler(
-        enabled = !isMenuExpanded &&
-            (currentDestination == NavDestination.Settings || currentDestination == NavDestination.Search)
-    ) {
-        isDrawerOpen = false
-        onClose()
-        onNavigate(NavDestination.Home)
-    }
-    
-    BackHandler(
-        enabled = !isMenuExpanded && currentDestination == NavDestination.Watchlist
-    ) {
-        isDrawerOpen = true
-        drawerRequesters[NavDestination.Watchlist]?.requestFocus()
+    BackHandler(enabled = true) {
+        if (isMenuExpanded) {
+            isDrawerOpen = false
+            onClose()
+        } else {
+            openDrawer()
+        }
     }
 
     val showStaticMask = currentDestination in listOf(
@@ -212,11 +212,6 @@ fun NavDrawer(
                         onNavigate = { destination ->
                             isDrawerOpen = false
                             onClose()
-                        
-                            if (destination == NavDestination.Search || destination == NavDestination.Settings) {
-                                onNavigate(NavDestination.Home)
-                            }
-                        
                             onNavigate(destination)
                         },
                         modifier = Modifier
@@ -225,13 +220,23 @@ fun NavDrawer(
                                 if (it.type == KeyEventType.KeyDown) {
                                     when (it.key) {
                                         Key.DirectionLeft -> {
-                                            isDrawerOpen = true
+                                            openDrawer()
                                             true
                                         }
                             
-                                        Key.DirectionRight, Key.Back -> {
+                                        Key.DirectionRight -> {
                                             isDrawerOpen = false
                                             onClose()
+                                            true
+                                        }
+                            
+                                        Key.Back -> {
+                                            if (isMenuExpanded) {
+                                                isDrawerOpen = false
+                                                onClose()
+                                            } else {
+                                                openDrawer()
+                                            }
                                             true
                                         }
                             
@@ -262,18 +267,24 @@ fun NavDrawer(
                                 .focusRequester(drawerRequesters[NavDestination.Profile]!!)
                                 .onPreviewKeyEvent {
                                     if (it.type == KeyEventType.KeyDown) {
-                                       when (it.key) {
+                                        when (it.key) {
                                             Key.DirectionLeft -> {
-                                                isDrawerOpen = true
+                                                openDrawer()
                                                 true
                                             }
-                                        
-                                            Key.DirectionRight, Key.Back -> {
+                                
+                                            Key.DirectionRight -> {
                                                 isDrawerOpen = false
                                                 onClose()
                                                 true
                                             }
-                                        
+                                
+                                            Key.Back -> {
+                                                isDrawerOpen = false
+                                                onClose()
+                                                true
+                                            }
+                                
                                             else -> false
                                         }
                                     } else {
