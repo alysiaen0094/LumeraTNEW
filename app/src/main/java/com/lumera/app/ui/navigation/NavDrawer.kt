@@ -127,7 +127,7 @@ fun NavDrawer(
         if (showStaticMask) {
             Box(
                 modifier = Modifier
-                    .width(400.dp)
+                    .width(260.dp)
                     .fillMaxHeight()
                     .zIndex(1f)
                     .background(
@@ -174,14 +174,14 @@ fun NavDrawer(
                                 1.0f to Color.Transparent
                             ),
                             startX = 0f,
-                            endX = 900f
+                            endX = 520f
                         )
                     )
             )
         }
 
         // Noise overlay to reduce gradient banding on budget panels
-        com.lumera.app.ui.components.NoiseOverlay(modifier = Modifier.zIndex(1.6f))
+        //com.lumera.app.ui.components.NoiseOverlay(modifier = Modifier.zIndex(1.6f))
 
         // LAYER 4: Interactive Drawer
         Box(
@@ -352,7 +352,7 @@ fun SidebarItem(
 
     val textAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
-        animationSpec = if (isMenuExpanded) tween(300) else snap(),
+        animationSpec = if (isMenuExpanded) tween(160) else snap(),
         label = "TextAlpha"
     )
     val textOffset = 0f
