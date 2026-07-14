@@ -562,11 +562,7 @@ private class DiscoverPivotSpec(
 
     @Deprecated("", level = DeprecationLevel.HIDDEN)
     override val scrollAnimationSpec: androidx.compose.animation.core.AnimationSpec<Float>
-        get() = androidx.compose.animation.core.spring(
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow,
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-            visibilityThreshold = 0.1f
-        )
+        get() = tween(durationMillis = 0)
 
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
         val targetPosition = pivotOffset
@@ -644,7 +640,7 @@ private fun DiscoverGrid(
     // Pagination trigger
     val lastVisibleIndex = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
     LaunchedEffect(lastVisibleIndex, items.size) {
-        if (items.isNotEmpty() && lastVisibleIndex >= items.size - 12) {
+        if (items.isNotEmpty() && lastVisibleIndex >= items.size - 4) {
             onLoadMore()
         }
     }
@@ -761,7 +757,7 @@ private fun DiscoverGrid(
                         }
                         .onFocusChanged {
                             if (it.isFocused) {
-                                ImagePrefetcher.prefetchAround(context, imageUrls, index, count = 12)
+                                ImagePrefetcher.prefetchAround(context, imageUrls, index, count = 4)
                                 onFocusedIdChange(item.id)
                                 val pendingTarget = pendingDirectionalTargetIndex
                                 if (pendingTarget != null) {
@@ -940,7 +936,7 @@ fun KeyButton(
             containerColor = Color.White.copy(0.1f),
             focusedContainerColor = Color.White,
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f)
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.0f)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
