@@ -511,7 +511,7 @@ fun ProfileAvatarItem(
                             model = ImageRequest.Builder(context)
                                 .data(avatarSource)
                                 .size(100, 100)
-                                .crossfade(true)
+                                .crossfade(false)
                                 .build(),
                             contentDescription = "Profile Avatar",
                             contentScale = ContentScale.Crop,
