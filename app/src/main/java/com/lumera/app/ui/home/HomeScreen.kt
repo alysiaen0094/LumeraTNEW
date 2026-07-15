@@ -96,17 +96,20 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val layoutMode = currentProfile?.layoutFor(tab) ?: "simple"
-    val isTopNav = currentProfile?.navPosition == "top"
+    
+    // Navbar is removed, so always use full-width content spacing.
+    // Do not read currentProfile.navPosition here anymore.
+    val isTopNav = true
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
-    val infoTopPadding = if (isTopNav) 84.dp else 54.dp
-    val startPadding = if (isTopNav) 50.dp else 88.dp
+    val infoTopPadding = 54.dp
+    val startPadding = 50.dp
 
     // Avoid rendering heavy rows during navigation transition.
     var isTransitioning by remember { mutableStateOf(true) }
 
     LaunchedEffect(tab) {
         isTransitioning = true
-        delay(250)
+        delay(50)
         isTransitioning = false
     }
 
@@ -138,9 +141,7 @@ fun HomeScreen(
     // 3. Top-Nav mode AND focus not yet established (transition guard)
     // If Top-Nav mode AND content is NOT focused AND focus was already set, disable this
     // handler so TopNavigationBar's handler can "Close Nav" (return to content).
-    BackHandler(enabled = !isTopNav || isContentFocused || !focusEverSet) {
-        drawerRequester.requestFocus()
-    }
+    // Navbar is removed. MainActivity now owns Back behavior.
 
     Box(
     modifier = Modifier
@@ -164,8 +165,28 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .focusRequester(entryRequester)
-                    .focusable()
+                    .focusable(),
+                contentAlignment = Alignment.Center
             ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color.White.copy(alpha = 0.9f),
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(42.dp)
+                    )
+        
+                    Spacer(modifier = Modifier.height(18.dp))
+        
+                    Text(
+                        text = "Loading Home",
+                        color = Color.White.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         } else {
             // DATA IS READY: Show Content
