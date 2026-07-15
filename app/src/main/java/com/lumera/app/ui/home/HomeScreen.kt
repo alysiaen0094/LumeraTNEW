@@ -150,7 +150,6 @@ fun HomeScreen(
         // LOGIC: If we are just starting OR the ViewModel is loading, show the Loading Box.
         // This box accepts focus immediately, which forces the NavDrawer to collapse.
         if (
-            isTransitioning ||
             state.isLoading ||
             state.loadedScreen != screenName ||
             state.loadedProfileId != currentProfile?.id
@@ -162,25 +161,11 @@ fun HomeScreen(
                     .focusable(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        color = Color.White.copy(alpha = 0.9f),
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(42.dp)
-                    )
-        
-                    Spacer(modifier = Modifier.height(18.dp))
-        
-                    Text(
-                        text = "Loading Home",
-                        color = Color.White.copy(alpha = 0.72f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                androidx.compose.material3.CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.9f),
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(42.dp)
+                )
             }
         } else {
             // DATA IS READY: Show Content
