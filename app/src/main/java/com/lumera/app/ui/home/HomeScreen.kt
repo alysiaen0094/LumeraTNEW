@@ -64,9 +64,9 @@ import com.lumera.app.ui.components.LumeraCard
 import kotlinx.coroutines.delay
 
 private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
-private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 120L
-private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 90L
-private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 120L
+private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 180L
+private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 120L
+private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 150L
 
 private class HomeFocusTimingTracker {
     var previous: Long = 0L
@@ -104,14 +104,8 @@ fun HomeScreen(
     val infoTopPadding = 54.dp
     val startPadding = 50.dp
 
-    // Avoid rendering heavy rows during navigation transition.
-    var isTransitioning by remember { mutableStateOf(true) }
-
-    LaunchedEffect(tab) {
-        isTransitioning = true
-        delay(50)
-        isTransitioning = false
-    }
+    // Navbar/tabs are removed, so do not delay Home rendering.
+    val isTransitioning = false
 
     val screenName = remember(tab) {
         when (tab) {
@@ -303,7 +297,7 @@ fun CinematicLayout(
 
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
-        historyItems.take(15).forEach { item ->
+        historyItems.take(5).forEach { item ->
             onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
         }
     }
@@ -355,7 +349,12 @@ fun CinematicLayout(
     }
 
     LaunchedEffect(instantFocusItem) {
-        displayedItem = instantFocusItem
+        val target = instantFocusItem ?: return@LaunchedEffect
+        delay(140)
+
+        if (instantFocusItem?.id == target.id && instantFocusItem?.type == target.type) {
+            displayedItem = target
+        }
     }
 
     val density = LocalDensity.current
@@ -402,10 +401,9 @@ fun CinematicLayout(
 
     if (!allowUpdate) return
 
-    onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
-
     if (instantFocusItem?.id != item.id || instantFocusItem?.type != item.type) {
         instantFocusItem = item
+        onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
     }
 
     previewUpdateGate.lastUpdateMs = now
@@ -521,15 +519,6 @@ fun CinematicLayout(
                         minOffsetDeltaPx = 36,
                         onPositionChanged = onVerticalScrollChange
                     )
-
-                    // Pre-scroll warmup: compose off-screen row to populate recycler + compile GPU shaders
-                    LaunchedEffect(Unit) {
-                        withFrameNanos { }
-                        val idx = verticalListState.firstVisibleItemIndex
-                        val off = verticalListState.firstVisibleItemScrollOffset
-                        verticalListState.scrollToItem(idx + 1)
-                        verticalListState.scrollToItem(idx, off)
-                    }
 
                     LazyColumn(
                         state = verticalListState,
@@ -675,7 +664,7 @@ fun CinematicLayout(
                                         snapshotFlow {
                                             rowListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                                         }.collect { lastVisibleIndex ->
-                                            if (itemSize > 0 && lastVisibleIndex >= itemSize - 10) {
+                                            if (itemSize > 0 && lastVisibleIndex >= itemSize - 4) {
                                                 onLoadMore(itemId)
                                             }
                                         }
@@ -1268,7 +1257,7 @@ fun SimpleLayout(
 
     // Proactive metadata fetch for continue watching cards (posters + landscape)
     LaunchedEffect(historyItems) {
-        historyItems.take(15).forEach { item ->
+        historyItems.take(5).forEach { item ->
             onHeroItemVisible(previewLookupItemForFocus(item, historyItems))
         }
     }
@@ -1345,15 +1334,6 @@ fun SimpleLayout(
             minOffsetDeltaPx = 36,
             onPositionChanged = onVerticalScrollChange
         )
-
-        // Pre-scroll warmup: compose off-screen row to populate recycler + compile GPU shaders
-        LaunchedEffect(Unit) {
-            withFrameNanos { }
-            val idx = verticalListState.firstVisibleItemIndex
-            val off = verticalListState.firstVisibleItemScrollOffset
-            verticalListState.scrollToItem(idx + 1)
-            verticalListState.scrollToItem(idx, off)
-        }
 
         LazyColumn(
             state = verticalListState,
@@ -1519,7 +1499,7 @@ fun SimpleLayout(
                             snapshotFlow {
                                 rowListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                             }.collect { lastVisibleIndex ->
-                                if (itemSize > 0 && lastVisibleIndex >= itemSize - 10) {
+                                if (itemSize > 0 && lastVisibleIndex >= itemSize - 4) {
                                     onLoadMore(itemId)
                                 }
                             }
@@ -1659,7 +1639,7 @@ fun CinematicBackground(item: MetaItem?) {
                         ImageRequest.Builder(context)
                             .data(image)
                             .crossfade(false)
-                            .size(1920, 1080)
+                            .size(1280, 720)
                             .build()
                     }
 
@@ -1681,7 +1661,7 @@ fun CinematicBackground(item: MetaItem?) {
                                     }
                                 }
                         )
-                        com.lumera.app.ui.components.NoiseOverlay()
+                        // Noise overlay disabled for smoother Home scrolling.
                     }
                 }
             }
