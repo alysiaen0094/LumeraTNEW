@@ -1248,14 +1248,10 @@ class MainActivity : ComponentActivity() {
                         val tab = "home"
                         val dashboardTab = DashboardTab.HOME
 
-                        key(tab, currentProfile?.id, profileReloadKey) {
-                            LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished, profileReloadKey) {
+                        key(tab, currentProfile?.id) {
+                            LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
                                 if (!startupRestoreFinished) return@LaunchedEffect
-
-                                if (profileReloadKey > 0) {
-                                    vm.invalidate()
-                                }
-
+                        
                                 vm.loadScreen(tab, currentProfile)
                             }
 
