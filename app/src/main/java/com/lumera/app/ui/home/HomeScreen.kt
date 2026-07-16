@@ -102,7 +102,7 @@ fun HomeScreen(
     val isTopNav = true
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
     val infoTopPadding = 54.dp
-    val startPadding = 120.dp
+    val startPadding = 86.dp
 
     // Navbar/tabs are removed, so do not delay Home rendering.
     val isTransitioning = false
