@@ -3,12 +3,15 @@ package com.lumera.app.ui.home
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -137,12 +140,17 @@ fun HomeScreen(
     // second back press doesn't exit the app. Resets on each fresh composition.
     var focusEverSet by remember { mutableStateOf(false) }
     var homeSidebarOpen by remember { mutableStateOf(false) }
+    var restoreContentFocusAfterSidebarClose by remember { mutableStateOf(false) }
     val homeSidebarFirstFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(homeSidebarOpen) {
+    LaunchedEffect(homeSidebarOpen, restoreContentFocusAfterSidebarClose) {
         if (homeSidebarOpen) {
-            delay(80)
+            delay(140)
             runCatching { homeSidebarFirstFocusRequester.requestFocus() }
+        } else if (restoreContentFocusAfterSidebarClose) {
+            delay(120)
+            runCatching { entryRequester.requestFocus() }
+            restoreContentFocusAfterSidebarClose = false
         }
     }
 
@@ -151,8 +159,8 @@ fun HomeScreen(
     }
 
     BackHandler(enabled = homeSidebarOpen) {
+        restoreContentFocusAfterSidebarClose = true
         homeSidebarOpen = false
-        delayFocusToEntry(entryRequester)
     }
 
     // Only enable explicit back handling if:
@@ -266,38 +274,59 @@ fun HomeScreen(
         } // CompositionLocalProvider
     }
 
-    if (homeSidebarOpen) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.18f))
-        )
+    AnimatedVisibility(
+        visible = homeSidebarOpen,
+        enter = fadeIn(animationSpec = tween(120)) +
+            slideInHorizontally(
+                animationSpec = tween(180),
+                initialOffsetX = { fullWidth -> -fullWidth }
+            ),
+        exit = fadeOut(animationSpec = tween(120)) +
+            slideOutHorizontally(
+                animationSpec = tween(160),
+                targetOffsetX = { fullWidth -> -fullWidth }
+            ),
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(20f)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.22f))
+            )
 
-        HomeOnlySidebar(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 14.dp),
-            firstFocusRequester = homeSidebarFirstFocusRequester,
-            onHomeClick = {
-                homeSidebarOpen = false
-                onHomeClick()
-            },
-            onWatchlistClick = {
-                homeSidebarOpen = false
-                onWatchlistClick()
-            },
-            onSettingsClick = {
-                homeSidebarOpen = false
-                onSettingsClick()
-            },
-            onProfileClick = {
-                homeSidebarOpen = false
-                onProfileClick()
-            },
-            onExitClick = {
-                (context as? Activity)?.finishAffinity()
-            }
-        )
+            HomeOnlySidebar(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 14.dp),
+                firstFocusRequester = homeSidebarFirstFocusRequester,
+                onHomeClick = {
+                    restoreContentFocusAfterSidebarClose = true
+                    homeSidebarOpen = false
+                    onHomeClick()
+                },
+                onWatchlistClick = {
+                    restoreContentFocusAfterSidebarClose = true
+                    homeSidebarOpen = false
+                    onWatchlistClick()
+                },
+                onSettingsClick = {
+                    restoreContentFocusAfterSidebarClose = true
+                    homeSidebarOpen = false
+                    onSettingsClick()
+                },
+                onProfileClick = {
+                    restoreContentFocusAfterSidebarClose = true
+                    homeSidebarOpen = false
+                    onProfileClick()
+                },
+                onExitClick = {
+                    (context as? Activity)?.finishAffinity()
+                }
+            )
+        }
     }
 }
 }
@@ -471,7 +500,10 @@ fun CinematicLayout(
             ) {
                 AnimatedContent(
                     targetState = renderedPreviewItem,
-                    transitionSpec = { fadeIn(tween(0)).togetherWith(fadeOut(tween(0))) },
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(220))
+                            .togetherWith(fadeOut(animationSpec = tween(120)))
+                    },
                     label = "Info"    
                 ) { item ->
                     if (item != null) {
@@ -1682,7 +1714,7 @@ fun CinematicBackground(item: MetaItem?) {
         Box(modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.65f).fillMaxHeight(0.65f)) {
             Crossfade(
                 targetState = item,
-                animationSpec = tween(0),
+                animationSpec = tween(260),
                 label = "HeroBg"
             ) { currentItem ->
                 if (currentItem != null) {
