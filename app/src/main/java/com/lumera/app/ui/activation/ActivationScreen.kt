@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.core.tween
 
 private const val MAX_AUTH_CODE_LENGTH = 8
 
