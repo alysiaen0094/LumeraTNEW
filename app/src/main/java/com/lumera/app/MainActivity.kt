@@ -1281,6 +1281,7 @@ class MainActivity : ComponentActivity() {
                                         NavDestination.Profile -> {
                                             openProfileSelector()
                                         }
+                                        NavDestination.Exit -> finishAffinity()
                                         else -> {
                                             currentNav = NavDestination.Home
                                         }
