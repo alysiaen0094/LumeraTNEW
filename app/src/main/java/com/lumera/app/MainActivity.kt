@@ -54,6 +54,7 @@ import com.lumera.app.ui.components.LumeraBackground
 import com.lumera.app.ui.details.DetailsScreen
 import com.lumera.app.ui.home.GridViewScreen
 import com.lumera.app.ui.home.HomeScreen
+import com.lumera.app.ui.watchlist.WatchlistScreen
 import com.lumera.app.ui.home.HomeViewModel
 import com.lumera.app.data.model.stremio.MetaItem
 import com.lumera.app.data.model.stremio.Stream
@@ -1161,6 +1162,7 @@ class MainActivity : ComponentActivity() {
         val homeEntryRequester = remember { FocusRequester() }
         val searchEntryRequester = remember { FocusRequester() }
         val settingsEntryRequester = remember { FocusRequester() }
+        val watchlistEntryRequester = remember { FocusRequester() }
         val homeDrawerRequesters = remember {
             NavDestination.values().associateWith { FocusRequester() }
         }
@@ -1192,6 +1194,11 @@ class MainActivity : ComponentActivity() {
                 NavDestination.Settings -> {
                     delay(120)
                     settingsEntryRequester.requestFocus()
+                }
+
+                NavDestination.Watchlist -> {
+                    delay(120)
+                    watchlistEntryRequester.requestFocus()
                 }
 
                 else -> {
@@ -1264,6 +1271,9 @@ class MainActivity : ComponentActivity() {
                                         }
                                         NavDestination.Search -> {
                                             currentNav = NavDestination.Search
+                                        }
+                                        NavDestination.Watchlist -> {
+                                            currentNav = NavDestination.Watchlist
                                         }
                                         NavDestination.Settings -> {
                                             currentNav = NavDestination.Settings
@@ -1368,6 +1378,34 @@ class MainActivity : ComponentActivity() {
                             },
                             entryRequester = searchEntryRequester,
                             drawerRequester = searchEntryRequester
+                        )
+                    }
+
+
+                    NavDestination.Watchlist -> {
+                        val watchlistHomeVm = hiltViewModel<HomeViewModel>()
+
+                        WatchlistScreen(
+                            currentProfile = currentProfile,
+                            entryRequester = watchlistEntryRequester,
+                            drawerRequester = watchlistEntryRequester,
+                            watchedIds = watchlistHomeVm.state.collectAsState().value.watchedIds,
+                            onMovieClick = { movie ->
+                                selectedMovieId = movie.id
+                                selectedMovieType = movie.type
+                                selectedMovieTitle = movie.name
+                                selectedMoviePoster = movie.poster ?: ""
+                                selectedMovieBackground = movie.background ?: ""
+                                selectedMovieLogo = movie.logo ?: ""
+                                selectedAddonBaseUrl = movie.addonBaseUrl
+                                detailsResumePlaybackHint = null
+                                selectedPlaybackId = movie.id
+                                selectedPlaybackType = movie.type
+                                selectedPlaybackTitle = movie.name
+                                selectedPlaybackPoster = movie.poster ?: ""
+                                previousView = "menu"
+                                activeView = "details_loading"
+                            }
                         )
                     }
 
