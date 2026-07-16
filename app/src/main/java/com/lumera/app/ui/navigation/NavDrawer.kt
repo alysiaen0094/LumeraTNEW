@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -51,16 +50,17 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 
 enum class NavDestination(
     @DrawableRes val iconRes: Int,
-    val labelRes: Int,
+    val label: String,
     val iconSize: Dp = 20.dp
 ) {
-    Home(R.drawable.home_icon, R.string.nav_home, iconSize = 21.dp),
-    Movies(R.drawable.movies_icon, R.string.nav_movies),
-    Series(R.drawable.series_icon, R.string.nav_series),
-    Watchlist(R.drawable.watchlist_icon, R.string.nav_watchlist),
-    Search(R.drawable.search_icon, R.string.nav_search),
-    Profile(R.drawable.profile_icon, R.string.nav_profile, iconSize = 18.dp),
-    Settings(R.drawable.settings_icon, R.string.nav_settings)
+    Home(R.drawable.home_icon, "Home", iconSize = 21.dp),
+    Movies(R.drawable.movies_icon, "Movies"),
+    Series(R.drawable.series_icon, "Series"),
+    Watchlist(R.drawable.watchlist_icon, "Watchlist"),
+    Search(R.drawable.search_icon, "Search"),
+    Profile(R.drawable.profile_icon, "Profile", iconSize = 18.dp),
+    Settings(R.drawable.settings_icon, "Settings"),
+    Exit(R.drawable.settings_icon, "Exit")
 }
 
 @Composable
@@ -245,18 +245,8 @@ fun NavDrawer(
 
                 // Middle Items
                 DrawerItem(NavDestination.Home)
-                if (currentProfile?.menuMoviesEnabled != false) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DrawerItem(NavDestination.Movies)
-                }
-                if (currentProfile?.menuSeriesEnabled != false) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DrawerItem(NavDestination.Series)
-                }
-                if (currentProfile?.menuWatchlistEnabled != false) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DrawerItem(NavDestination.Watchlist)
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                DrawerItem(NavDestination.Watchlist)
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -265,9 +255,13 @@ fun NavDrawer(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Settings (Invisible when collapsed)
+                    // Settings and Exit (Invisible when collapsed)
                     Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
                         DrawerItem(NavDestination.Settings)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
+                        DrawerItem(NavDestination.Exit)
                     }
                 }
             }
@@ -319,7 +313,7 @@ fun SidebarItem(
         label = "TextOffset"
     )
 
-    val displayText = customLabel ?: stringResource(screen.labelRes)
+    val displayText = customLabel ?: screen.label
 
     Box(
         modifier = modifier
@@ -439,7 +433,7 @@ fun ProfileAvatarItem(
     )
     
     val avatarSource = profile?.let { ProfileAssets.getAvatarSource(it.avatarRef) }
-    val displayName = profile?.name ?: stringResource(R.string.nav_profile)
+    val displayName = profile?.name ?: "Profile"
     
     Box(
         modifier = modifier
@@ -486,7 +480,7 @@ fun ProfileAvatarItem(
                                 .size(100, 100)
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = stringResource(R.string.profile_avatar_content_desc),
+                            contentDescription = "Profile avatar",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -515,7 +509,7 @@ fun ProfileAvatarItem(
                         overflow = TextOverflow.Visible
                     )
                     Text(
-                        text = stringResource(R.string.change_profile),
+                        text = "Change Profile",
                         fontSize = 10.sp,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
