@@ -291,7 +291,9 @@ fun DetailsScreen(
                 model = bgImage,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().alpha(0.6f)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.6f }
             )
 
             Box(
