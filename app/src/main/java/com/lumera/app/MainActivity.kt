@@ -1,994 +1,2277 @@
-package com.lumera.app.ui.home
+package com.lumera.app
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.os.SystemClock
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.lumera.app.data.update.AppUpdateManager
+import com.lumera.app.data.update.UpdateInfo
+import com.lumera.app.data.update.UpdateState
+import com.lumera.app.data.player.PlaybackTrackSelectionStore
+import com.lumera.app.data.player.SourceSelectionStore
+import com.lumera.app.ui.MainViewModel
+import com.lumera.app.ui.components.LumeraBackground
+import com.lumera.app.ui.details.DetailsScreen
+import com.lumera.app.ui.home.GridViewScreen
+import com.lumera.app.ui.home.HomeScreen
+import com.lumera.app.ui.home.HomeViewModel
 import com.lumera.app.data.model.stremio.MetaItem
-import com.lumera.app.ui.components.LumeraCard
-import com.lumera.app.ui.components.LocalWatchedIds
-import com.lumera.app.ui.components.LumeraLandscapeCard
-import com.lumera.app.ui.utils.ImagePrefetcher
+import com.lumera.app.data.model.stremio.Stream
+import com.lumera.app.data.model.stremio.StreamSubtitle
+import com.lumera.app.data.model.stremio.MetaVideo
+import com.lumera.app.data.repository.AddonRepository
+import com.lumera.app.data.repository.IntroRepository
+import com.lumera.app.data.repository.SubtitleRepository
+import com.lumera.app.data.stream.StreamSortingService
+import com.lumera.app.domain.AddonSubtitle
+import com.lumera.app.domain.DashboardTab
+import com.lumera.app.domain.episodeDisplayTitle
+import com.lumera.app.domain.episodePlaybackId
+import com.lumera.app.domain.episodeStreamId
+import com.lumera.app.domain.findNextEpisode
+import com.lumera.app.ui.navigation.NavDestination
+import com.lumera.app.ui.navigation.NavDrawer
+import com.lumera.app.ui.player.PlayerScreen
+import com.lumera.app.ui.player.PlayerSessionResult
+import com.lumera.app.ui.player.base.PlayerSourceOption
+import com.lumera.app.ui.player.base.NextEpisodeInfo
+import com.lumera.app.ui.player.base.PlaybackSettings
+import com.lumera.app.ui.player.base.PlayerSubtitleSource
+import com.lumera.app.ui.player.base.SkipSegmentInfo
+import com.lumera.app.ui.profiles.ProfileScreen
+import com.lumera.app.ui.profiles.ProfileViewModel
+import com.lumera.app.ui.search.SearchScreen
+import com.lumera.app.ui.settings.SettingsScreen
+import com.lumera.app.ui.addons.VoidButton
+import com.lumera.app.ui.addons.VoidDialog
+import com.lumera.app.ui.theme.DefaultThemes
+import com.lumera.app.ui.theme.LocalRoundCorners
+import com.lumera.app.ui.theme.LocalHubRoundCorners
+import com.lumera.app.ui.theme.LumeraTheme
+import com.lumera.app.ui.theme.ThemeManager
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.lumera.app.data.local.AddonDao
+import com.lumera.app.data.profile.ProfileConfigurationManager
+import com.lumera.app.data.activation.ActivationManager
+import com.lumera.app.ui.activation.ActivationScreen
+import com.lumera.app.data.sync.LumeraBackupRepository
+import com.lumera.app.data.model.WatchHistoryEntity
+import com.lumera.app.data.model.SeriesNextUpEntity
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 
-/**
- * ============================================================================
- * CONTENT ROW - THREE MODE SUPPORT
- * ============================================================================
- *
- * This composable supports three distinct modes:
- *
- * CASE A: Grid View OFF (isInfiniteLoopEnabled = false)
- * - Shows the FULL original list, no truncation
- * - Standard linear LazyRow with itemsIndexed
- * - No ViewMore card, no infinite logic, no modulo math
- *
- * CASE B: Grid View ON + Infinite Loop ON
- * - Truncates list to `visibleItemCount` items + ViewMore card
- * - Uses items(count = Int.MAX_VALUE) with modulo for infinite looping
- * - Unique keys: "${movie.id}_$scrollIndex" to prevent duplicate key crashes
- * - One-way loop: LEFT at loop start exits to Navbar
- * - ViewMore card has directional alpha fade
- *
- * CASE C: Grid View ON + Infinite Loop OFF
- * - Truncates list to `visibleItemCount` items + ViewMore card
- * - Finite list: count = visibleItemCount + 1
- * - Focus stops at ViewMore card, no looping
- * - No modulo math needed
- *
- * SAFETY: When switching modes while scrolled far out,
- * the list state is reset to prevent crashes from invalid indices.
- * ============================================================================
- */
+import java.util.Locale
+import javax.inject.Inject
 
-private val ITEM_WIDTH = 120.dp
-private val ITEM_SPACING = 20.dp
+import androidx.compose.runtime.mutableIntStateOf
 
-sealed class GridRowItem {
-    data class MovieItem(val movie: MetaItem) : GridRowItem()
-    data object ViewMoreItem : GridRowItem()
+private const val DOUBLE_BACK_EXIT_WINDOW_MS = 400L
+private const val SOURCE_SELECTION_COMMIT_MIN_POSITION_MS = 5_000L
+private const val SOURCE_SELECTION_FAILURE_RESET_MAX_POSITION_MS = 1_000L
+
+private data class PlayerSubtitlePayload(
+    val id: String,
+    val url: String,
+    val name: String,
+    val language: String?
+)
+
+private data class PendingSourceSelection(
+    val playbackId: String,
+    val launchedStream: Stream,
+    val candidateStreams: List<Stream>
+)
+
+private data class PendingEpisodeSwitch(
+    val playbackId: String,
+    val playbackTitle: String,
+    val streams: List<Stream>?,
+    val addonSubs: List<AddonSubtitle>,
+    val playerCurrentSourceUrl: String?
+)
+
+@Stable
+private class PlayerState {
+    var selectedPlayerSubtitles by mutableStateOf<List<PlayerSubtitlePayload>>(emptyList())
+    var selectedPlayerSources by mutableStateOf<List<PlayerSourceOption>>(emptyList())
+    var pendingSourceSelection by mutableStateOf<PendingSourceSelection?>(null)
+    var showPlayerChoiceDialog by mutableStateOf(false)
+    var currentEpisodeList by mutableStateOf<List<MetaVideo>>(emptyList())
+    var currentStream by mutableStateOf<Stream?>(null)
+    var pendingEpisodeSwitch by mutableStateOf<PendingEpisodeSwitch?>(null)
+    var isEpisodeSwitchLoading by mutableStateOf(false)
 }
 
-class UpKeyDebouncer {
-    var lastTime: Long = 0L
+private fun resolveSubtitleUrl(rawUrl: String, addonTransportUrl: String?): String? {
+    val value = rawUrl.trim()
+    if (value.isEmpty()) return null
+
+    val uri = runCatching { Uri.parse(value) }.getOrNull() ?: return null
+    if (uri.isAbsolute) {
+        val scheme = uri.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return null
+        return value
+    }
+    if (addonTransportUrl.isNullOrBlank()) return null
+
+    val base = addonTransportUrl.trimEnd('/')
+    val path = value.trimStart('/')
+    if (path.isEmpty()) return null
+    return "$base/$path"
 }
 
-private class RowKeyRepeatDebouncer {
-    var lastTime: Long = 0L
+private fun sanitizeSubtitleSourceName(rawName: String?, fallback: String): String {
+    val cleaned = rawName
+        ?.replace("[", "")
+        ?.replace("]", "")
+        ?.trim()
+        .orEmpty()
+    return cleaned.ifEmpty { fallback }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
+private fun subtitleNameFromUrl(rawUrl: String): String? {
+    val uri = runCatching { Uri.parse(rawUrl) }.getOrNull() ?: return null
+    val path = uri.path?.substringBefore('?').orEmpty()
+    val rawName = path.substringAfterLast('/').ifEmpty { return null }
+    val decoded = runCatching { Uri.decode(rawName) }.getOrDefault(rawName)
+    val withoutExtension = decoded.substringBeforeLast('.', decoded).trim()
+    return withoutExtension.ifEmpty { null }
+}
+
+private fun normalizeSubtitleLanguageTag(rawLang: String?): String? {
+    val value = rawLang?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return value.replace('_', '-').lowercase(Locale.ROOT)
+}
+
+private fun resolvePlayableSourceUrl(stream: Stream): String? {
+    return stream.url
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+}
+
+private fun sourceDisplayLabel(stream: Stream): String {
+    val primary = stream.description
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?: stream.title
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        ?: stream.name
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        ?: "Source"
+    return primary.replace('\n', ' ')
+}
+
+private fun launchExternalPlayer(context: android.content.Context, url: String) {
+    try {
+        val scheme = Uri.parse(url).scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") {
+            Toast.makeText(context, "Unsupported URL scheme", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(url), "video/*")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (e: android.content.ActivityNotFoundException) {
+        Toast.makeText(context, "No external player found", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
-fun InfiniteLoopRow(
-    startPadding: Dp,
-    isTopNav: Boolean,
-    rowIndex: Int,
-    title: String,
-    items: List<MetaItem>,
-    onMovieClick: (MetaItem) -> Unit,
-    onViewMore: () -> Unit,
-    onFocused: (MetaItem?, String) -> Unit,
-    entryRequester: FocusRequester,
-    drawerRequester: FocusRequester,
-    locallyFocusedItemId: String?,  // Specific item ID to focus in THIS row (e.g. "movie123_g0"), or null if focus is elsewhere
-    isGlobalFocusPresent: Boolean, // True if the app has a focused item tracked (lastFocusedKey != null)
-    isFirstRow: Boolean,
-    isInfiniteLoopEnabled: Boolean = false,
-    visibleItemCount: Int = 15,
-    isInfiniteScrollingEnabled: Boolean = true,
-    externalListState: androidx.compose.foundation.lazy.LazyListState? = null,
-    rowHeight: Dp = 210.dp,
-    upKeyDebouncer: UpKeyDebouncer,
-    repeatGate: DpadRepeatGate,
-    pivotFocusRequester: FocusRequester? = null,
-    isLandscapeCards: Boolean = false,
-    enrichedItems: Map<String, MetaItem> = emptyMap()
+private fun PlayerChoiceDialog(
+    onInternal: () -> Unit,
+    onExternal: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    val density = LocalDensity.current
-    val paddingPx = remember(density, startPadding) { with(density) { startPadding.toPx() } }
-    
-    // Detect if this is a restoration (coming back from details screen)
-    // We check if we have a local focus target AND a saved scroll position
-    val isRestoration = remember(locallyFocusedItemId, rowIndex, externalListState) {
-        locallyFocusedItemId != null && externalListState != null
-    }
-    
-    // Skip scroll flag - true during restoration, resets after focus is established
-    var skipBringIntoViewScroll by remember { mutableStateOf(isRestoration) }
-    
-    // Reset skip flag after restoration is complete (focus is established)
-    LaunchedEffect(isRestoration) {
-        if (isRestoration) {
-            skipBringIntoViewScroll = false
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(480.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(16.dp))
+                .padding(24.dp)
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Choose Player",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    VoidButton(
+                        text = "Internal Player",
+                        onClick = onInternal,
+                        isPrimary = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    VoidButton(
+                        text = "External Player",
+                        onClick = onExternal,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
-    
-    // Create pivot spec with skip provider and dynamic stiffness
-    val pivotSpec = remember(paddingPx) { 
-        FocusPivotSpec(
-            customOffset = paddingPx,
-            skipScrollProvider = { skipBringIntoViewScroll },
-            stiffnessProvider = { Spring.StiffnessMediumLow }
-        ) 
-    }
+}
 
-    // Calculate end padding to allow last item to align to left (pivot position)
-    // End padding = Screen Width - Start Padding - Item Width
-    val effectiveItemWidth = if (isLandscapeCards) 220.dp else ITEM_WIDTH
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val endPadding = remember(screenWidth, startPadding, effectiveItemWidth) {
-        (screenWidth - startPadding - effectiveItemWidth).coerceAtLeast(120.dp)
-    }
-
-    // Use external state if provided, otherwise create local state
-    val internalListState = rememberLazyListState()
-    val listState = externalListState ?: internalListState
-
-    // Calculate the max valid index based on current mode
-    val maxValidIndex = when {
-        !isInfiniteLoopEnabled -> items.size - 1
-        !isInfiniteScrollingEnabled -> visibleItemCount // visibleItemCount items + 1 ViewMore
-        else -> Int.MAX_VALUE
-    }
-
-    // SAFETY: Reset scroll position when switching modes
-    LaunchedEffect(isInfiniteLoopEnabled, isInfiniteScrollingEnabled) {
-        if (listState.firstVisibleItemIndex > maxValidIndex) {
-            listState.scrollToItem(0)
+@Composable
+private fun UpdateAvailableDialog(
+    info: UpdateInfo,
+    onUpdate: () -> Unit,
+    onDismiss: () -> Unit,
+    onDontShowAgain: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(480.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(16.dp))
+                .padding(24.dp)
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Update Available",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "v${info.versionName}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (info.changelog.isNotBlank()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        info.changelog,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(0.7f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    VoidButton(
+                        text = "Later",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    VoidButton(
+                        text = "Update",
+                        onClick = onUpdate,
+                        isPrimary = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Don't show again",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(0.4f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onDontShowAgain() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
     }
+}
 
-    Column(modifier = Modifier.graphicsLayer { clip = false }) {
-        Text(
-            text = title,
-            color = Color.White.copy(0.9f),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            modifier = Modifier.padding(start = startPadding, bottom = 12.dp)
+@Composable
+private fun UpdateDownloadingDialog(progress: Float, downloadedMb: Float, totalMb: Float) {
+    Dialog(onDismissRequest = {}) {
+        Box(
+            modifier = Modifier
+                .width(480.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(16.dp))
+                .padding(24.dp)
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Downloading Update",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(24.dp))
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.White.copy(0.1f),
+                    drawStopIndicator = {}
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    if (totalMb > 0f) "%.1f MB / %.1f MB".format(downloadedMb, totalMb)
+                    else "${(progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateErrorDialog(
+    message: String,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(480.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(16.dp))
+                .padding(24.dp)
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Update Failed",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    VoidButton(
+                        text = "Dismiss",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                    VoidButton(
+                        text = "Retry",
+                        onClick = onRetry,
+                        isPrimary = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun buildSourcePayload(
+    streams: List<Stream>,
+    selectedStream: Stream
+): List<PlayerSourceOption> {
+    val selectedUrl = resolvePlayableSourceUrl(selectedStream)
+    return streams.mapNotNull { stream ->
+        val url = resolvePlayableSourceUrl(stream) ?: return@mapNotNull null
+        PlayerSourceOption(
+            id = url,
+            url = url,
+            label = sourceDisplayLabel(stream),
+            name = stream.name,
+            title = stream.title,
+            description = stream.description,
+            fileIdx = stream.fileIdx ?: -1,
+            fileName = stream.behaviorHints?.filename ?: ""
         )
+    }
+        .distinctBy { it.url }
+        .sortedByDescending { option -> option.url == selectedUrl }
+}
 
-        // Stable reference to avoid recomposition from lambda re-allocation
-        val wrappedOnFocused = onFocused
-        
-        when {
-            // CASE A: Grid View OFF - Standard linear list
-            // Uses BringIntoViewSpec for automatic pivot-aligned scrolling
-            !isInfiniteLoopEnabled -> {
-                CompositionLocalProvider(LocalBringIntoViewSpec provides pivotSpec) {
-                    LinearContent(
-                        listState = listState,
-                        startPadding = startPadding,
-                        endPadding = endPadding,
-                        isTopNav = isTopNav,
-                        rowIndex = rowIndex,
-                        items = items,
-                        onMovieClick = onMovieClick,
-                        onFocused = wrappedOnFocused,
-                        entryRequester = entryRequester,
-                        drawerRequester = drawerRequester,
-                        locallyFocusedItemId = locallyFocusedItemId,
-                        isGlobalFocusPresent = isGlobalFocusPresent,
-                        isFirstRow = isFirstRow,
-                        rowHeight = rowHeight,
-                        upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = repeatGate,
-                        pivotFocusRequester = pivotFocusRequester,
-                        isLandscapeCards = isLandscapeCards,
-                        enrichedItems = enrichedItems,
-                        effectiveItemWidth = effectiveItemWidth
-                    )
+private fun canonicalSubtitleUrlForId(rawUrl: String): String {
+    val trimmed = rawUrl.trim()
+    if (trimmed.isEmpty()) return rawUrl
+
+    val uri = runCatching { Uri.parse(trimmed) }.getOrNull() ?: return trimmed
+    val noQuery = trimmed.substringBefore('?').substringBefore('#')
+    if (!uri.isAbsolute) return noQuery
+
+    val scheme = uri.scheme?.lowercase(Locale.ROOT)
+    val host = uri.host?.lowercase(Locale.ROOT)
+    val path = uri.encodedPath ?: uri.path
+    if (scheme.isNullOrBlank() || host.isNullOrBlank() || path.isNullOrBlank()) {
+        return noQuery
+    }
+    val port = if (uri.port != -1) ":${uri.port}" else ""
+    return "$scheme://$host$port$path"
+}
+
+private fun buildSubtitleFallbackId(
+    resolvedUrl: String,
+    language: String?,
+    name: String
+): String {
+    val canonicalUrl = canonicalSubtitleUrlForId(resolvedUrl)
+    val canonicalLanguage = language.orEmpty().trim().lowercase(Locale.ROOT)
+    val canonicalName = name.trim().lowercase(Locale.ROOT)
+    return "lumera-sub:$canonicalLanguage|$canonicalName|$canonicalUrl"
+}
+
+private fun buildEmbeddedSubtitlePayload(stream: Stream): List<PlayerSubtitlePayload> {
+    return stream.subtitles
+        .orEmpty()
+        .mapNotNull { subtitle ->
+            buildEmbeddedSubtitlePayloadItem(stream, subtitle)
+        }
+}
+
+private fun buildEmbeddedSubtitlePayloadItem(
+    stream: Stream,
+    subtitle: StreamSubtitle
+): PlayerSubtitlePayload? {
+    val rawUrl = subtitle.url?.trim().orEmpty()
+    if (rawUrl.isEmpty()) return null
+
+    val resolvedUrl = resolveSubtitleUrl(
+        rawUrl = rawUrl,
+        addonTransportUrl = subtitle.transportUrl ?: stream.addonTransportUrl
+    ) ?: return null
+
+    val fallbackName = subtitleNameFromUrl(resolvedUrl) ?: "Embedded subtitle"
+    val name = sanitizeSubtitleSourceName(subtitle.name, fallbackName)
+    val language = normalizeSubtitleLanguageTag(subtitle.lang)
+    val subtitleId = subtitle.id
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?: buildSubtitleFallbackId(
+            resolvedUrl = resolvedUrl,
+            language = language,
+            name = name
+        )
+    return PlayerSubtitlePayload(
+        id = subtitleId,
+        url = resolvedUrl,
+        name = name,
+        language = language
+    )
+}
+
+private fun buildAddonSubtitlePayload(addonSubtitles: List<AddonSubtitle>): List<PlayerSubtitlePayload> {
+    return addonSubtitles.mapNotNull { subtitle ->
+        val resolvedUrl = resolveSubtitleUrl(subtitle.url, addonTransportUrl = null) ?: return@mapNotNull null
+        val name = sanitizeSubtitleSourceName(subtitle.addonName, "Addon subtitle")
+        val language = normalizeSubtitleLanguageTag(subtitle.lang)
+        val subtitleId = subtitle.id
+            .trim()
+            .takeIf { it.isNotEmpty() }
+            ?: buildSubtitleFallbackId(
+                resolvedUrl = resolvedUrl,
+                language = language,
+                name = name
+            )
+        PlayerSubtitlePayload(
+            id = subtitleId,
+            url = resolvedUrl,
+            name = name,
+            language = language
+        )
+    }
+}
+
+private fun buildSubtitlePayload(stream: Stream, addonSubtitles: List<AddonSubtitle>): List<PlayerSubtitlePayload> {
+    return (buildEmbeddedSubtitlePayload(stream) + buildAddonSubtitlePayload(addonSubtitles))
+        .distinctBy { payload ->
+            val url = payload.url.lowercase(Locale.ROOT)
+            val lang = payload.language.orEmpty().lowercase(Locale.ROOT)
+            "$url|$lang"
+        }
+}
+
+private fun handlePlayerSessionEnd(
+    sessionResult: PlayerSessionResult,
+    selectedPlaybackId: String,
+    playbackTrackSelectionStore: PlaybackTrackSelectionStore,
+    sourceSelectionStore: SourceSelectionStore,
+    pendingSourceSelection: PendingSourceSelection?,
+    onConsumePendingSelection: () -> Unit,
+    onResumeHintResolved: (String?) -> Unit,
+    rememberSourceSelection: Boolean = true
+) {
+    val playbackId = selectedPlaybackId.trim()
+    if (playbackId.isBlank()) {
+        onConsumePendingSelection()
+        onResumeHintResolved(null)
+        return
+    }
+
+    onResumeHintResolved(
+        if (!sessionResult.isCompleted && sessionResult.positionMs >= SOURCE_SELECTION_COMMIT_MIN_POSITION_MS) {
+            playbackId
+        } else {
+            null
+        }
+    )
+
+    val hasAudioTrackSelection = !sessionResult.selectedAudioTrackId.isNullOrBlank()
+    val hasSubtitleTrackSelection = !sessionResult.selectedSubtitleTrackId.isNullOrBlank()
+    val hasSubtitleDelayChange = sessionResult.subtitleDelayMs != 0L
+    if (hasAudioTrackSelection || hasSubtitleTrackSelection || hasSubtitleDelayChange) {
+        playbackTrackSelectionStore.updateSelection(
+            playbackId = playbackId,
+            audioTrackId = sessionResult.selectedAudioTrackId,
+            subtitleTrackId = sessionResult.selectedSubtitleTrackId,
+            subtitleDelayMs = sessionResult.subtitleDelayMs,
+            updateAudio = hasAudioTrackSelection,
+            updateSubtitle = hasSubtitleTrackSelection,
+            updateSubtitleDelay = true
+        )
+    }
+
+    pendingSourceSelection?.let { pendingSelection ->
+        val pendingPlaybackId = pendingSelection.playbackId.trim()
+        if (pendingPlaybackId.isNotEmpty()) {
+            val selectedStream = sessionResult.selectedSourceUrl
+                ?.let { selectedSourceUrl ->
+                    pendingSelection.candidateStreams.firstOrNull { candidate ->
+                        resolvePlayableSourceUrl(candidate) == selectedSourceUrl
+                    }
                 }
-            }
-            // CASE B: Grid View ON + Infinite Loop ON
-            // BringIntoViewSpec handles alignment when returning from navbar
-            // SmoothScrollEffect handles spring animation during normal navigation
-            isInfiniteScrollingEnabled -> {
-                CompositionLocalProvider(LocalBringIntoViewSpec provides pivotSpec) {
-                    InfiniteGridContent(
-                        listState = listState,
-                        startPadding = startPadding,
-                        endPadding = endPadding,
-                        isTopNav = isTopNav,
-                        rowIndex = rowIndex,
-                        items = items,
-                        visibleItemCount = visibleItemCount,
-                        onMovieClick = onMovieClick,
-                        onViewMore = onViewMore,
-                        onFocused = wrappedOnFocused,
-                        entryRequester = entryRequester,
-                        drawerRequester = drawerRequester,
-                        locallyFocusedItemId = locallyFocusedItemId,
-                        isGlobalFocusPresent = isGlobalFocusPresent,
-                        isFirstRow = isFirstRow,
-                        isRestoredState = externalListState != null,
-                        rowHeight = rowHeight,
-                        upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = repeatGate,
-                        pivotFocusRequester = pivotFocusRequester
-                    )
-                }
-            }
-            // CASE C: Grid View ON + Infinite Loop OFF
-            // Uses BringIntoViewSpec for automatic pivot-aligned scrolling
-            else -> {
-                CompositionLocalProvider(LocalBringIntoViewSpec provides pivotSpec) {
-                    FiniteGridContent(
-                        listState = listState,
-                        startPadding = startPadding,
-                        endPadding = endPadding,
-                        isTopNav = isTopNav,
-                        rowIndex = rowIndex,
-                        items = items,
-                        visibleItemCount = visibleItemCount,
-                        onMovieClick = onMovieClick,
-                        onViewMore = onViewMore,
-                        onFocused = wrappedOnFocused,
-                        entryRequester = entryRequester,
-                        drawerRequester = drawerRequester,
-                        locallyFocusedItemId = locallyFocusedItemId,
-                        isGlobalFocusPresent = isGlobalFocusPresent,
-                        isFirstRow = isFirstRow,
-                        rowHeight = rowHeight,
-                        upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = repeatGate,
-                        pivotFocusRequester = pivotFocusRequester
-                    )
+                ?: pendingSelection.launchedStream
+
+            val shouldCommitSource = rememberSourceSelection && (sessionResult.isCompleted ||
+                sessionResult.positionMs >= SOURCE_SELECTION_COMMIT_MIN_POSITION_MS)
+            if (shouldCommitSource) {
+                sourceSelectionStore.rememberSelection(pendingPlaybackId, selectedStream)
+            } else if (sessionResult.positionMs <= SOURCE_SELECTION_FAILURE_RESET_MAX_POSITION_MS) {
+                val wasPreferred = sourceSelectionStore.findPreferredStream(
+                    playbackId = pendingPlaybackId,
+                    streams = listOf(selectedStream)
+                ) != null
+                if (wasPreferred) {
+                    sourceSelectionStore.clearSelection(pendingPlaybackId)
                 }
             }
         }
     }
+
+    onConsumePendingSelection()
 }
 
-/**
- * CASE A: LINEAR SCROLLING (Grid View OFF - DEFAULT)
- * Full list, no truncation, no infinite logic, no ViewMore
- * 
- * Netflix-grade optimizations:
- * - Image prefetching ahead of focus
- * - beyondBoundsItemCount for precomposition
- * - Stable keys for proper recycling
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LinearContent(
-    listState: androidx.compose.foundation.lazy.LazyListState,
-    startPadding: Dp,
-    endPadding: Dp,
-    isTopNav: Boolean,
-    rowIndex: Int,
-    items: List<MetaItem>,
-    onMovieClick: (MetaItem) -> Unit,
-    onFocused: (MetaItem?, String) -> Unit,
-    entryRequester: FocusRequester,
-    drawerRequester: FocusRequester,
-    locallyFocusedItemId: String?,
-    isGlobalFocusPresent: Boolean,
-    isFirstRow: Boolean,
-    rowHeight: Dp,
-    upKeyDebouncer: UpKeyDebouncer,
-    repeatGate: DpadRepeatGate,
-    pivotFocusRequester: FocusRequester? = null,
-    isLandscapeCards: Boolean = false,
-    enrichedItems: Map<String, MetaItem> = emptyMap(),
-    effectiveItemWidth: Dp = ITEM_WIDTH
-) {
-    val context = LocalContext.current
+private class GridRestoreState {
+    var focusedIndex: Int? = null
+    var scrollIndex: Int = 0
+    var scrollOffset: Int = 0
+}
 
-    // Prefetch image URLs list (cached to avoid allocation during 
-    val imageUrls = remember(items, isLandscapeCards) {
-        if (isLandscapeCards) {
-            items.map { item ->
-                item.background ?: item.poster
+private fun validSeriesTitleForHistory(value: String?): String? {
+    val clean = value?.trim().orEmpty()
+    if (clean.isBlank()) return null
+
+    val looksLikeId =
+        clean.matches(Regex("^tt\\d+$", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^tmdb[:_\\-].+", RegexOption.IGNORE_CASE)) ||
+            clean.matches(Regex("^\\d{3,}$"))
+
+    val looksLikeEpisodeTitle =
+        Regex("^S\\d{1,2}\\s*:?\\s*E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+            .containsMatchIn(clean) ||
+            Regex("^S\\d{1,2}E\\d{1,2}\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean) ||
+            Regex("^Season\\s*\\d+\\s*Episode\\s*\\d+\\s*[-:•.]?\\s*", RegexOption.IGNORE_CASE)
+                .containsMatchIn(clean)
+
+    val looksLikeUrl =
+        clean.startsWith("http://", ignoreCase = true) ||
+            clean.startsWith("https://", ignoreCase = true) ||
+            clean.contains(".jpg", ignoreCase = true) ||
+            clean.contains(".jpeg", ignoreCase = true) ||
+            clean.contains(".png", ignoreCase = true) ||
+            clean.contains(".webp", ignoreCase = true)
+
+    return clean.takeIf {
+        !looksLikeId && !looksLikeEpisodeTitle && !looksLikeUrl
+    }
+}
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var sourceSelectionStore: SourceSelectionStore
+    @Inject
+    lateinit var playbackTrackSelectionStore: PlaybackTrackSelectionStore
+    @Inject
+    lateinit var addonRepository: AddonRepository
+    @Inject
+    lateinit var subtitleRepository: SubtitleRepository
+    @Inject
+    lateinit var introRepository: IntroRepository
+    @Inject
+    lateinit var profileConfigurationManager: ProfileConfigurationManager
+    @Inject
+    lateinit var appUpdateManager: AppUpdateManager
+    @Inject
+    lateinit var addonDao: AddonDao
+    @Inject
+    lateinit var streamSortingService: StreamSortingService
+    @Inject
+    lateinit var activationManager: ActivationManager
+    @Inject
+    lateinit var okHttpClient: OkHttpClient
+    @Inject
+    lateinit var lumeraBackupRepository: LumeraBackupRepository
+
+    private suspend fun isVodAuthStillActive(authCode: String): Boolean {
+    return withContext(Dispatchers.IO) {
+        runCatching {
+            val payload = JSONObject()
+                .put("auth", authCode)
+                .toString()
+
+            val request = Request.Builder()
+                .url("${ActivationManager.TROY_BASE_URL}/api/status")
+                .post(payload.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext false
+
+                val body = response.body?.string().orEmpty()
+                if (body.isBlank()) return@withContext false
+
+                val json = JSONObject(body)
+                json.optBoolean("active", false)
+            }
+        }.getOrDefault(false)
+    }
+}
+
+    private suspend fun saveLumeraPlaybackState(
+        sessionResult: PlayerSessionResult,
+        playbackId: String,
+        playbackType: String,
+        playbackTitle: String,
+        playbackPoster: String,
+        playbackBackground: String?,
+        playbackLogo: String?,
+        seriesId: String,
+        seriesTitle: String,
+        currentEpisodeThumbnail: String?,
+        nextEpisode: MetaVideo?
+    ) {
+        val cleanPlaybackId = playbackId.trim()
+        val cleanPlaybackType = playbackType.trim().ifBlank { "movie" }
+        
+        val isSeriesPlaybackToSave =
+            cleanPlaybackType.equals("series", ignoreCase = true) ||
+                cleanPlaybackType.equals("tv", ignoreCase = true)
+        
+        val idParts = cleanPlaybackId.split(":")
+        val seriesIdToSave = if (isSeriesPlaybackToSave) {
+            seriesId.trim().ifBlank {
+                if (idParts.size >= 3) idParts.dropLast(2).joinToString(":") else cleanPlaybackId
             }
         } else {
-            items.map { it.poster }
+            ""
+        }
+        
+        val existingHistory = if (cleanPlaybackId.isNotBlank()) {
+            addonDao.getHistoryItem(cleanPlaybackId)
+        } else {
+            null
+        }
+        
+        val existingNextUp = if (isSeriesPlaybackToSave && seriesIdToSave.isNotBlank()) {
+            addonDao.getSeriesNextUp(seriesIdToSave)
+        } else {
+            null
+        }
+        
+        val cleanPlaybackTitle = if (isSeriesPlaybackToSave) {
+            validSeriesTitleForHistory(seriesTitle)
+                ?: validSeriesTitleForHistory(existingNextUp?.title)
+                ?: validSeriesTitleForHistory(existingHistory?.title)
+                ?: validSeriesTitleForHistory(playbackTitle)
+                ?: seriesIdToSave.ifBlank { cleanPlaybackId }
+        } else {
+            playbackTitle.trim()
+        }
+        
+        val cleanPoster = playbackPoster.trim().takeIf { it.isNotBlank() }
+        
+        val cleanBackground = playbackBackground
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+        
+        val cleanEpisodeTitle = playbackTitle.trim()
+        
+        val cleanLogo = if (isSeriesPlaybackToSave) {
+            cleanEpisodeTitle.takeIf { it.isNotBlank() && it != cleanPlaybackTitle }
+        } else {
+            playbackLogo?.trim()?.takeIf { it.isNotBlank() }
+        }
+
+        val positionToSave = sessionResult.positionMs.coerceAtLeast(0L)
+        val durationToSave = sessionResult.durationMs?.coerceAtLeast(0L) ?: 0L
+        val watchedToSave = sessionResult.isCompleted ||
+            (durationToSave > 0L && positionToSave.toFloat() / durationToSave.toFloat() >= 0.90f)
+
+        if (cleanPlaybackId.isBlank() || cleanPlaybackTitle.isBlank()) {
+            android.util.Log.d(
+                "LumeraWatchHistory",
+                "Skipped history save: missing id/title id=$cleanPlaybackId title=$cleanPlaybackTitle"
+            )
+            return
+        }
+
+        if (!watchedToSave && positionToSave < SOURCE_SELECTION_COMMIT_MIN_POSITION_MS) {
+            android.util.Log.d(
+                "LumeraWatchHistory",
+                "Skipped history save id=$cleanPlaybackId pos=$positionToSave duration=$durationToSave"
+            )
+            return
+        }
+
+        addonDao.upsertHistoryMerged(
+            WatchHistoryEntity(
+                id = cleanPlaybackId,
+                title = cleanPlaybackTitle,
+                poster = cleanPoster,
+                background = cleanBackground,
+                logo = cleanLogo,
+                position = if (watchedToSave && durationToSave > 0L) durationToSave else positionToSave,
+                duration = durationToSave,
+                lastWatched = System.currentTimeMillis(),
+                type = cleanPlaybackType,
+                watched = watchedToSave,
+                scrobbled = false
+            )
+        )
+
+        val isSeriesToSave = isSeriesPlaybackToSave
+
+        if (isSeriesToSave) {
+            val parsedSeason = idParts.getOrNull(idParts.size - 2)?.toIntOrNull()
+            val parsedEpisode = idParts.getOrNull(idParts.size - 1)?.toIntOrNull()
+
+            if (seriesIdToSave.isNotBlank() && parsedSeason != null && parsedEpisode != null) {
+                val nextEpisodeToSave = if (watchedToSave) nextEpisode else null
+                val nextSeasonToSave = if (watchedToSave && nextEpisodeToSave != null) {
+                    nextEpisodeToSave.season
+                } else {
+                    parsedSeason
+                }
+                val nextEpisodeNumberToSave = if (watchedToSave && nextEpisodeToSave != null) {
+                    nextEpisodeToSave.episode
+                } else {
+                    parsedEpisode
+                }
+
+                if (nextSeasonToSave != null && nextEpisodeNumberToSave != null) {
+                    addonDao.upsertSeriesNextUp(
+                        SeriesNextUpEntity(
+                            seriesId = seriesIdToSave,
+                            title = cleanPlaybackTitle,
+                            poster = cleanBackground,
+                            nextSeason = nextSeasonToSave,
+                            nextEpisode = nextEpisodeNumberToSave,
+                            nextEpisodeTitle = if (watchedToSave && nextEpisodeToSave != null) {
+                                episodeDisplayTitle(nextEpisodeToSave)
+                            } else {
+                                null
+                            },
+                            nextReleased = null,
+                            isComplete = watchedToSave && nextEpisodeToSave == null,
+                            isNewEpisode = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
+
+                    if (watchedToSave && nextEpisodeToSave == null) {
+                        addonDao.upsertHistoryMerged(
+                            WatchHistoryEntity(
+                                id = seriesIdToSave,
+                                title = cleanPlaybackTitle,
+                                poster = cleanPoster,
+                                background = cleanBackground,
+                                logo = null,
+                                position = durationToSave.takeIf { it > 0L } ?: positionToSave,
+                                duration = durationToSave,
+                                lastWatched = System.currentTimeMillis(),
+                                type = "series",
+                                watched = true,
+                                scrobbled = false
+                            )
+                        )
+                    
+                        android.util.Log.d(
+                            "LumeraWatchHistory",
+                            "Marked full series watched series=$seriesIdToSave title=$cleanPlaybackTitle"
+                        )
+                    }
+
+                    android.util.Log.d(
+                        "LumeraWatchHistory",
+                        "Saved series next-up series=$seriesIdToSave s=$nextSeasonToSave e=$nextEpisodeNumberToSave complete=${watchedToSave && nextEpisodeToSave == null}"
+                    )
+                }
+            }
+        }
+
+        android.util.Log.d(
+            "LumeraWatchHistory",
+            "Saved history id=$cleanPlaybackId title=$cleanPlaybackTitle pos=$positionToSave duration=$durationToSave watched=$watchedToSave"
+        )
+    }
+
+    override fun onStop() {
+        super.onStop()
+    
+        lifecycleScope.launch(Dispatchers.IO) {
+            val pushed = lumeraBackupRepository.pushAccountBackup()
+            android.util.Log.d("LumeraBackup", "onStop backup pushed=$pushed")
         }
     }
 
-    // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
-    val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
-    val navbarEscapeDebounceMs = 300L // Only allow escape if 300ms since last LEFT press
+    override fun onDestroy() {
+        super.onDestroy()
+    }
 
-    LazyRow(
-        state = listState,
-        modifier = Modifier
-            .height(rowHeight)
-            .graphicsLayer { clip = false },
-        contentPadding = PaddingValues(start = startPadding, end = endPadding),
-        horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-    ) {
-        itemsIndexed(
-            items = items,
-            key = { index, item -> "${rowIndex}_${item.id}_$index" },
-            contentType = { _, _ -> if (isLandscapeCards) "landscape" else "movie" }
-        ) { index, item ->
-            val isFirstItem = index == 0
-            val isLastItem = index == items.lastIndex
-            val uniqueKey = "${rowIndex}_${item.id}_$index"
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Sanitize saved state: R8 can obfuscate Parcelable class names, causing
+        // BadParcelableException on process-death restore. Clear the bundle if corrupt.
+        val safeState = savedInstanceState?.let { bundle ->
+            try {
+                bundle.keySet() // forces unparcel — throws if any class is missing
+                bundle
+            } catch (_: android.os.BadParcelableException) {
+                null
+            }
+        }
+        super.onCreate(safeState)
+        window.setFormat(android.graphics.PixelFormat.RGBA_8888)
 
-            val shouldRequestFocus = when {
-                uniqueKey == locallyFocusedItemId -> true
-                !isGlobalFocusPresent && isFirstRow && isFirstItem -> true
-                else -> false
+        // Fix sideload launch bug: pressing Home and returning re-creates the activity
+        // instead of resuming it when the APK was installed via adb/sideload.
+        if (!isTaskRoot && intent.hasCategory(Intent.CATEGORY_LAUNCHER)
+            && Intent.ACTION_MAIN == intent.action) {
+            finish()
+            return
+        }
+
+        setContent {
+            var isActivated by rememberSaveable { mutableStateOf(activationManager.isActivated()) }
+            var didCheckVodStatus by rememberSaveable { mutableStateOf(false) }
+
+            var profileReloadKey by rememberSaveable { mutableIntStateOf(0) }
+        
+            LaunchedEffect(isActivated) {
+                if (!isActivated || didCheckVodStatus) return@LaunchedEffect
+        
+                didCheckVodStatus = true
+        
+                val authCode = activationManager.getAuthCode()
+                val stillActive = if (authCode.isBlank()) {
+                    false
+                } else {
+                    isVodAuthStillActive(authCode)
+                }
+        
+                if (!stillActive) {
+                    activationManager.clearActivation()
+                    isActivated = false
+                }
+            }
+        
+            if (!isActivated) {
+                LumeraTheme(theme = DefaultThemes.VOID) {
+                    LumeraBackground {
+                        ActivationScreen(
+                            onActivated = {
+                                didCheckVodStatus = false
+                                isActivated = true
+                            },
+                            onExit = {
+                                finishAffinity()
+                            }
+                        )
+                    }
+                }
+                return@setContent
+            }
+        
+            val mainViewModel = hiltViewModel<MainViewModel>()
+            val themeManager = hiltViewModel<ThemeManager>()
+            val currentProfile by mainViewModel.activeProfile.collectAsState()
+            var sessionProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
+            var startupRestoreFinished by rememberSaveable { mutableStateOf(false) }
+            var sessionRestoreAttemptedProfileId by rememberSaveable { mutableStateOf<Int?>(null) }
+            var forceProfileSelector by rememberSaveable { mutableStateOf(false) }
+            var activeView by rememberSaveable { mutableStateOf("menu") }
+            var selectedMovieId by rememberSaveable { mutableStateOf("") }
+            var selectedMovieType by rememberSaveable { mutableStateOf("movie") }
+            var selectedVideoUrl by rememberSaveable { mutableStateOf("") }
+            var selectedTrailerAudioUrl by rememberSaveable { mutableStateOf("") }
+            var selectedMovieTitle by rememberSaveable { mutableStateOf("") }
+            var selectedMoviePoster by rememberSaveable { mutableStateOf("") }
+            var selectedMovieBackground by rememberSaveable { mutableStateOf("") }
+            var selectedMovieLogo by rememberSaveable { mutableStateOf("") }
+            var selectedAddonBaseUrl by rememberSaveable { mutableStateOf<String?>(null) }
+            var detailsResumePlaybackHint by rememberSaveable { mutableStateOf<String?>(null) }
+            var trailerReturnToken by rememberSaveable { mutableStateOf(0) }
+            var isTrailerLoading by remember { mutableStateOf(false) }
+            var showTrailerError by remember { mutableStateOf(false) }
+            var selectedPlaybackId by rememberSaveable { mutableStateOf("") }
+            var selectedPlaybackType by rememberSaveable { mutableStateOf("movie") }
+            var selectedPlaybackTitle by rememberSaveable { mutableStateOf("") }
+            var selectedPlaybackPoster by rememberSaveable { mutableStateOf("") }
+            var selectedPlaybackEpisodeThumbnail by rememberSaveable { mutableStateOf("") }
+            var previousView by rememberSaveable { mutableStateOf("menu") }
+            val playerState = remember { PlayerState() }
+
+            LaunchedEffect(isActivated) {
+                if (!isActivated) {
+                    startupRestoreFinished = false
+                    return@LaunchedEffect
+                }
+            
+                // Let the app/UI continue immediately.
+                startupRestoreFinished = true
+            
+                // Run restore later so startup is not blocked.
+                delay(2500)
+            
+                val restored = withContext(Dispatchers.IO) {
+                    lumeraBackupRepository.restoreAccountBackupOnceForActivatedUser()
+                }
+            
+                android.util.Log.d("LumeraBackup", "startup restore restored=$restored")
+            }
+
+
+            LaunchedEffect(currentProfile?.id) {
+                val profileId = currentProfile?.id
+                if (profileId != null) {
+                    sessionProfileId = profileId
+                    sessionRestoreAttemptedProfileId = null
+                }
+            }
+
+            LaunchedEffect(currentProfile, sessionProfileId, sessionRestoreAttemptedProfileId, forceProfileSelector) {
+                if (forceProfileSelector) return@LaunchedEffect
+                if (currentProfile != null) return@LaunchedEffect
+
+                val profileIdToRestore = sessionProfileId ?: return@LaunchedEffect
+                if (sessionRestoreAttemptedProfileId == profileIdToRestore) return@LaunchedEffect
+
+                sessionRestoreAttemptedProfileId = profileIdToRestore
+                mainViewModel.login(profileIdToRestore)
+            }
+
+            // Resolve theme from profile's themeId
+            val currentTheme by themeManager.currentTheme.collectAsState()
+
+            // Get round corners setting from profile (default true)
+            val roundCorners = currentProfile?.roundCorners ?: true
+            val hubRoundCorners = currentProfile?.hubRoundCorners ?: true
+            
+            // Update theme when profile changes
+            LaunchedEffect(currentProfile) {
+                currentProfile?.let { profile ->
+                    themeManager.setCurrentProfile(profile.id, profile.themeId)
+                }
+            }
+
+            // Auto-check for updates on launch
+            val updateState by appUpdateManager.state.collectAsState()
+            var updateDismissed by rememberSaveable { mutableStateOf(false) }
+            val updateScope = rememberCoroutineScope()
+            LaunchedEffect(Unit) { appUpdateManager.checkForUpdate() }
+
+            LumeraTheme(theme = currentTheme) {
+                CompositionLocalProvider(
+                    LocalRoundCorners provides roundCorners,
+                    LocalHubRoundCorners provides hubRoundCorners
+                ) {
+                LumeraBackground {
+    if (!isActivated) {
+        LumeraTheme(theme = DefaultThemes.VOID) {
+            ActivationScreen(
+                onActivated = {
+                    isActivated = true
+                },
+                onExit = {
+                    finishAffinity()
+                }
+            )
+        }
+    } else if (currentProfile == null) {
+        // Double-back-to-exit on profile selection
+        var lastBackPressMs by remember { mutableStateOf(0L) }
+        BackHandler {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastBackPressMs < DOUBLE_BACK_EXIT_WINDOW_MS) {
+                finishAffinity()
+            } else {
+                lastBackPressMs = now
+            }
+        }
+
+        val isRestoringSession = sessionProfileId != null
+        if (!isRestoringSession) {
+            // PROFILE SELECTION / CREATION
+            // Always use VOID theme for profile selection (black & white)
+            LumeraTheme(theme = DefaultThemes.VOID) {
+                val profileViewModel = hiltViewModel<ProfileViewModel>()
+                val profiles by profileViewModel.profiles.collectAsState()
+
+                ProfileScreen(
+                    profiles = profiles,
+                    onProfileSelected = {
+                        forceProfileSelector = false
+                        sessionProfileId = it.id
+                        sessionRestoreAttemptedProfileId = null
+                        startupRestoreFinished = true
+                
+                        // Force Home/Movie/Series hubs to reload cleanly for this profile.
+                        profileReloadKey++
+                
+                        mainViewModel.login(it.id)
+                
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val pushed = lumeraBackupRepository.pushAccountBackup()
+                            android.util.Log.d("LumeraBackup", "manual profile-select backup pushed=$pushed")
+                        }
+                    }
+                )
+            }
+        }
+    } else {
+        // MAIN APP CONTENT — navbar fully removed.
+        var currentNav by remember { mutableStateOf(NavDestination.Home) }
+
+        // Grid view state
+        var gridViewTitle by rememberSaveable { mutableStateOf("") }
+        var gridViewItems by remember { mutableStateOf<List<MetaItem>>(emptyList()) }
+        var gridViewConfigId by rememberSaveable { mutableStateOf("") }
+        val gridRestoreState = remember { GridRestoreState() }
+
+        // Search focus restoration
+        val searchMoviesViewMoreRequester = remember { FocusRequester() }
+        val searchSeriesViewMoreRequester = remember { FocusRequester() }
+        val searchResultsRequester = remember { FocusRequester() }
+        val searchDiscoverRequester = remember { FocusRequester() }
+        var searchFocusTarget by remember { mutableStateOf<String?>(null) }
+        var searchLastFocusedId by remember { mutableStateOf<String?>(null) }
+
+        // Track where we came from for proper back navigation
+        val uiScope = rememberCoroutineScope()
+
+        // Content focus requesters only. No NavDrawer / TopNavigationBar requesters.
+        val homeEntryRequester = remember { FocusRequester() }
+        val searchEntryRequester = remember { FocusRequester() }
+        val settingsEntryRequester = remember { FocusRequester() }
+        val homeDrawerRequesters = remember {
+            NavDestination.values().associateWith { FocusRequester() }
+        }
+
+        // Focus current content after direct screen change.
+        LaunchedEffect(currentNav, activeView) {
+            if (activeView != "menu") return@LaunchedEffect
+
+            when (currentNav) {
+                NavDestination.Home -> Unit
+
+                NavDestination.Search -> {
+                    delay(120)
+                    val target = searchFocusTarget
+                    if (target != null) {
+                        searchFocusTarget = null
+                        when (target) {
+                            "movies" -> searchMoviesViewMoreRequester.requestFocus()
+                            "series" -> searchSeriesViewMoreRequester.requestFocus()
+                            "poster" -> searchResultsRequester.requestFocus()
+                            "discover" -> searchDiscoverRequester.requestFocus()
+                            else -> searchEntryRequester.requestFocus()
+                        }
+                    } else {
+                        searchEntryRequester.requestFocus()
+                    }
+                }
+
+                NavDestination.Settings -> {
+                    delay(120)
+                    settingsEntryRequester.requestFocus()
+                }
+
+                else -> {
+                    currentNav = NavDestination.Home
+                }
+            }
+        }
+
+        // CONDITIONAL NAVIGATION RENDERING — no NavDrawer, no TopNavigationBar.
+        val view = activeView
+
+        if (view == "menu") {
+            var lastBackPressMs by remember { mutableStateOf(0L) }
+            var settingsContentFocused by remember { mutableStateOf(false) }
+
+            val openProfileSelector: () -> Unit = {
+                forceProfileSelector = true
+                sessionProfileId = null
+                sessionRestoreAttemptedProfileId = null
+                activeView = "menu"
+                currentNav = NavDestination.Home
+                themeManager.resetTheme()
+                mainViewModel.logout()
             }
 
             Box(
                 modifier = Modifier
-                    .width(effectiveItemWidth)
-                    .graphicsLayer { clip = false }
-                    .onPreviewKeyEvent { keyEvent ->
-                        if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
-                        if (keyEvent.type == KeyEventType.KeyDown) {
-                            when {
-                                keyEvent.key == Key.DirectionRight -> {
-                                    if (isTopNav && isLastItem) {
-                                        true // Block escape to top navbar from end of row
-                                    } else {
-                                        false
-                                    }
-                                }
-                                keyEvent.key == Key.DirectionLeft -> {
-                                    // Always update time on ANY left press for debounce tracking
-                                    val now = System.currentTimeMillis()
-                                    val timeSinceLastLeft = now - leftKeyDebouncer.lastTime
-                                    leftKeyDebouncer.lastTime = now
+                    .fillMaxSize()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) {
+                            return@onPreviewKeyEvent false
+                        }
 
-                                    if (isFirstItem) {
-                                        true // Block LEFT at first item. Back opens navigation.
-                                    } else {
-                                        false
-                                    }
-                                }
-                                keyEvent.key == Key.DirectionUp -> {
-                                    if (isTopNav) {
-                                        // TRACK UP KEY on ALL rows to handle rapid scrolling from bottom
-                                        val now = System.currentTimeMillis()
-                                        val timeSinceLastUp = now - upKeyDebouncer.lastTime
-                                        upKeyDebouncer.lastTime = now
+                        if (settingsContentFocused) return@onPreviewKeyEvent false
 
-                                        if (isFirstRow) {
-                                            // Only escape to navbar if slow press
-                                            if (timeSinceLastUp > 300L) {
-                                                drawerRequester.requestFocus()
-                                            }
-                                            true // Block default
-                                        } else {
-                                            false // Allow up nav
-                                        }
-                                    } else false
-                                }
-                                else -> false
+                        if (event.key == Key.Back) {
+                            if (currentNav != NavDestination.Home) {
+                                currentNav = NavDestination.Home
+                                true
+                            } else {
+                                // HomeScreen opens the old Lumera NavDrawer on Back.
+                                false
                             }
-                        } else false
+                        } else {
+                            false
+                        }
                     }
             ) {
-                if (isLandscapeCards) {
-                    val enriched = enrichedItems["${item.type}:${item.id}"]
-                
-                    val cardBackdropUrl = item.background
-                    ?: enriched?.background
-                    ?: item.poster
-                
-                    LumeraLandscapeCard(
-                        title = item.name,
-                        backdropUrl = cardBackdropUrl,
-                        logoUrl = enriched?.logo,
-                        posterUrl = item.poster,
-                        onClick = { onMovieClick(item) },
-                        progress = item.progress,
-                        hasNewEpisode = item.hasNewEpisode,
-                        onFocused = {
-                            ImagePrefetcher.prefetchAroundLandscape(context, imageUrls, index)
-                            onFocused(item, uniqueKey)
-                        },
-                        modifier = Modifier.then(
-                            if (shouldRequestFocus) Modifier.focusRequester(entryRequester)
-                            else if (pivotFocusRequester != null && index == listState.firstVisibleItemIndex) Modifier.focusRequester(pivotFocusRequester)
-                            else Modifier
-                        ),
-                        subtitle = item.description,
-                        statusText = item.runtime ?: if (item.hasNewEpisode) "New episode" else null
-                    )
-                } else {
-                    val watchedIds = LocalWatchedIds.current
-                    LumeraCard(
-                        title = item.name,
-                        posterUrl = item.poster,
-                        onClick = { onMovieClick(item) },
-                        progress = item.progress,
-                        isWatched = rowIndex != -1 && item.id in watchedIds,
-                        hasNewEpisode = item.hasNewEpisode,
-                        onFocused = {
-                            ImagePrefetcher.prefetchAround(context, imageUrls, index)
-                            onFocused(item, uniqueKey)
-                        },
-                        modifier = Modifier.then(
-                            if (shouldRequestFocus) Modifier.focusRequester(entryRequester)
-                            else if (pivotFocusRequester != null && index == listState.firstVisibleItemIndex) Modifier.focusRequester(pivotFocusRequester)
-                            else Modifier
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
+                when (currentNav) {
+                    NavDestination.Home -> {
+                        val vm = hiltViewModel<HomeViewModel>()
+                        val tab = "home"
+                        val dashboardTab = DashboardTab.HOME
 
-/**
- * ============================================================================
- * CASE B: INFINITE GRID (Grid View ON + Infinite Loop ON)
- * ============================================================================
- * 
- * Netflix-grade truly infinite scrolling implementation:
- * 
- * KEY INSIGHT: Use a VERY large bounded list (100+ repetitions) starting from
- * the middle. Users will NEVER reach the end in practice, making it feel
- * truly infinite without any visible jumps or recentering.
- * 
- * Optimizations:
- * 1. 100 repetitions = 1500+ items - practically infinite
- * 2. Start at section 50 (middle) - can scroll 50 sections in either direction
- * 3. Stable keys with generation suffix - bounded memory, proper recycling
- * 4. No recentering needed - eliminates all visible jumps
- * 5. Image prefetching for smooth loading
- * ============================================================================
- */
-private const val INFINITE_LOOP_GENERATIONS = 100000 // 100,000 repetitions = practically infinite
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun InfiniteGridContent(
-    listState: androidx.compose.foundation.lazy.LazyListState,
-    startPadding: Dp,
-    endPadding: Dp,
-    isTopNav: Boolean,
-    rowIndex: Int,
-    items: List<MetaItem>,
-    visibleItemCount: Int,
-    onMovieClick: (MetaItem) -> Unit,
-    onViewMore: () -> Unit,
-    onFocused: (MetaItem?, String) -> Unit,
-    entryRequester: FocusRequester,
-    drawerRequester: FocusRequester,
-    locallyFocusedItemId: String?,
-    isGlobalFocusPresent: Boolean,
-    isFirstRow: Boolean,
-    isRestoredState: Boolean = false,
-    rowHeight: Dp,
-    upKeyDebouncer: UpKeyDebouncer,
-    repeatGate: DpadRepeatGate,
-    pivotFocusRequester: FocusRequester? = null
-) {
-    val context = LocalContext.current
-
-    val truncatedMovies = remember(items, visibleItemCount) { 
-        items.take(visibleItemCount.coerceIn(5, 50)) 
-    }
-
-    // Build base data list (one section) - movies + ViewMore card
-    val baseDataList: List<GridRowItem> = remember(truncatedMovies) {
-        truncatedMovies.map { GridRowItem.MovieItem(it) } + GridRowItem.ViewMoreItem
-    }
-    val sectionSize = baseDataList.size
-    
-    // Calculate total items and start position
-    val totalItems = sectionSize * INFINITE_LOOP_GENERATIONS
-
-    // Prefetch image URLs list
-    val imageUrls = remember(truncatedMovies) { truncatedMovies.map { it.poster } }
-    
-    // Track focused index for ViewMore card's directional alpha
-    var currentFocusedIndex by remember(listState) { 
-        mutableIntStateOf(listState.firstVisibleItemIndex) 
-    }
-    
-    // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
-    val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
-    val rightKeyDebouncer = remember { RowKeyRepeatDebouncer() }
-    val navbarEscapeDebounceMs = 300L
-
-    // Parse last focused key to find the item ID (not scroll index)
-    // Key format: "rowIndex_movieId_scrollIndex" or "rowIndex_viewmore_scrollIndex"
-    val lastFocusedItemId = remember(locallyFocusedItemId) {
-        locallyFocusedItemId?.let { key ->
-            // It is already filtered to start with "${rowIndex}_" by parent
-             val withoutPrefix = key.removePrefix("${rowIndex}_")
-             if (withoutPrefix.startsWith("viewmore")) {
-                 "viewmore"
-             } else {
-                 withoutPrefix.substringBeforeLast("_")
-             }
-        }
-    }
-
-    LazyRow(
-        state = listState,
-        modifier = Modifier
-            .height(rowHeight)
-            .graphicsLayer { clip = false },
-        contentPadding = PaddingValues(start = startPadding, end = endPadding),
-        horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-    ) {
-        items(
-            count = totalItems,
-            // Keys use generation (scrollIndex / sectionSize) for uniqueness
-            // This bounds memory to INFINITE_LOOP_GENERATIONS unique keys per item
-            key = { scrollIndex ->
-                val logicalIndex = scrollIndex % sectionSize
-                val generation = scrollIndex / sectionSize
-                val item = baseDataList[logicalIndex]
-                when (item) {
-                    is GridRowItem.MovieItem -> "${rowIndex}_${item.movie.id}_g$generation"
-                    is GridRowItem.ViewMoreItem -> "${rowIndex}_viewmore_g$generation"
-                }
-            },
-            contentType = { scrollIndex ->
-                when (baseDataList[scrollIndex % sectionSize]) {
-                    is GridRowItem.MovieItem -> "movie"
-                    is GridRowItem.ViewMoreItem -> "viewmore"
-                }
-            }
-        ) { scrollIndex ->
-            val logicalIndex = scrollIndex % sectionSize
-            val item = baseDataList[logicalIndex]
-            val isEntryItem = scrollIndex == 0
-            val isLoopStart = logicalIndex == 0
-
-            // For focus restoration: match by item ID, only in the current visible section
-            // to avoid multiple items requesting focus across different generations
-            val currentSectionStart = (listState.firstVisibleItemIndex / sectionSize) * sectionSize
-            val isInCurrentSection = scrollIndex >= currentSectionStart && scrollIndex < currentSectionStart + sectionSize
-            
-            val shouldRequestFocus = when {
-                // First row, no previous focus - focus the entry item
-                !isGlobalFocusPresent && isFirstRow && isEntryItem -> true
-                // Match by item ID in the current visible section only
-                isInCurrentSection && item is GridRowItem.MovieItem && lastFocusedItemId == item.movie.id -> true
-                isInCurrentSection && item is GridRowItem.ViewMoreItem && lastFocusedItemId == "viewmore" -> true
-                else -> false
-            }
-
-            when (item) {
-                is GridRowItem.MovieItem -> {
-                    Box(
-                        modifier = Modifier
-                            .width(ITEM_WIDTH)
-                            .graphicsLayer { clip = false }
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    when {
-                                        keyEvent.key == Key.DirectionRight -> {
-                                            // Prime RIGHT debounce while moving through posters so ViewMore can
-                                            // block long-press escape on arrival.
-                                            rightKeyDebouncer.lastTime = System.currentTimeMillis()
-                                            false
-                                        }
-                                        keyEvent.key == Key.DirectionLeft -> {
-                                            // Always update time on ANY left press for debounce tracking
-                                            val now = System.currentTimeMillis()
-                                            val timeSinceLastLeft = now - leftKeyDebouncer.lastTime
-                                            leftKeyDebouncer.lastTime = now
-                                            
-                                            if (isLoopStart) {
-                                                true // Block LEFT at loop start. Back opens navigation.
-                                            } else {
-                                                false
-                                            }
-                                        }
-                                        keyEvent.key == Key.DirectionUp -> {
-                                            if (isTopNav) {
-                                                // TRACK UP KEY on ALL rows
-                                                val now = System.currentTimeMillis()
-                                                val timeSinceLastUp = now - upKeyDebouncer.lastTime
-                                                upKeyDebouncer.lastTime = now
-
-                                                if (isFirstRow) {
-                                                    if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
-                                                    }
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            } else false
-                                        }
-                                        else -> false
-                                    }
-                                } else false
+                        key(tab, currentProfile?.id) {
+                            LaunchedEffect(tab, currentProfile?.id, startupRestoreFinished) {
+                                if (!startupRestoreFinished) return@LaunchedEffect
+                        
+                                vm.loadScreen(tab, currentProfile)
                             }
-                    ) {
-                        val uniqueKey = "${rowIndex}_${item.movie.id}_$scrollIndex"
-                        val watchedIds = LocalWatchedIds.current
-                        LumeraCard(
-                            title = item.movie.name,
-                            posterUrl = item.movie.poster,
-                            onClick = { onMovieClick(item.movie) },
-                            progress = item.movie.progress,
-                            isWatched = rowIndex != -1 && item.movie.id in watchedIds,
-                            onFocused = {
-                                currentFocusedIndex = scrollIndex
-                                val logicalIndex = scrollIndex % sectionSize
-                                if (logicalIndex < imageUrls.size) {
-                                    ImagePrefetcher.prefetchAround(context, imageUrls, logicalIndex)
+
+                            NavDrawer(
+                                currentDestination = NavDestination.Home,
+                                currentProfile = currentProfile,
+                                drawerRequesters = homeDrawerRequesters,
+                                onNavigate = { destination ->
+                                    when (destination) {
+                                        NavDestination.Home -> {
+                                            homeEntryRequester.requestFocus()
+                                        }
+                                        NavDestination.Search -> {
+                                            currentNav = NavDestination.Search
+                                        }
+                                        NavDestination.Settings -> {
+                                            currentNav = NavDestination.Settings
+                                        }
+                                        NavDestination.Profile -> {
+                                            openProfileSelector()
+                                        }
+                                        else -> {
+                                            currentNav = NavDestination.Home
+                                        }
+                                    }
+                                },
+                                onClose = {
+                                    homeEntryRequester.requestFocus()
                                 }
-                                onFocused(item.movie, uniqueKey)
-                            },
-                            modifier = Modifier.then(
-                                if (shouldRequestFocus) Modifier.focusRequester(entryRequester)
-                                else if (pivotFocusRequester != null && scrollIndex == listState.firstVisibleItemIndex) Modifier.focusRequester(pivotFocusRequester)
-                                else Modifier
-                            )
-                        )
-                    }
-                }
-
-                is GridRowItem.ViewMoreItem -> {
-                    val uniqueKey = "${rowIndex}_viewmore_$scrollIndex"
-                    
-                    InfiniteViewMoreCard(
-                        isTopNav = isTopNav,
-                        isFirstRow = isFirstRow,
-                        drawerRequester = drawerRequester,
-                        upKeyDebouncer = upKeyDebouncer,
-                        rightKeyDebouncer = rightKeyDebouncer,
-                        navbarEscapeDebounceMs = navbarEscapeDebounceMs,
-                        repeatGate = repeatGate,
-                        scrollIndex = scrollIndex,
-                        currentFocusedIndex = currentFocusedIndex,
-                        onClick = onViewMore,
-                        onFocused = {
-                            currentFocusedIndex = scrollIndex
-                            onFocused(null, uniqueKey)
-                        },
-                        modifier = Modifier
-                            .then(if (shouldRequestFocus) Modifier.focusRequester(entryRequester) else Modifier)
-                            .then(
-                                if (pivotFocusRequester != null && scrollIndex == listState.firstVisibleItemIndex) {
-                                    Modifier.focusRequester(pivotFocusRequester)
-                                } else Modifier
-                            )
-                    )
-                }
-            }
-        }
-    }
-    
-    // Initialize scroll position to middle on first composition
-    // Skip initialization if this is a restored state (coming back to this row)
-    LaunchedEffect(Unit) {
-        if (!isRestoredState && listState.firstVisibleItemIndex == 0) {
-            listState.scrollToItem(0)
-        }
-    }
-}
-
-/**
- * CASE C: FINITE GRID (Grid View ON + Infinite Loop OFF)
- * Truncated list that ends at ViewMore card, no looping
- * 
- * Netflix-grade optimizations:
- * - Image prefetching ahead of focus
- * - beyondBoundsItemCount for precomposition
- * - Stable keys for proper recycling
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun FiniteGridContent(
-    listState: androidx.compose.foundation.lazy.LazyListState,
-    startPadding: Dp,
-    endPadding: Dp,
-    isTopNav: Boolean,
-    rowIndex: Int,
-    items: List<MetaItem>,
-    visibleItemCount: Int,
-    onMovieClick: (MetaItem) -> Unit,
-    onViewMore: () -> Unit,
-    onFocused: (MetaItem?, String) -> Unit,
-    entryRequester: FocusRequester,
-    drawerRequester: FocusRequester,
-    locallyFocusedItemId: String?,
-    isGlobalFocusPresent: Boolean,
-    isFirstRow: Boolean,
-    rowHeight: Dp,
-    upKeyDebouncer: UpKeyDebouncer,
-    repeatGate: DpadRepeatGate,
-    pivotFocusRequester: FocusRequester? = null
-) {
-    val context = LocalContext.current
-    
-    val truncatedMovies = remember(items, visibleItemCount) { 
-        items.take(visibleItemCount.coerceIn(5, 50)) 
-    }
-    
-    // Prefetch image URLs list
-    val imageUrls = remember(truncatedMovies) { truncatedMovies.map { it.poster } }
-    
-    // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
-    val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
-    val navbarEscapeDebounceMs = 300L
-
-    // Build finite list: [Movie 0 ... Movie N, ViewMoreItem]
-    val dataList: List<GridRowItem> = remember(truncatedMovies) {
-        truncatedMovies.map { GridRowItem.MovieItem(it) } + GridRowItem.ViewMoreItem
-    }
-
-    LazyRow(
-        state = listState,
-        modifier = Modifier
-            .height(rowHeight)
-            .graphicsLayer { clip = false },
-        contentPadding = PaddingValues(start = startPadding, end = endPadding),
-        horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-    ) {
-        itemsIndexed(
-            items = dataList,
-            key = { index, item ->
-                when (item) {
-                    is GridRowItem.MovieItem -> "${rowIndex}_${item.movie.id}_$index"
-                    is GridRowItem.ViewMoreItem -> "${rowIndex}_viewmore"
-                }
-            },
-            contentType = { _, item ->
-                when (item) {
-                    is GridRowItem.MovieItem -> "movie"
-                    is GridRowItem.ViewMoreItem -> "viewmore"
-                }
-            }
-        ) { index, item ->
-            val isFirstItem = index == 0
-            val isLastItem = index == dataList.size - 1
-
-            val uniqueKey = when (item) {
-                is GridRowItem.MovieItem -> "${rowIndex}_${item.movie.id}_$index"
-                is GridRowItem.ViewMoreItem -> "${rowIndex}_viewmore_$index"
-            }
-
-            val shouldRequestFocus = when {
-                uniqueKey == locallyFocusedItemId -> true
-                !isGlobalFocusPresent && isFirstRow && isFirstItem -> true
-                else -> false
-            }
-
-            when (item) {
-                is GridRowItem.MovieItem -> {
-                    Box(
-                        modifier = Modifier
-                            .width(ITEM_WIDTH)
-                            .graphicsLayer { clip = false }
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    when {
-                                        keyEvent.key == Key.DirectionLeft -> {
-                                            // Always update time on ANY left press for debounce tracking
-                                            val now = System.currentTimeMillis()
-                                            val timeSinceLastLeft = now - leftKeyDebouncer.lastTime
-                                            leftKeyDebouncer.lastTime = now
-                                            
-                                            if (isFirstItem) {
-                                                // Only escape to navbar if this is a deliberate press (not rapid long-press repeat)
-                                                if (!isTopNav && timeSinceLastLeft > navbarEscapeDebounceMs) {
-                                                    drawerRequester.requestFocus()
-                                                }
-                                                true // Consume at first item to prevent focus escaping
-                                            } else {
-                                                false // Let normal navigation happen
-                                            }
-                                        }
-                                        keyEvent.key == Key.DirectionUp -> {
-                                            if (isTopNav) {
-                                                // TRACK UP KEY on ALL rows
-                                                val now = System.currentTimeMillis()
-                                                val timeSinceLastUp = now - upKeyDebouncer.lastTime
-                                                upKeyDebouncer.lastTime = now
-
-                                                if (isFirstRow) {
-                                                    if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
-                                                    }
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            } else false
-                                        }
-                                        else -> false
+                            ) {
+                                HomeScreen(
+                                    tab = dashboardTab,
+                                    viewModel = vm,
+                                    currentProfile = currentProfile,
+                                    entryRequester = homeEntryRequester,
+                                    drawerRequester = homeDrawerRequesters.getValue(NavDestination.Home),
+                                    onMovieClick = { movie ->
+                                        selectedMovieId = movie.id
+                                        selectedMovieType = movie.type
+                                        selectedMovieTitle = movie.name
+                                        selectedMoviePoster = movie.poster ?: ""
+                                        selectedMovieBackground = movie.background ?: ""
+                                        selectedMovieLogo = movie.logo ?: ""
+                                        selectedAddonBaseUrl = movie.addonBaseUrl
+                                        detailsResumePlaybackHint = null
+                                        selectedPlaybackId = movie.id
+                                        selectedPlaybackType = movie.type
+                                        selectedPlaybackTitle = movie.name
+                                        selectedPlaybackPoster = movie.poster ?: ""
+                                        previousView = "menu"
+                                        activeView = "details_loading"
+                                    },
+                                    onViewMore = { title, items, configId ->
+                                        gridViewTitle = title
+                                        gridViewItems = items
+                                        gridViewConfigId = configId
+                                        activeView = "grid"
                                     }
-                                } else false
-                            }
-                    ) {
-                        val watchedIds = LocalWatchedIds.current
-                        LumeraCard(
-                            title = item.movie.name,
-                            posterUrl = item.movie.poster,
-                            onClick = { onMovieClick(item.movie) },
-                            progress = item.movie.progress,
-                            isWatched = rowIndex != -1 && item.movie.id in watchedIds,
-                            onFocused = {
-                                ImagePrefetcher.prefetchAround(context, imageUrls, index)
-                                onFocused(item.movie, uniqueKey)
-                            },
-                            modifier = Modifier.then(
-                                if (shouldRequestFocus) Modifier.focusRequester(entryRequester)
-                                else if (pivotFocusRequester != null && index == listState.firstVisibleItemIndex) Modifier.focusRequester(pivotFocusRequester)
-                                else Modifier
-                            )
-                        )
-                    }
-                }
-
-                is GridRowItem.ViewMoreItem -> {
-                    Box(
-                        modifier = Modifier
-                            .width(ITEM_WIDTH)
-                            .graphicsLayer { clip = false }
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    when (keyEvent.key) {
-                                        Key.DirectionRight -> true // Block RIGHT at ViewMore (end of list)
-                                        Key.DirectionUp -> {
-                                            if (isTopNav) {
-                                                val now = System.currentTimeMillis()
-                                                val timeSinceLastUp = now - upKeyDebouncer.lastTime
-                                                upKeyDebouncer.lastTime = now
-
-                                                if (isFirstRow) {
-                                                    if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
-                                                    }
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            } else false
-                                        }
-                                        else -> false
-                                    }
-                                } else false
-                            }
-                    ) {
-                        ViewMoreCard(
-                            onClick = onViewMore,
-                            onFocused = { 
-                                onFocused(null, uniqueKey) 
-                            },
-                            modifier = Modifier
-                                .then(if (shouldRequestFocus) Modifier.focusRequester(entryRequester) else Modifier)
-                                .then(
-                                    if (pivotFocusRequester != null && index == listState.firstVisibleItemIndex) {
-                                        Modifier.focusRequester(pivotFocusRequester)
-                                    } else Modifier
                                 )
+                            }
+                        }
+                    }
+
+                    NavDestination.Search -> {
+                        val searchHomeVm = hiltViewModel<HomeViewModel>()
+
+                        SearchScreen(
+                            currentProfile = currentProfile,
+                            watchedIds = searchHomeVm.state.collectAsState().value.watchedIds,
+                            onMovieClick = { movie ->
+                                selectedMovieId = movie.id
+                                selectedMovieType = movie.type
+                                selectedMovieTitle = movie.name
+                                selectedMoviePoster = movie.poster ?: ""
+                                selectedMovieBackground = movie.background ?: ""
+                                selectedMovieLogo = movie.logo ?: ""
+                                selectedAddonBaseUrl = movie.addonBaseUrl
+                                detailsResumePlaybackHint = null
+                                selectedPlaybackId = movie.id
+                                selectedPlaybackType = movie.type
+                                selectedPlaybackTitle = movie.name
+                                selectedPlaybackPoster = movie.poster ?: ""
+                                searchFocusTarget = "poster"
+                                previousView = "menu"
+                                activeView = "details_loading"
+                            },
+                            onViewMore = { title, items ->
+                                searchFocusTarget = if (title == "Movies") "movies" else "series"
+                                gridViewTitle = title
+                                gridViewItems = items
+                                gridViewConfigId = ""
+                                activeView = "grid"
+                            },
+                            moviesViewMoreRequester = searchMoviesViewMoreRequester,
+                            seriesViewMoreRequester = searchSeriesViewMoreRequester,
+                            resultsRequester = searchResultsRequester,
+                            discoverRequester = searchDiscoverRequester,
+                            lastFocusedId = searchLastFocusedId,
+                            onFocusedIdChange = { searchLastFocusedId = it },
+                            onDiscoverClick = { movie ->
+                                selectedMovieId = movie.id
+                                selectedMovieType = movie.type
+                                selectedMovieTitle = movie.name
+                                selectedMoviePoster = movie.poster ?: ""
+                                selectedMovieBackground = movie.background ?: ""
+                                selectedMovieLogo = movie.logo ?: ""
+                                selectedAddonBaseUrl = movie.addonBaseUrl
+                                detailsResumePlaybackHint = null
+                                selectedPlaybackId = movie.id
+                                selectedPlaybackType = movie.type
+                                selectedPlaybackTitle = movie.name
+                                selectedPlaybackPoster = movie.poster ?: ""
+                                searchFocusTarget = "discover"
+                                previousView = "menu"
+                                activeView = "details_loading"
+                            },
+                            entryRequester = searchEntryRequester,
+                            drawerRequester = searchEntryRequester
                         )
                     }
+
+                    NavDestination.Settings -> {
+                        val homeVm = hiltViewModel<HomeViewModel>()
+
+                        SettingsScreen(
+                            currentProfile = currentProfile,
+                            onBack = {
+                                currentNav = NavDestination.Home
+                            },
+                            entryRequester = settingsEntryRequester,
+                            drawerRequester = settingsEntryRequester,
+                            onDashboardChanged = { homeVm.invalidate() },
+                            onContentFocusChanged = { settingsContentFocused = it }
+                        )
+                    }
+
+                    NavDestination.Profile -> {
+                        openProfileSelector()
+                    }
+
+                    else -> {
+                        currentNav = NavDestination.Home
+                    }
+                }
+            }
+                        } else if (view == "grid") {
+                            val gridVm = hiltViewModel<HomeViewModel>()
+                            GridViewScreen(
+                                title = gridViewTitle,
+                                items = gridViewItems,
+                                lastFocusedIndex = gridRestoreState.focusedIndex,
+                                onFocusChange = { gridRestoreState.focusedIndex = it },
+                                onMovieClick = { movie ->
+                                    selectedMovieId = movie.id
+                                    selectedMovieType = movie.type
+                                    selectedMovieTitle = movie.name
+                                    selectedMoviePoster = movie.poster ?: ""
+                                    selectedMovieBackground = movie.background ?: ""
+                                    selectedMovieLogo = movie.logo ?: ""
+                                    selectedAddonBaseUrl = movie.addonBaseUrl
+                                    detailsResumePlaybackHint = null
+                                    selectedPlaybackId = movie.id
+                                    selectedPlaybackType = movie.type
+                                    selectedPlaybackTitle = movie.name
+                                    selectedPlaybackPoster = movie.poster ?: ""
+                                    previousView = "grid"
+                                    activeView = "details_loading"
+                                },
+                                onBack = { 
+                                    gridRestoreState.focusedIndex = null  // Reset for next time
+                                    gridRestoreState.scrollIndex = 0  // Reset scroll position
+                                    gridRestoreState.scrollOffset = 0
+                                    activeView = "menu"
+                                },
+                                onLoadMore = {
+                                    if (gridViewConfigId.isNotEmpty()) {
+                                        gridVm.loadMoreItems(gridViewConfigId)
+                                    }
+                                },
+                                initialScrollIndex = gridRestoreState.scrollIndex,
+                                initialScrollOffset = gridRestoreState.scrollOffset,
+                                onScrollPositionChange = { index, offset ->
+                                    gridRestoreState.scrollIndex = index
+                                    gridRestoreState.scrollOffset = offset
+                                },
+                                watchedIds = gridVm.state.collectAsState().value.watchedIds
+                            )
+                            // Sync gridViewItems when ViewModel state updates (after loadMoreItems)
+                            val vmState by gridVm.state.collectAsState()
+                            LaunchedEffect(vmState.rows) {
+                                if (gridViewConfigId.isNotEmpty()) {
+                                    val updatedRow = vmState.rows.find { it.configId == gridViewConfigId }
+                                    if (updatedRow != null && updatedRow.items.size > gridViewItems.size) {
+                                        gridViewItems = updatedRow.items
+                                    }
+                                }
+                            }
+                        } else if (view == "details_loading") {
+                            LaunchedEffect(selectedMovieId, selectedMovieType) {
+                                delay(120)
+                                activeView = "details"
+                            }
+                        
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else if (view == "details" || (view == "player" && selectedPlaybackId.startsWith("trailer_"))) {
+                            val detailsNavController = rememberNavController()
+                            val startRoute = "detail/${java.net.URLEncoder.encode(selectedMovieType, "UTF-8")}/${java.net.URLEncoder.encode(selectedMovieId, "UTF-8")}?addon=${java.net.URLEncoder.encode(selectedAddonBaseUrl ?: "", "UTF-8")}&resume=${java.net.URLEncoder.encode(detailsResumePlaybackHint ?: "", "UTF-8")}"
+
+                            // Navigate to initial details when first entering
+                            LaunchedEffect(selectedMovieType, selectedMovieId) {
+                                val currentRoute = detailsNavController.currentBackStackEntry?.destination?.route
+                                if (currentRoute == null || currentRoute == "detail_start") {
+                                    detailsNavController.navigate(startRoute) {
+                                        popUpTo("detail_start") { inclusive = true }
+                                    }
+                                }
+                            }
+
+                            BackHandler {
+                                if (!detailsNavController.popBackStack()) {
+                                    activeView = previousView
+                                }
+                            }
+
+                            // Shared onPlayClick lambda for all detail screens
+                            val onPlayClick: (String, String, String, String, String, String, com.lumera.app.data.model.stremio.Stream, List<com.lumera.app.domain.AddonSubtitle>, List<com.lumera.app.data.model.stremio.Stream>, List<com.lumera.app.data.model.stremio.MetaVideo>) -> Unit = { url, playbackId, playbackType, playbackTitle, seriesTitle, logo, stream, addonSubtitles, availableStreams, episodes ->
+                                val resolvedPlaybackTitle = playbackTitle.ifBlank { selectedMovieTitle }
+                                val resolvedSeriesTitle = seriesTitle.ifBlank { selectedMovieTitle }
+                                val isSeriesPlayback = playbackType.equals("series", ignoreCase = true) ||
+                                    playbackType.equals("tv", ignoreCase = true)
+                                if (isSeriesPlayback && resolvedSeriesTitle.isNotBlank()) {
+                                    selectedMovieTitle = resolvedSeriesTitle
+                                }
+                                if (logo.isNotBlank()) selectedMovieLogo = logo
+                                playerState.currentEpisodeList = episodes
+                                playerState.currentStream = stream
+                                val currentEpisodeThumbnail = if (isSeriesPlayback) {
+                                    episodes.firstOrNull { episode ->
+                                        episodePlaybackId(selectedMovieId, episode) == playbackId
+                                    }?.thumbnail.orEmpty()
+                                } else {
+                                    ""
+                                }
+                                val subtitlePayload = buildSubtitlePayload(stream, addonSubtitles)
+                                val sourcePayloadInput = if (availableStreams.isNotEmpty()) availableStreams else listOf(stream)
+                                val sourcePayload = buildSourcePayload(streams = sourcePayloadInput, selectedStream = stream)
+                                playerState.pendingSourceSelection = PendingSourceSelection(
+                                    playbackId = playbackId,
+                                    launchedStream = stream,
+                                    candidateStreams = sourcePayloadInput
+                                )
+                                uiScope.launch {
+                                    mainViewModel.persistActiveProfileState()
+                                    selectedPlaybackId = playbackId
+                                    selectedPlaybackType = playbackType
+                                    selectedPlaybackTitle = resolvedPlaybackTitle
+                                    selectedPlaybackPoster = selectedMoviePoster
+                                    selectedPlaybackEpisodeThumbnail = currentEpisodeThumbnail
+                                    selectedTrailerAudioUrl = ""
+                                    playerState.selectedPlayerSubtitles = subtitlePayload
+                                    playerState.selectedPlayerSources = sourcePayload
+                                    selectedVideoUrl = url
+                                    when (currentProfile?.playerPreference) {
+                                        "external" -> launchExternalPlayer(this@MainActivity, url)
+                                        "ask" -> playerState.showPlayerChoiceDialog = true
+                                        else -> activeView = "player"
+                                    }
+                                }
+                            }
+
+                            NavHost(
+                                navController = detailsNavController,
+                                startDestination = "detail_start",
+                            ) {
+                                composable("detail_start") { }
+                                composable(
+                                    "detail/{type}/{id}?addon={addon}&resume={resume}",
+                                    arguments = listOf(
+                                        navArgument("type") { type = NavType.StringType },
+                                        navArgument("id") { type = NavType.StringType },
+                                        navArgument("addon") { type = NavType.StringType; defaultValue = "" },
+                                        navArgument("resume") { type = NavType.StringType; defaultValue = "" }
+                                    )
+                                ) { backStackEntry ->
+                                    val detailType = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("type") ?: "movie", "UTF-8")
+                                    val detailId = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("id") ?: "", "UTF-8")
+                                    val detailAddon = backStackEntry.arguments?.getString("addon")?.takeIf { it.isNotEmpty() }
+                                    val detailResume = backStackEntry.arguments?.getString("resume")?.takeIf { it.isNotEmpty() }
+
+                                    DetailsScreen(
+                                        type = detailType,
+                                        id = detailId,
+                                        addonBaseUrl = detailAddon,
+                                        resumePlaybackHint = detailResume,
+                                        autoSelectSource = currentProfile?.autoSelectSource ?: false,
+                                        rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true,
+                                        onPosterResolved = { selectedMoviePoster = it },
+                                        onPlayClick = onPlayClick,
+                                        onNavigateToDetails = { navType, navId ->
+                                            val route = "detail/${java.net.URLEncoder.encode(navType, "UTF-8")}/${java.net.URLEncoder.encode(navId, "UTF-8")}"
+                                            detailsNavController.navigate(route)
+                                        },
+                                        onNavigateToCastDetail = { castPersonId, castPersonName ->
+                                            val route = "cast_detail/$castPersonId/${java.net.URLEncoder.encode(castPersonName, "UTF-8")}"
+                                            detailsNavController.navigate(route)
+                                        },
+                                        onNavigateToStudioDetail = { entityId, entityKind, entityName, sourceType ->
+                                            val route = "studio_detail/$entityId/$entityKind/${java.net.URLEncoder.encode(entityName, "UTF-8")}/$sourceType"
+                                            detailsNavController.navigate(route)
+                                        },
+                                        trailerReturnToken = trailerReturnToken,
+                                        isTrailerLoading = isTrailerLoading,
+                                        onTrailerClick = { youtubeKey, trailerName ->
+                                            isTrailerLoading = true
+                                            uiScope.launch {
+                                                val extractor = com.lumera.app.data.trailer.YouTubeExtractor()
+                                                val source = extractor.extractPlaybackSource(youtubeKey)
+                                                isTrailerLoading = false
+                                                if (source != null) {
+                                                    selectedVideoUrl = source.videoUrl
+                                                    selectedTrailerAudioUrl = source.audioUrl ?: ""
+                                                    selectedPlaybackId = "trailer_$youtubeKey"
+                                                    selectedPlaybackType = selectedMovieType
+                                                    selectedPlaybackTitle = trailerName
+                                                    selectedPlaybackPoster = selectedMoviePoster
+                                                    playerState.selectedPlayerSubtitles = emptyList()
+                                                    playerState.selectedPlayerSources = emptyList()
+                                                    activeView = "player"
+                                                } else {
+                                                    showTrailerError = true
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                composable(
+                                    "cast_detail/{personId}/{personName}",
+                                    arguments = listOf(
+                                        navArgument("personId") { type = NavType.StringType },
+                                        navArgument("personName") { type = NavType.StringType }
+                                    )
+                                ) { backStackEntry ->
+                                    val castPersonId = (backStackEntry.arguments?.getString("personId") ?: "0").toIntOrNull() ?: 0
+                                    val castPersonName = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("personName") ?: "", "UTF-8")
+
+                                    com.lumera.app.ui.cast.CastDetailScreen(
+                                        personId = castPersonId,
+                                        personName = castPersonName,
+                                        onBackPress = { detailsNavController.popBackStack() },
+                                        onNavigateToDetails = { navType, navId ->
+                                            val route = "detail/${java.net.URLEncoder.encode(navType, "UTF-8")}/${java.net.URLEncoder.encode(navId, "UTF-8")}"
+                                            detailsNavController.navigate(route)
+                                        }
+                                    )
+                                }
+                                composable(
+                                    "studio_detail/{entityId}/{entityKind}/{entityName}/{sourceType}",
+                                    arguments = listOf(
+                                        navArgument("entityId") { type = NavType.StringType },
+                                        navArgument("entityKind") { type = NavType.StringType },
+                                        navArgument("entityName") { type = NavType.StringType },
+                                        navArgument("sourceType") { type = NavType.StringType }
+                                    )
+                                ) { backStackEntry ->
+                                    val studioEntityId = (backStackEntry.arguments?.getString("entityId") ?: "0").toIntOrNull() ?: 0
+                                    val studioEntityKind = backStackEntry.arguments?.getString("entityKind") ?: "company"
+                                    val studioEntityName = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("entityName") ?: "", "UTF-8")
+                                    val studioSourceType = backStackEntry.arguments?.getString("sourceType") ?: "movie"
+
+                                    com.lumera.app.ui.studio.StudioDetailScreen(
+                                        entityId = studioEntityId,
+                                        entityKind = studioEntityKind,
+                                        entityName = studioEntityName,
+                                        sourceType = studioSourceType,
+                                        onBackPress = { detailsNavController.popBackStack() },
+                                        onNavigateToDetails = { navType, navId ->
+                                            val route = "detail/${java.net.URLEncoder.encode(navType, "UTF-8")}/${java.net.URLEncoder.encode(navId, "UTF-8")}"
+                                            detailsNavController.navigate(route)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        if (view == "player") {
+                            if (selectedVideoUrl.isBlank()) {
+                                LaunchedEffect(Unit) { activeView = "details" }
+                            } else {
+                            val rememberedTrackSelection = remember(selectedPlaybackId) {
+                                playbackTrackSelectionStore.getSelection(selectedPlaybackId)
+                            }
+                            val playerSources = remember(playerState.selectedPlayerSources) { playerState.selectedPlayerSources }
+                            val playerSubtitles = remember(playerState.selectedPlayerSubtitles) {
+                                playerState.selectedPlayerSubtitles.map { subtitle ->
+                                    PlayerSubtitleSource(
+                                        id = subtitle.id,
+                                        url = subtitle.url,
+                                        label = subtitle.name,
+                                        language = subtitle.language
+                                    )
+                                }
+                            }
+
+                            // Compute next episode
+                            val isSeries = selectedPlaybackType.equals("series", ignoreCase = true)
+                            val shouldAutoplay = currentProfile?.autoplayNextEpisode == true && isSeries
+                            val nextEpisode = remember(selectedPlaybackId, selectedMovieId, playerState.currentEpisodeList, isSeries) {
+                                if (isSeries && playerState.currentEpisodeList.isNotEmpty()) {
+                                    findNextEpisode(selectedMovieId, selectedPlaybackId, playerState.currentEpisodeList)
+                                } else null
+                            }
+                            val nextEpisodeInfo = remember(nextEpisode) {
+                                nextEpisode?.let { ep ->
+                                    NextEpisodeInfo(
+                                        title = episodeDisplayTitle(ep),
+                                        thumbnail = ep.thumbnail,
+                                        seasonNumber = ep.season,
+                                        episodeNumber = ep.episode
+                                    )
+                                }
+                            }
+
+                            // Fetch skip intro/outro segments from IntroDB
+                            val skipIntroEnabled = currentProfile?.skipIntro == true
+                            val autoplayEnabled = currentProfile?.autoplayNextEpisode == true
+                            val needIntroDB = skipIntroEnabled || autoplayEnabled
+                            var skipSegmentInfo by remember { mutableStateOf<SkipSegmentInfo?>(null) }
+                            LaunchedEffect(selectedPlaybackId, needIntroDB, skipIntroEnabled) {
+                                skipSegmentInfo = null
+                                if (!needIntroDB) return@LaunchedEffect
+                                if (!isSeries || selectedPlaybackId.isBlank()) return@LaunchedEffect
+                                val parts = selectedPlaybackId.split(":")
+                                if (parts.size < 3) return@LaunchedEffect
+                                val imdbId = parts.dropLast(2).joinToString(":")
+                                val season = parts[parts.lastIndex - 1].toIntOrNull() ?: return@LaunchedEffect
+                                val episode = parts.last().toIntOrNull() ?: return@LaunchedEffect
+                                val response = introRepository.getSegments(imdbId, season, episode)
+                                if (response != null) {
+                                    skipSegmentInfo = SkipSegmentInfo(
+                                        introStartMs = if (skipIntroEnabled) response.intro?.start_ms else null,
+                                        introEndMs = if (skipIntroEnabled) response.intro?.end_ms else null,
+                                        outroStartMs = response.outro?.start_ms,
+                                        outroEndMs = response.outro?.end_ms
+                                    )
+                                }
+                            }
+
+                            PlayerScreen(
+                                videoUrl = selectedVideoUrl,
+                                trailerAudioUrl = selectedTrailerAudioUrl.takeIf { it.isNotBlank() },
+                                title = selectedPlaybackTitle.ifBlank { selectedMovieTitle },
+                                seriesTitle = selectedMovieTitle.takeIf {
+                                    selectedPlaybackType.equals("series", ignoreCase = true)
+                                },
+                                logoUrl = selectedMovieLogo.takeIf { it.isNotBlank() },
+                                poster = selectedPlaybackPoster,
+                                movieId = selectedPlaybackId,
+                                mediaType = selectedPlaybackType,
+                                sources = playerSources,
+                                subtitles = playerSubtitles,
+                                preferredAudioTrackId = rememberedTrackSelection?.audioTrackId,
+                                preferredSubtitleTrackId = rememberedTrackSelection?.subtitleTrackId,
+                                initialSubtitleDelayMs = rememberedTrackSelection?.subtitleDelayMs ?: 0L,
+                                playbackSettings = PlaybackSettings(
+                                    tunnelingEnabled = currentProfile?.tunnelingEnabled ?: false,
+                                    mapDV7ToHevc = currentProfile?.mapDV7ToHevc ?: false,
+                                    decoderPriority = currentProfile?.decoderPriority ?: 1,
+                                    frameRateMatching = currentProfile?.frameRateMatching ?: false,
+                                    autoplayNextEpisode = currentProfile?.autoplayNextEpisode ?: false,
+                                    autoSelectSource = currentProfile?.autoSelectSource ?: false,
+                                    autoplayThresholdMode = currentProfile?.autoplayThresholdMode ?: "percentage",
+                                    autoplayThresholdPercent = currentProfile?.autoplayThresholdPercent ?: 95,
+                                    autoplayThresholdSeconds = currentProfile?.autoplayThresholdSeconds ?: 30,
+                                    preferredAudioLanguage = currentProfile?.preferredAudioLanguage ?: "",
+                                    preferredAudioLanguageSecondary = currentProfile?.preferredAudioLanguageSecondary ?: "",
+                                    preferredSubtitleLanguage = currentProfile?.preferredSubtitleLanguage ?: "",
+                                    preferredSubtitleLanguageSecondary = currentProfile?.preferredSubtitleLanguageSecondary ?: "",
+                                    subtitleSize = currentProfile?.subtitleSize ?: 100,
+                                    subtitleOffset = currentProfile?.subtitleOffset ?: 0,
+                                    subtitleTextColor = currentProfile?.subtitleTextColor?.toInt() ?: 0xFFFFFFFF.toInt(),
+                                    subtitleBackgroundColor = currentProfile?.subtitleBackgroundColor?.toInt() ?: 0x00000000,
+                                    assRendererEnabled = currentProfile?.assRendererEnabled ?: false
+                                ),
+                                skipSegmentInfo = skipSegmentInfo,
+                                nextEpisodeInfo = if (nextEpisode != null) nextEpisodeInfo else null,
+                                onAutoplayNextEpisode = if (nextEpisode != null) {
+                                    { playerCurrentSourceUrl ->
+                                        // Mark current episode as completed
+                                        handlePlayerSessionEnd(
+                                            sessionResult = PlayerSessionResult(
+                                                positionMs = 0L,
+                                                durationMs = null,
+                                                isCompleted = true,
+                                                selectedSourceUrl = playerCurrentSourceUrl ?: selectedVideoUrl,
+                                                selectedAudioTrackId = null,
+                                                selectedSubtitleTrackId = null
+                                            ),
+                                            selectedPlaybackId = selectedPlaybackId,
+                                            playbackTrackSelectionStore = playbackTrackSelectionStore,
+                                            sourceSelectionStore = sourceSelectionStore,
+                                            pendingSourceSelection = playerState.pendingSourceSelection,
+                                            onConsumePendingSelection = { playerState.pendingSourceSelection = null },
+                                            onResumeHintResolved = { detailsResumePlaybackHint = it },
+                                            rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
+                                        )
+
+                                        val nextPlaybackId = episodePlaybackId(selectedMovieId, nextEpisode)
+                                        val nextStreamId = episodeStreamId(selectedMovieId, nextEpisode)
+                                        val nextPlaybackTitle = episodeDisplayTitle(nextEpisode)
+                                        val nextEpisodeThumbnail = nextEpisode.thumbnail.orEmpty()
+
+                                        uiScope.launch {
+                                            withContext(Dispatchers.IO) {
+                                                saveLumeraPlaybackState(
+                                                    sessionResult = PlayerSessionResult(
+                                                        positionMs = 0L,
+                                                        durationMs = null,
+                                                        isCompleted = true,
+                                                        selectedSourceUrl = playerCurrentSourceUrl ?: selectedVideoUrl,
+                                                        selectedAudioTrackId = null,
+                                                        selectedSubtitleTrackId = null
+                                                    ),
+                                                    playbackId = selectedPlaybackId,
+                                                    playbackType = selectedPlaybackType,
+                                                    playbackTitle = selectedPlaybackTitle.ifBlank { selectedMovieTitle },
+                                                    playbackPoster = selectedPlaybackPoster.ifBlank { selectedMoviePoster },
+                                                    playbackBackground = selectedMovieBackground,
+                                                    playbackLogo = selectedMovieLogo,
+                                                    seriesId = selectedMovieId,
+                                                    seriesTitle = selectedMovieTitle,
+                                                    currentEpisodeThumbnail = selectedPlaybackEpisodeThumbnail,
+                                                    nextEpisode = nextEpisode
+                                                )
+                                            }
+
+                                            // Show loading feedback immediately
+                                            val autoplay = currentProfile?.autoplayNextEpisode == true
+                                            val autoSelect = currentProfile?.autoSelectSource == true
+                                            val willAutoResolve = autoplay || autoSelect
+
+                                            if (willAutoResolve) {
+                                                playerState.isEpisodeSwitchLoading = true
+                                            } else {
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = nextPlaybackId,
+                                                    playbackTitle = nextPlaybackTitle,
+                                                    streams = null,
+                                                    addonSubs = emptyList(),
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                            }
+
+                                            val streamsDeferred = async { try { addonRepository.getStreams("series", nextStreamId) } catch (_: Exception) { emptyList() } }
+                                            val subtitlesDeferred = async { try { subtitleRepository.getSubtitles("series", nextStreamId) } catch (_: Exception) { emptyList() } }
+
+                                            val rawStreams = streamsDeferred.await()
+                                            val addonSubs = subtitlesDeferred.await()
+
+                                            val streams = if (false) {
+                                                val enabledQ = StreamSortingService.parseEnabledQualities(currentProfile?.sourceEnabledQualities ?: "4k,1080p,720p,unknown")
+                                                val excludeP = StreamSortingService.parseExcludePhrases(currentProfile?.sourceExcludePhrases ?: "")
+                                                val addonOrders = addonRepository.getAddonSortOrders()
+                                                val excludedF = StreamSortingService.parseExcludedFormats(currentProfile?.sourceExcludedFormats ?: "")
+                                                streamSortingService.sortAndFilter(rawStreams, enabledQ, excludeP, addonOrders, currentProfile?.sourceSortPrimary ?: "quality", currentProfile?.sourceMaxSizeGb ?: 0, excludedF)
+                                            } else rawStreams
+
+                                            if (streams.isEmpty()) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = nextPlaybackId,
+                                                    playbackTitle = nextPlaybackTitle,
+                                                    streams = emptyList(),
+                                                    addonSubs = emptyList(),
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            // Resolve the actual stream the user was watching (may differ from initial if they switched sources)
+                                            val actualStream = if (playerCurrentSourceUrl != null) {
+                                                playerState.pendingSourceSelection?.candidateStreams?.firstOrNull { candidate ->
+                                                    resolvePlayableSourceUrl(candidate) == playerCurrentSourceUrl
+                                                } ?: playerState.currentStream
+                                            } else playerState.currentStream
+
+                                            // Priority 1: Same bingeGroup + same addon as current stream (when autoplay or autoselect is on)
+                                            val currentBingeGroup = actualStream?.behaviorHints?.bingeGroup
+                                            val currentAddonUrl = actualStream?.addonTransportUrl
+                                            val bingeMatch = if ((autoplay || autoSelect) && !currentBingeGroup.isNullOrBlank()) {
+                                                streams.firstOrNull {
+                                                    it.behaviorHints?.bingeGroup == currentBingeGroup &&
+                                                        it.addonTransportUrl == currentAddonUrl &&
+                                                        (!it.url.isNullOrBlank() || !it.infoHash.isNullOrBlank())
+                                                }
+                                            } else null
+                                            // Priority 2: Remembered source
+                                            val rememberSource = currentProfile?.rememberSourceSelection ?: true
+                                            val preferred = if (rememberSource) sourceSelectionStore.findPreferredStream(nextPlaybackId, streams) else null
+                                            // Priority 3: First playable (only when autoSelectSource is on)
+                                            val streamToPlay = bingeMatch
+                                                ?: preferred
+                                                ?: if (autoSelect) streams.firstOrNull { !it.url.isNullOrBlank() || !it.infoHash.isNullOrBlank() } else null
+
+                                            if (streamToPlay == null) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = nextPlaybackId,
+                                                    playbackTitle = nextPlaybackTitle,
+                                                    streams = streams,
+                                                    addonSubs = addonSubs,
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            val nextUrl = resolvePlayableSourceUrl(streamToPlay)
+                                            if (nextUrl == null) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = nextPlaybackId,
+                                                    playbackTitle = nextPlaybackTitle,
+                                                    streams = streams,
+                                                    addonSubs = addonSubs,
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            // Auto-resolved: clear loading + switch
+                                            playerState.isEpisodeSwitchLoading = false
+                                            playerState.pendingEpisodeSwitch = null
+
+                                            val subtitlePayload = buildSubtitlePayload(streamToPlay, addonSubs)
+                                            val sourcePayload = buildSourcePayload(streams, streamToPlay)
+
+                                            playerState.pendingSourceSelection = PendingSourceSelection(
+                                                playbackId = nextPlaybackId,
+                                                launchedStream = streamToPlay,
+                                                candidateStreams = streams
+                                            )
+                                            playerState.currentStream = streamToPlay
+
+                                            selectedPlaybackId = nextPlaybackId
+                                            selectedPlaybackType = "series"
+                                            selectedPlaybackTitle = nextPlaybackTitle
+                                            selectedPlaybackEpisodeThumbnail = nextEpisodeThumbnail
+                                            playerState.selectedPlayerSubtitles = subtitlePayload
+                                            playerState.selectedPlayerSources = sourcePayload
+                                            selectedVideoUrl = nextUrl
+                                            // PlayerScreen will recompose due to movieId/videoUrl key change
+                                        }
+                                    }
+                                } else null,
+                                episodes = playerState.currentEpisodeList,
+                                currentPlaybackId = selectedPlaybackId,
+                                onEpisodeSelected = if (playerState.currentEpisodeList.isNotEmpty()) {
+                                    { episode, playerCurrentSourceUrl ->
+                                        val epPlaybackId = episodePlaybackId(selectedMovieId, episode)
+                                        val epStreamId = episodeStreamId(selectedMovieId, episode)
+                                        val epTitle = episodeDisplayTitle(episode)
+                                        val epThumbnail = episode.thumbnail.orEmpty()
+
+                                        uiScope.launch {
+                                            // Show loading feedback immediately
+                                            val autoplay = currentProfile?.autoplayNextEpisode == true
+                                            val autoSelect = currentProfile?.autoSelectSource == true
+                                            val willAutoResolve = autoplay || autoSelect
+
+                                            if (willAutoResolve) {
+                                                playerState.isEpisodeSwitchLoading = true
+                                            } else {
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = epPlaybackId,
+                                                    playbackTitle = epTitle,
+                                                    streams = null,
+                                                    addonSubs = emptyList(),
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                            }
+
+                                            val streamsDeferred = async { try { addonRepository.getStreams("series", epStreamId) } catch (_: Exception) { emptyList() } }
+                                            val subtitlesDeferred = async { try { subtitleRepository.getSubtitles("series", epStreamId) } catch (_: Exception) { emptyList() } }
+
+                                            val rawStreams2 = streamsDeferred.await()
+                                            val addonSubs = subtitlesDeferred.await()
+
+                                            val streams = if (false) {
+                                                val enabledQ = StreamSortingService.parseEnabledQualities(currentProfile?.sourceEnabledQualities ?: "4k,1080p,720p,unknown")
+                                                val excludeP = StreamSortingService.parseExcludePhrases(currentProfile?.sourceExcludePhrases ?: "")
+                                                val addonOrders = addonRepository.getAddonSortOrders()
+                                                val excludedF = StreamSortingService.parseExcludedFormats(currentProfile?.sourceExcludedFormats ?: "")
+                                                streamSortingService.sortAndFilter(rawStreams2, enabledQ, excludeP, addonOrders, currentProfile?.sourceSortPrimary ?: "quality", currentProfile?.sourceMaxSizeGb ?: 0, excludedF)
+                                            } else rawStreams2
+
+                                            if (streams.isEmpty()) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = epPlaybackId,
+                                                    playbackTitle = epTitle,
+                                                    streams = emptyList(),
+                                                    addonSubs = emptyList(),
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            // Resolve the actual stream the user was watching
+                                            val actualStream = if (playerCurrentSourceUrl != null) {
+                                                playerState.pendingSourceSelection?.candidateStreams?.firstOrNull { candidate ->
+                                                    resolvePlayableSourceUrl(candidate) == playerCurrentSourceUrl
+                                                } ?: playerState.currentStream
+                                            } else playerState.currentStream
+
+                                            // Priority 1: Same bingeGroup + same addon as current stream (when autoplay or autoselect is on)
+                                            val currentBingeGroup = actualStream?.behaviorHints?.bingeGroup
+                                            val currentAddonUrl = actualStream?.addonTransportUrl
+                                            val bingeMatch = if ((autoplay || autoSelect) && !currentBingeGroup.isNullOrBlank()) {
+                                                streams.firstOrNull {
+                                                    it.behaviorHints?.bingeGroup == currentBingeGroup &&
+                                                        it.addonTransportUrl == currentAddonUrl &&
+                                                        (!it.url.isNullOrBlank() || !it.infoHash.isNullOrBlank())
+                                                }
+                                            } else null
+
+                                            // Priority 2: Auto-select first available (only when autoSelectSource is on)
+                                            val streamToPlay = bingeMatch
+                                                ?: if (autoSelect) streams.firstOrNull { !it.url.isNullOrBlank() || !it.infoHash.isNullOrBlank() } else null
+
+                                            if (streamToPlay == null) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = epPlaybackId,
+                                                    playbackTitle = epTitle,
+                                                    streams = streams,
+                                                    addonSubs = addonSubs,
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            val epUrl = resolvePlayableSourceUrl(streamToPlay)
+                                            if (epUrl == null) {
+                                                playerState.isEpisodeSwitchLoading = false
+                                                playerState.pendingEpisodeSwitch = PendingEpisodeSwitch(
+                                                    playbackId = epPlaybackId,
+                                                    playbackTitle = epTitle,
+                                                    streams = streams,
+                                                    addonSubs = addonSubs,
+                                                    playerCurrentSourceUrl = playerCurrentSourceUrl
+                                                )
+                                                return@launch
+                                            }
+
+                                            // Auto-resolved: clear loading + switch
+                                            playerState.isEpisodeSwitchLoading = false
+                                            playerState.pendingEpisodeSwitch = null
+                                            handlePlayerSessionEnd(
+                                                sessionResult = PlayerSessionResult(
+                                                    positionMs = 0L,
+                                                    durationMs = null,
+                                                    isCompleted = false,
+                                                    selectedSourceUrl = playerCurrentSourceUrl ?: selectedVideoUrl,
+                                                    selectedAudioTrackId = null,
+                                                    selectedSubtitleTrackId = null
+                                                ),
+                                                selectedPlaybackId = selectedPlaybackId,
+                                                playbackTrackSelectionStore = playbackTrackSelectionStore,
+                                                sourceSelectionStore = sourceSelectionStore,
+                                                pendingSourceSelection = playerState.pendingSourceSelection,
+                                                onConsumePendingSelection = { playerState.pendingSourceSelection = null },
+                                                onResumeHintResolved = { detailsResumePlaybackHint = it },
+                                                rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
+                                            )
+
+                                            val subtitlePayload = buildSubtitlePayload(streamToPlay, addonSubs)
+                                            val sourcePayload = buildSourcePayload(streams, streamToPlay)
+
+                                            playerState.pendingSourceSelection = PendingSourceSelection(
+                                                playbackId = epPlaybackId,
+                                                launchedStream = streamToPlay,
+                                                candidateStreams = streams
+                                            )
+                                            playerState.currentStream = streamToPlay
+
+                                            selectedPlaybackId = epPlaybackId
+                                            selectedPlaybackType = "series"
+                                            selectedPlaybackTitle = epTitle
+                                            selectedPlaybackEpisodeThumbnail = epThumbnail
+                                            playerState.selectedPlayerSubtitles = subtitlePayload
+                                            playerState.selectedPlayerSources = sourcePayload
+                                            selectedVideoUrl = epUrl
+                                        }
+                                    }
+                                } else null,
+                                episodeSwitchSources = playerState.pendingEpisodeSwitch?.let { pending ->
+                                    pending.streams?.mapNotNull { stream ->
+                                        val url = resolvePlayableSourceUrl(stream) ?: return@mapNotNull null
+                                        PlayerSourceOption(
+                                            id = url,
+                                            url = url,
+                                            label = sourceDisplayLabel(stream),
+                                            name = stream.name,
+                                            title = stream.title,
+                                            description = stream.description,
+                                            fileIdx = stream.fileIdx ?: -1,
+                                            fileName = stream.behaviorHints?.filename ?: ""
+                                        )
+                                    }?.distinctBy { it.url }
+                                },
+                                isEpisodeSwitchLoading = playerState.isEpisodeSwitchLoading,
+                                episodeSwitchTitle = playerState.pendingEpisodeSwitch?.playbackTitle,
+                                onEpisodeSwitchSourceSelected = playerState.pendingEpisodeSwitch?.let { pending ->
+                                    { sourceUrl: String ->
+                                        val streamToPlay = pending.streams?.firstOrNull { resolvePlayableSourceUrl(it) == sourceUrl }
+                                        if (streamToPlay == null) {
+                                            playerState.pendingEpisodeSwitch = null
+                                            return@let
+                                        }
+
+                                        // Now save progress for current episode
+                                        handlePlayerSessionEnd(
+                                            sessionResult = PlayerSessionResult(
+                                                positionMs = 0L,
+                                                durationMs = null,
+                                                isCompleted = false,
+                                                selectedSourceUrl = pending.playerCurrentSourceUrl ?: selectedVideoUrl,
+                                                selectedAudioTrackId = null,
+                                                selectedSubtitleTrackId = null
+                                            ),
+                                            selectedPlaybackId = selectedPlaybackId,
+                                            playbackTrackSelectionStore = playbackTrackSelectionStore,
+                                            sourceSelectionStore = sourceSelectionStore,
+                                            pendingSourceSelection = playerState.pendingSourceSelection,
+                                            onConsumePendingSelection = { playerState.pendingSourceSelection = null },
+                                            onResumeHintResolved = { detailsResumePlaybackHint = it },
+                                            rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
+                                        )
+
+                                        val subtitlePayload = buildSubtitlePayload(streamToPlay, pending.addonSubs)
+                                        val sourcePayload = buildSourcePayload(pending.streams, streamToPlay)
+
+                                        playerState.pendingSourceSelection = PendingSourceSelection(
+                                            playbackId = pending.playbackId,
+                                            launchedStream = streamToPlay,
+                                            candidateStreams = pending.streams
+                                        )
+                                        playerState.currentStream = streamToPlay
+                                        playerState.pendingEpisodeSwitch = null
+
+                                        val pendingEpisodeThumbnail = playerState.currentEpisodeList.firstOrNull { episode ->
+                                            episodePlaybackId(selectedMovieId, episode) == pending.playbackId
+                                        }?.thumbnail.orEmpty()
+                                        
+                                        selectedPlaybackId = pending.playbackId
+                                        selectedPlaybackType = "series"
+                                        selectedPlaybackTitle = pending.playbackTitle
+                                        selectedPlaybackEpisodeThumbnail = pendingEpisodeThumbnail
+                                        playerState.selectedPlayerSubtitles = subtitlePayload
+                                        playerState.selectedPlayerSources = sourcePayload
+                                        selectedVideoUrl = sourceUrl
+                                    }
+                                },
+                                onEpisodeSwitchDismissed = { playerState.pendingEpisodeSwitch = null; playerState.isEpisodeSwitchLoading = false },
+                                onBack = { sessionResult ->
+                                    handlePlayerSessionEnd(
+                                        sessionResult = sessionResult,
+                                        selectedPlaybackId = selectedPlaybackId,
+                                        playbackTrackSelectionStore = playbackTrackSelectionStore,
+                                        sourceSelectionStore = sourceSelectionStore,
+                                        pendingSourceSelection = playerState.pendingSourceSelection,
+                                        onConsumePendingSelection = { playerState.pendingSourceSelection = null },
+                                        onResumeHintResolved = { detailsResumePlaybackHint = it },
+                                        rememberSourceSelection = currentProfile?.rememberSourceSelection ?: true
+                                    )
+
+                                    if (selectedPlaybackId.startsWith("trailer_")) {
+                                        trailerReturnToken++
+                                        activeView = "details"
+                                        return@PlayerScreen
+                                    }
+
+                                    val playbackIdToSave = selectedPlaybackId
+                                    val playbackTypeToSave = selectedPlaybackType
+                                    val playbackTitleToSave = selectedPlaybackTitle.ifBlank { selectedMovieTitle }
+                                    val playbackPosterToSave = selectedPlaybackPoster.ifBlank { selectedMoviePoster }
+                                    val playbackBackgroundToSave = selectedMovieBackground
+                                    val playbackLogoToSave = selectedMovieLogo
+                                    val seriesIdToSave = selectedMovieId
+                                    val seriesTitleToSave = selectedMovieTitle
+                                    val nextEpisodeToSave = nextEpisode
+
+                                    uiScope.launch(Dispatchers.IO) {
+                                        saveLumeraPlaybackState(
+                                            sessionResult = sessionResult,
+                                            playbackId = playbackIdToSave,
+                                            playbackType = playbackTypeToSave,
+                                            playbackTitle = playbackTitleToSave,
+                                            playbackPoster = playbackPosterToSave,
+                                            playbackBackground = playbackBackgroundToSave,
+                                            playbackLogo = playbackLogoToSave,
+                                            seriesId = seriesIdToSave,
+                                            seriesTitle = seriesTitleToSave,
+                                            currentEpisodeThumbnail = selectedPlaybackEpisodeThumbnail,
+                                            nextEpisode = nextEpisodeToSave
+                                        )
+
+                                        delay(1200)
+                                        val pushed = lumeraBackupRepository.pushAccountBackup()
+                                        android.util.Log.d("LumeraBackup", "player-exit backup pushed=$pushed")
+                                    }
+
+                                    activeView = "details"
+                                }
+                            )
+                            }
+                        }
+                    // ViewSwitcher end
+                    }
+
+                    // Player choice dialog (shown when playerPreference == "ask")
+                    if (playerState.showPlayerChoiceDialog && selectedVideoUrl.isNotBlank()) {
+                        PlayerChoiceDialog(
+                            onInternal = {
+                                playerState.showPlayerChoiceDialog = false
+                                activeView = "player"
+                            },
+                            onExternal = {
+                                playerState.showPlayerChoiceDialog = false
+                                launchExternalPlayer(this@MainActivity, selectedVideoUrl)
+                            },
+                            onDismiss = {
+                                playerState.showPlayerChoiceDialog = false
+                            }
+                        )
+                    }
+
+                    if (showTrailerError) {
+                        Dialog(onDismissRequest = { showTrailerError = false }) {
+                            Box(
+                                modifier = Modifier
+                                    .width(380.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.background)
+                                    .border(1.dp, Color.White.copy(0.1f), RoundedCornerShape(16.dp))
+                                    .padding(24.dp)
+                            ) {
+                                androidx.compose.foundation.layout.Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "Trailer Unavailable",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = Color.White,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Spacer(Modifier.height(24.dp))
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        VoidButton(
+                                            text = "Dismiss",
+                                            onClick = { showTrailerError = false },
+                                            isPrimary = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Update dialogs (auto-shown after splash)
+                    if (!updateDismissed && appUpdateManager.isPopupEnabled) {
+                        when (val state = updateState) {
+                            is UpdateState.UpdateAvailable -> {
+                                UpdateAvailableDialog(
+                                    info = state.info,
+                                    onUpdate = {
+                                        updateScope.launch { appUpdateManager.downloadAndInstall(state.info.apkUrl) }
+                                    },
+                                    onDismiss = { updateDismissed = true },
+                                    onDontShowAgain = {
+                                        appUpdateManager.setPopupEnabled(false)
+                                        updateDismissed = true
+                                    }
+                                )
+                            }
+                            is UpdateState.Downloading -> {
+                                UpdateDownloadingDialog(
+                                    progress = state.progress,
+                                    downloadedMb = state.downloadedMb,
+                                    totalMb = state.totalMb
+                                )
+                            }
+                            is UpdateState.Error -> {
+                                UpdateErrorDialog(
+                                    message = state.message,
+                                    onRetry = {
+                                        appUpdateManager.resetState()
+                                        updateScope.launch { appUpdateManager.checkForUpdate() }
+                                    },
+                                    onDismiss = {
+                                        appUpdateManager.resetState()
+                                        updateDismissed = true
+                                    }
+                                )
+                            }
+                            else -> {}
+                        }
+                    }
+
+                }
                 }
             }
         }
-    }
-}
-
-/**
- * ViewMore card with directional alpha animation (Infinite mode only)
- */
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun InfiniteViewMoreCard(
-    isTopNav: Boolean,
-    isFirstRow: Boolean,
-    drawerRequester: FocusRequester,
-    upKeyDebouncer: UpKeyDebouncer,
-    rightKeyDebouncer: RowKeyRepeatDebouncer,
-    navbarEscapeDebounceMs: Long,
-    repeatGate: DpadRepeatGate,
-    scrollIndex: Int,
-    currentFocusedIndex: Int,
-    onClick: () -> Unit,
-    onFocused: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    val isToTheLeft = scrollIndex < currentFocusedIndex
-    val targetAlpha = if (isToTheLeft) 0f else 1f
-
-    val animatedAlpha by animateFloatAsState(
-        targetValue = targetAlpha,
-        animationSpec = spring(
-            stiffness = Spring.StiffnessMediumLow,
-            dampingRatio = Spring.DampingRatioNoBouncy
-        ),
-        label = "viewMoreAlpha"
-    )
-
-    Box(
-        modifier = modifier
-            .width(ITEM_WIDTH)
-            .graphicsLayer {
-                clip = false
-                alpha = animatedAlpha
-            }
-            .onPreviewKeyEvent { keyEvent ->
-                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
-                if (keyEvent.type == KeyEventType.KeyDown) {
-                    when (keyEvent.key) {
-                        Key.DirectionRight -> {
-                            // Debounce RIGHT long-press repeats so focus does not escape unexpectedly.
-                            val now = System.currentTimeMillis()
-                            val timeSinceLastRight = now - rightKeyDebouncer.lastTime
-                            rightKeyDebouncer.lastTime = now
-                            timeSinceLastRight <= navbarEscapeDebounceMs
-                        }
-                        Key.DirectionUp -> {
-                            if (isTopNav) {
-                                val now = System.currentTimeMillis()
-                                val timeSinceLastUp = now - upKeyDebouncer.lastTime
-                                upKeyDebouncer.lastTime = now
-
-                                if (isFirstRow) {
-                                    if (timeSinceLastUp > 300L) {
-                                        drawerRequester.requestFocus()
-                                    }
-                                    true
-                                } else {
-                                    false
-                                }
-                            } else false
-                        }
-                        else -> false
-                    }
-                } else false
-            }
-            .onFocusChanged { focusState ->
-                isFocused = focusState.isFocused
-                if (focusState.isFocused) {
-                    onFocused()
-                }
-            }
-    ) {
-        ViewMoreCard(
-            onClick = onClick,
-            onFocused = null
-        )
     }
 }
