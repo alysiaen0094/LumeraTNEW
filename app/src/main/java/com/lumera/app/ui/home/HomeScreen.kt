@@ -305,6 +305,17 @@ fun CinematicLayout(
         )
     }
 
+    val tmdbPreviewItem = remember(renderedPreviewItem, state.tmdbEnabled, state.tmdbEnrichedIds) {
+        if (renderedPreviewItem == null) {
+            null
+        } else {
+            val key = "${renderedPreviewItem.type}:${renderedPreviewItem.id}"
+            val tmdbReady = !state.tmdbEnabled || state.tmdbEnrichedIds.contains(key)
+    
+            if (tmdbReady) renderedPreviewItem else null
+        }
+    }
+
     LaunchedEffect(state.rows, state.history, restoredPreviewItem, effectiveLastFocusedKey) {
         if (instantFocusItem == null) {
             val first = when {
@@ -332,7 +343,7 @@ fun CinematicLayout(
 
     LaunchedEffect(instantFocusItem) {
         val target = instantFocusItem ?: return@LaunchedEffect
-        delay(140)
+        delay(220)
 
         if (instantFocusItem?.id == target.id && instantFocusItem?.type == target.type) {
             displayedItem = target
@@ -393,7 +404,7 @@ fun CinematicLayout(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
-        CinematicBackground(renderedPreviewItem)
+        CinematicBackground(tmdbPreviewItem)
         Column(modifier = Modifier.fillMaxSize().zIndex(2f)) {
             // INFO SECTION
             Box(
@@ -404,7 +415,7 @@ fun CinematicLayout(
                 contentAlignment = Alignment.TopStart
             ) {
                 AnimatedContent(
-                    targetState = renderedPreviewItem,
+                    targetState = tmdbPreviewItem,
                     transitionSpec = { fadeIn(tween(0)).togetherWith(fadeOut(tween(0))) },
                     label = "Info"    
                 ) { item ->
