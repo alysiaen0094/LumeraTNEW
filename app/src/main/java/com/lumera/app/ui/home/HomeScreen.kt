@@ -1,17 +1,13 @@
 package com.lumera.app.ui.home
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -46,8 +42,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.tv.material3.Card
-import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -98,14 +92,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     currentProfile: ProfileEntity?,
     onMovieClick: (MetaItem) -> Unit,
-    onViewMore: (String, List<MetaItem>, String) -> Unit = { _, _, _ -> },
-    onHomeClick: () -> Unit = {},
-    onWatchlistClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onViewMore: (String, List<MetaItem>, String) -> Unit = { _, _, _ -> }
 ) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
     val layoutMode = currentProfile?.layoutFor(tab) ?: "simple"
     
     // Navbar is removed, so always use full-width content spacing.
@@ -139,37 +128,11 @@ fun HomeScreen(
     // takes ~200ms. Until focus is established, keep BackHandler enabled so a quick
     // second back press doesn't exit the app. Resets on each fresh composition.
     var focusEverSet by remember { mutableStateOf(false) }
-    var homeSidebarOpen by remember { mutableStateOf(false) }
-    var restoreContentFocusAfterSidebarClose by remember { mutableStateOf(false) }
-    val homeSidebarFirstFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(homeSidebarOpen, restoreContentFocusAfterSidebarClose) {
-        if (homeSidebarOpen) {
-            delay(140)
-            runCatching { homeSidebarFirstFocusRequester.requestFocus() }
-        } else if (restoreContentFocusAfterSidebarClose) {
-            delay(120)
-            runCatching { entryRequester.requestFocus() }
-            restoreContentFocusAfterSidebarClose = false
-        }
+    // Old Lumera drawer behavior: Back opens the navigation drawer.
+    BackHandler {
+        drawerRequester.requestFocus()
     }
-
-    BackHandler(enabled = !homeSidebarOpen) {
-        homeSidebarOpen = true
-    }
-
-    BackHandler(enabled = homeSidebarOpen) {
-        restoreContentFocusAfterSidebarClose = true
-        homeSidebarOpen = false
-    }
-
-    // Only enable explicit back handling if:
-    // 1. We are in Side-Nav mode (Always handle)
-    // 2. We are in Top-Nav mode AND content is focused (Handle = Open Nav)
-    // 3. Top-Nav mode AND focus not yet established (transition guard)
-    // If Top-Nav mode AND content is NOT focused AND focus was already set, disable this
-    // handler so TopNavigationBar's handler can "Close Nav" (return to content).
-    // Navbar is removed. MainActivity now owns Back behavior.
 
     Box(
     modifier = Modifier
@@ -221,8 +184,7 @@ fun HomeScreen(
                     },
                     onLoadMore = { configId -> viewModel.loadMoreItems(configId) },
                     entryRequester = entryRequester,
-                    drawerRequester = homeSidebarFirstFocusRequester,
-                    onOpenSidebar = { homeSidebarOpen = true },
+                    drawerRequester = drawerRequester,
                     lastFocusedKey = lastFocusedKey,
                     rowScrollPositions = rowScrollPositions,
                     verticalScrollPosition = verticalScrollPosition,
@@ -254,8 +216,7 @@ fun HomeScreen(
                     },
                     onLoadMore = { configId -> viewModel.loadMoreItems(configId) },
                     entryRequester = entryRequester,
-                    drawerRequester = homeSidebarFirstFocusRequester,
-                    onOpenSidebar = { homeSidebarOpen = true },
+                    drawerRequester = drawerRequester,
                     lastFocusedKey = lastFocusedKey,
                     rowScrollPositions = rowScrollPositions,
                     verticalScrollPosition = verticalScrollPosition,
@@ -273,61 +234,6 @@ fun HomeScreen(
         }
         } // CompositionLocalProvider
     }
-
-    AnimatedVisibility(
-        visible = homeSidebarOpen,
-        enter = fadeIn(animationSpec = tween(120)) +
-            slideInHorizontally(
-                animationSpec = tween(180),
-                initialOffsetX = { fullWidth -> -fullWidth }
-            ),
-        exit = fadeOut(animationSpec = tween(120)) +
-            slideOutHorizontally(
-                animationSpec = tween(160),
-                targetOffsetX = { fullWidth -> -fullWidth }
-            ),
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(20f)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.22f))
-            )
-
-            HomeOnlySidebar(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 14.dp),
-                firstFocusRequester = homeSidebarFirstFocusRequester,
-                onHomeClick = {
-                    restoreContentFocusAfterSidebarClose = true
-                    homeSidebarOpen = false
-                    onHomeClick()
-                },
-                onWatchlistClick = {
-                    restoreContentFocusAfterSidebarClose = true
-                    homeSidebarOpen = false
-                    onWatchlistClick()
-                },
-                onSettingsClick = {
-                    restoreContentFocusAfterSidebarClose = true
-                    homeSidebarOpen = false
-                    onSettingsClick()
-                },
-                onProfileClick = {
-                    restoreContentFocusAfterSidebarClose = true
-                    homeSidebarOpen = false
-                    onProfileClick()
-                },
-                onExitClick = {
-                    (context as? Activity)?.finishAffinity()
-                }
-            )
-        }
-    }
 }
 }
 
@@ -344,7 +250,6 @@ fun CinematicLayout(
     onLoadMore: (String) -> Unit,
     entryRequester: FocusRequester,
     drawerRequester: FocusRequester,
-    onOpenSidebar: () -> Unit = {},
     lastFocusedKey: String?,
     rowScrollPositions: Map<String, Pair<Int, Int>>,
     verticalScrollPosition: Pair<Int, Int>,
@@ -500,10 +405,7 @@ fun CinematicLayout(
             ) {
                 AnimatedContent(
                     targetState = renderedPreviewItem,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(220))
-                            .togetherWith(fadeOut(animationSpec = tween(120)))
-                    },
+                    transitionSpec = { fadeIn(tween(0)).togetherWith(fadeOut(tween(0))) },
                     label = "Info"    
                 ) { item ->
                     if (item != null) {
@@ -649,7 +551,6 @@ fun CinematicLayout(
                                     externalListState = historyRowState,
                                     upKeyDebouncer = upKeyDebouncer,
                                     repeatGate = dpadRepeatGate,
-                                    onOpenSidebar = onOpenSidebar,
                                     isLandscapeCards = isLandscapeContinueWatching,
                                     enrichedItems = emptyMap(),
                                     rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
@@ -777,8 +678,7 @@ fun CinematicLayout(
                                         isInfiniteScrollingEnabled = item.isInfiniteScrollingEnabled,
                                         externalListState = rowListState,
                                         upKeyDebouncer = upKeyDebouncer,
-                                        repeatGate = dpadRepeatGate,
-                                        onOpenSidebar = onOpenSidebar
+                                        repeatGate = dpadRepeatGate
                                     )
                                 }
                             }
@@ -1315,7 +1215,6 @@ fun SimpleLayout(
     onLoadMore: (String) -> Unit,
     entryRequester: FocusRequester,
     drawerRequester: FocusRequester,
-    onOpenSidebar: () -> Unit = {},
     lastFocusedKey: String?,
     rowScrollPositions: Map<String, Pair<Int, Int>>,
     verticalScrollPosition: Pair<Int, Int>,
@@ -1486,7 +1385,6 @@ fun SimpleLayout(
                         externalListState = historyRowState,
                         upKeyDebouncer = upKeyDebouncer,
                         repeatGate = dpadRepeatGate,
-                        onOpenSidebar = onOpenSidebar,
                         pivotFocusRequester = if (heroItems.isNotEmpty()) firstRowPivotRequester else null,
                         isLandscapeCards = isLandscapeContinueWatching,
                         enrichedItems = emptyMap(),
@@ -1624,7 +1522,6 @@ fun SimpleLayout(
                             rowHeight = rowHeight,
                             upKeyDebouncer = upKeyDebouncer,
                             repeatGate = dpadRepeatGate,
-                            onOpenSidebar = onOpenSidebar,
                             pivotFocusRequester = if (heroItems.isNotEmpty() && historyItems.isEmpty() && rowIndex == 0) firstRowPivotRequester else null
                         )
                     }
@@ -1714,7 +1611,7 @@ fun CinematicBackground(item: MetaItem?) {
         Box(modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.65f).fillMaxHeight(0.65f)) {
             Crossfade(
                 targetState = item,
-                animationSpec = tween(260),
+                animationSpec = tween(0),
                 label = "HeroBg"
             ) { currentItem ->
                 if (currentItem != null) {
@@ -1819,117 +1716,6 @@ private fun HomeImdbBadge() {
         contentDescription = "IMDb",
         modifier = Modifier.height(16.dp)
     )
-}
-
-private fun delayFocusToEntry(entryRequester: FocusRequester) {
-    // Focus returns naturally to content on the next DPAD action. This helper keeps the call sites readable.
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun HomeOnlySidebar(
-    modifier: Modifier = Modifier,
-    firstFocusRequester: FocusRequester,
-    onHomeClick: () -> Unit,
-    onWatchlistClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onExitClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .width(118.dp)
-            .background(
-                color = Color.Black.copy(alpha = 0.36f),
-                shape = RoundedCornerShape(24.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        HomeSidebarButton(
-            text = "Home",
-            onClick = onHomeClick,
-            modifier = Modifier.focusRequester(firstFocusRequester)
-        )
-
-        HomeSidebarButton(
-            text = "Watchlist",
-            onClick = onWatchlistClick
-        )
-
-        HomeSidebarButton(
-            text = "Settings",
-            onClick = onSettingsClick
-        )
-
-        HomeSidebarButton(
-            text = "Profile",
-            onClick = onProfileClick
-        )
-
-        HomeSidebarButton(
-            text = "Exit",
-            onClick = onExitClick,
-            danger = true
-        )
-    }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun HomeSidebarButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    danger: Boolean = false
-) {
-    var focused by remember { mutableStateOf(false) }
-
-    Card(
-        onClick = onClick,
-        modifier = modifier
-            .width(96.dp)
-            .height(42.dp)
-            .onFocusChanged { focused = it.hasFocus },
-        colors = CardDefaults.colors(
-            containerColor = if (focused) {
-                Color.White
-            } else {
-                Color.White.copy(alpha = 0.08f)
-            },
-            focusedContainerColor = Color.White,
-            pressedContainerColor = Color.White.copy(alpha = 0.86f)
-        ),
-        shape = CardDefaults.shape(
-            shape = RoundedCornerShape(14.dp)
-        ),
-        scale = CardDefaults.scale(
-            focusedScale = 1.06f,
-            pressedScale = 0.98f
-        )
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                ),
-                color = when {
-                    focused -> Color.Black
-                    danger -> Color(0xFFFF8A8A)
-                    else -> Color.White.copy(alpha = 0.88f)
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
 }
 
 private fun extractHomePrimaryYear(releaseInfo: String?): String {
