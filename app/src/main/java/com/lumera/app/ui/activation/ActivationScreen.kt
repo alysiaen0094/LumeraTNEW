@@ -41,7 +41,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,7 +62,6 @@ fun ActivationScreen(
     val state by viewModel.uiState.collectAsState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
     val firstKeyRequester = remember { FocusRequester() }
 
     BackHandler { onExit() }
@@ -71,14 +69,13 @@ fun ActivationScreen(
     LaunchedEffect(Unit) {
         keyboardController?.hide()
         focusManager.clearFocus(force = true)
-        delay(180)
+        delay(40)
         firstKeyRequester.requestFocus()
     }
 
     LaunchedEffect(state.activated) {
         if (state.activated) {
             keyboardController?.hide()
-            focusManager.clearFocus(force = true)
             onActivated()
         }
     }
