@@ -1,5 +1,6 @@
 package com.lumera.app.ui.home
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -42,6 +43,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.tv.material3.Card
+import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -92,9 +95,14 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     currentProfile: ProfileEntity?,
     onMovieClick: (MetaItem) -> Unit,
-    onViewMore: (String, List<MetaItem>, String) -> Unit = { _, _, _ -> }
+    onViewMore: (String, List<MetaItem>, String) -> Unit = { _, _, _ -> },
+    onHomeClick: () -> Unit = {},
+    onWatchlistClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
     val layoutMode = currentProfile?.layoutFor(tab) ?: "simple"
     
     // Navbar is removed, so always use full-width content spacing.
@@ -102,7 +110,7 @@ fun HomeScreen(
     val isTopNav = true
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
     val infoTopPadding = 54.dp
-    val startPadding = 50.dp
+    val startPadding = 150.dp
 
     // Navbar/tabs are removed, so do not delay Home rendering.
     val isTransitioning = false
@@ -237,6 +245,19 @@ fun HomeScreen(
         }
         } // CompositionLocalProvider
     }
+
+    HomeOnlySidebar(
+        modifier = Modifier
+            .align(Alignment.CenterStart)
+            .padding(start = 14.dp),
+        onHomeClick = onHomeClick,
+        onWatchlistClick = onWatchlistClick,
+        onSettingsClick = onSettingsClick,
+        onProfileClick = onProfileClick,
+        onExitClick = {
+            (context as? Activity)?.finishAffinity()
+        }
+    )
 }
 }
 
@@ -1719,6 +1740,111 @@ private fun HomeImdbBadge() {
         contentDescription = "IMDb",
         modifier = Modifier.height(16.dp)
     )
+}
+
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun HomeOnlySidebar(
+    modifier: Modifier = Modifier,
+    onHomeClick: () -> Unit,
+    onWatchlistClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onExitClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .width(118.dp)
+            .background(
+                color = Color.Black.copy(alpha = 0.36f),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        HomeSidebarButton(
+            text = "Home",
+            onClick = onHomeClick
+        )
+
+        HomeSidebarButton(
+            text = "Watchlist",
+            onClick = onWatchlistClick
+        )
+
+        HomeSidebarButton(
+            text = "Settings",
+            onClick = onSettingsClick
+        )
+
+        HomeSidebarButton(
+            text = "Profile",
+            onClick = onProfileClick
+        )
+
+        HomeSidebarButton(
+            text = "Exit",
+            onClick = onExitClick,
+            danger = true
+        )
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun HomeSidebarButton(
+    text: String,
+    onClick: () -> Unit,
+    danger: Boolean = false
+) {
+    var focused by remember { mutableStateOf(false) }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .width(96.dp)
+            .height(42.dp)
+            .onFocusChanged { focused = it.hasFocus },
+        colors = CardDefaults.colors(
+            containerColor = if (focused) {
+                Color.White
+            } else {
+                Color.White.copy(alpha = 0.08f)
+            },
+            focusedContainerColor = Color.White,
+            pressedContainerColor = Color.White.copy(alpha = 0.86f)
+        ),
+        shape = CardDefaults.shape(
+            shape = RoundedCornerShape(14.dp)
+        ),
+        scale = CardDefaults.scale(
+            focusedScale = 1.06f,
+            pressedScale = 0.98f
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                ),
+                color = when {
+                    focused -> Color.Black
+                    danger -> Color(0xFFFF8A8A)
+                    else -> Color.White.copy(alpha = 0.88f)
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 private fun extractHomePrimaryYear(releaseInfo: String?): String {
