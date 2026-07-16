@@ -12,6 +12,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,22 +44,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.compose.ui.text.font.FontWeight
-import kotlinx.coroutines.delay
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 
 enum class NavDestination(
     @DrawableRes val iconRes: Int,
-    val label: String,
+    val labelRes: Int,
     val iconSize: Dp = 20.dp
 ) {
-    Home(R.drawable.home_icon, "Home", iconSize = 21.dp),
-    Movies(R.drawable.movies_icon, "Movies"),
-    Series(R.drawable.series_icon, "Series"),
-    Watchlist(R.drawable.watchlist_icon, "Watchlist"),
-    Search(R.drawable.search_icon, "Search"),
-    Profile(R.drawable.profile_icon, "Profile", iconSize = 18.dp),
-    Settings(R.drawable.settings_icon, "Settings"),
-    Exit(R.drawable.exit_icon, "Exit", iconSize = 21.dp)
+    Home(R.drawable.home_icon, R.string.nav_home, iconSize = 21.dp),
+    Movies(R.drawable.movies_icon, R.string.nav_movies),
+    Series(R.drawable.series_icon, R.string.nav_series),
+    Watchlist(R.drawable.watchlist_icon, R.string.nav_watchlist),
+    Search(R.drawable.search_icon, R.string.nav_search),
+    Profile(R.drawable.profile_icon, R.string.nav_profile, iconSize = 18.dp),
+    Settings(R.drawable.settings_icon, R.string.nav_settings)
 }
 
 @Composable
@@ -68,44 +72,24 @@ fun NavDrawer(
     onClose: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    var isDrawerOpen by remember { mutableStateOf(false) }
-    val isMenuExpanded = isDrawerOpen
-
-    fun openDrawer() {
-        isDrawerOpen = true
-    }
-
-    LaunchedEffect(currentDestination) {
-        isDrawerOpen = false
-    }
-
-    LaunchedEffect(isDrawerOpen, currentDestination) {
-        if (isDrawerOpen) {
-            delay(80)
-            drawerRequesters[currentDestination]?.requestFocus()
-        }
-    }
+    var isMenuFocused by remember { mutableStateOf(false) }
 
     val width by animateDpAsState(
-        targetValue = if (isMenuExpanded) 185.dp else 62.dp,
+        targetValue = if (isMenuFocused) 200.dp else 80.dp,
         label = "NavWidth",
-        animationSpec = if (isMenuExpanded) tween(300) else snap()
+        animationSpec = tween(300)
     )
 
     // VISIBILITY ANIMATION:
     val extraItemsAlpha by animateFloatAsState(
-        targetValue = if (isMenuExpanded) 1f else 0f,
+        targetValue = if (isMenuFocused) 1f else 0f,
         label = "ExtraItemsAlpha",
-        animationSpec = if (isMenuExpanded) tween(300) else snap()
+        animationSpec = tween(300)
     )
 
-    BackHandler(enabled = true) {
-        if (isMenuExpanded) {
-            isDrawerOpen = false
-            onClose()
-        } else {
-            openDrawer()
-        }
+    // Standard BackHandler for when the drawer container is focused
+    BackHandler(enabled = isMenuFocused) {
+        onClose()
     }
 
     val showStaticMask = currentDestination in listOf(
@@ -124,64 +108,60 @@ fun NavDrawer(
 
         // LAYER 2: Static Hero Mask
         val backgroundColor = MaterialTheme.colorScheme.background
-        if (showStaticMask) {
+        if (showStaticMask && isMenuFocused) {
             Box(
                 modifier = Modifier
-                    .width(260.dp)
+                    .width(400.dp)
                     .fillMaxHeight()
-                    .zIndex(1f)
+                    .zIndex(1.1f)
                     .background(
                         Brush.horizontalGradient(
                             colorStops = arrayOf(
-                                0.0f to backgroundColor.copy(alpha = 0.8f),
-                                0.12f to backgroundColor.copy(alpha = 0.72f),
-                                0.25f to backgroundColor.copy(alpha = 0.62f),
-                                0.38f to backgroundColor.copy(alpha = 0.50f),
-                                0.50f to backgroundColor.copy(alpha = 0.38f),
-                                0.65f to backgroundColor.copy(alpha = 0.24f),
-                                0.78f to backgroundColor.copy(alpha = 0.13f),
-                                0.90f to backgroundColor.copy(alpha = 0.05f),
+                                0.0f to backgroundColor.copy(alpha = 0.95f),
+                                0.15f to backgroundColor.copy(alpha = 0.90f),
+                                0.30f to backgroundColor.copy(alpha = 0.80f),
+                                0.45f to backgroundColor.copy(alpha = 0.65f),
+                                0.60f to backgroundColor.copy(alpha = 0.45f),
+                                0.75f to backgroundColor.copy(alpha = 0.25f),
+                                0.90f to backgroundColor.copy(alpha = 0.08f),
                                 1.0f to Color.Transparent
                             ),
-                            startX = 0f,
-                            endX = 350f
+                            startX = 0f
                         )
                     )
             )
         }
 
-        // LAYER 3: Dynamic Expansion Shadow
+        // LAYER 3: Interactive Drawer Background (solid on focus/expand)
         androidx.compose.animation.AnimatedVisibility(
-            visible = isMenuExpanded,
+            visible = isMenuFocused,
             enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)),
-            exit = androidx.compose.animation.fadeOut(animationSpec = snap()),
-            modifier = Modifier.zIndex(1.5f).fillMaxSize()
+            exit = androidx.compose.animation.fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.zIndex(1.5f)
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .width(width)
+                    .fillMaxHeight()
                     .background(
                         Brush.horizontalGradient(
                             colorStops = arrayOf(
-                                0.0f to backgroundColor.copy(alpha = 0.95f),
-                                0.12f to backgroundColor.copy(alpha = 0.90f),
-                                0.25f to backgroundColor.copy(alpha = 0.82f),
-                                0.38f to backgroundColor.copy(alpha = 0.70f),
-                                0.50f to backgroundColor.copy(alpha = 0.55f),
-                                0.65f to backgroundColor.copy(alpha = 0.38f),
-                                0.78f to backgroundColor.copy(alpha = 0.20f),
-                                0.90f to backgroundColor.copy(alpha = 0.08f),
+                                0.0f to backgroundColor.copy(alpha = 0.98f),
+                                0.2f to backgroundColor.copy(alpha = 0.96f),
+                                0.4f to backgroundColor.copy(alpha = 0.92f),
+                                0.6f to backgroundColor.copy(alpha = 0.85f),
+                                0.8f to backgroundColor.copy(alpha = 0.70f),
+                                0.9f to backgroundColor.copy(alpha = 0.40f),
                                 1.0f to Color.Transparent
                             ),
-                            startX = 0f,
-                            endX = 520f
+                            startX = 0f
                         )
                     )
             )
         }
 
         // Noise overlay to reduce gradient banding on budget panels
-        //com.lumera.app.ui.components.NoiseOverlay(modifier = Modifier.zIndex(1.6f))
+        com.lumera.app.ui.components.NoiseOverlay(modifier = Modifier.zIndex(1.6f))
 
         // LAYER 4: Interactive Drawer
         Box(
@@ -189,7 +169,8 @@ fun NavDrawer(
                 .width(width)
                 .fillMaxHeight()
                 .zIndex(2f)
-                .padding(top = 24.dp, bottom = 24.dp)
+                .onFocusChanged { isMenuFocused = it.hasFocus }
+                .padding(top = 30.dp, bottom = 30.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -207,40 +188,18 @@ fun NavDrawer(
                         screen = dest,
                         customLabel = label,
                         isSelected = isSelected,
-                        isMenuExpanded = isMenuExpanded,
-                        isDrawerActive = isMenuExpanded,
-                        onNavigate = { destination ->
-                            isDrawerOpen = false
-                            onClose()
-                            onNavigate(destination)
-                        },
+                        isMenuExpanded = isMenuFocused,
+                        isDrawerActive = isMenuFocused,
+                        onNavigate = onNavigate,
                         modifier = Modifier
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
                                 if (it.type == KeyEventType.KeyDown) {
-                                    when (it.key) {
-                                        Key.DirectionLeft -> {
-                                            openDrawer()
-                                            true
-                                        }
-                            
-                                        Key.DirectionRight -> {
-                                            isDrawerOpen = false
-                                            onClose()
-                                            true
-                                        }
-                            
-                                        Key.Back -> {
-                                            if (isMenuExpanded) {
-                                                isDrawerOpen = false
-                                                onClose()
-                                            } else {
-                                                openDrawer()
-                                            }
-                                            true
-                                        }
-                            
-                                        else -> false
+                                    if (it.key == Key.DirectionRight || it.key == Key.Back) {
+                                        onClose()
+                                        true
+                                    } else {
+                                        false
                                     }
                                 } else {
                                     false
@@ -251,41 +210,23 @@ fun NavDrawer(
 
                 // 1. Profile Avatar (Custom component)
                 Column(
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (isMenuExpanded) {
+                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
                         ProfileAvatarItem(
                             profile = currentProfile,
-                            isMenuExpanded = true,
-                            onNavigate = {
-                                isDrawerOpen = false
-                                onClose()
-                                onNavigate(NavDestination.Profile)
-                            },
+                            isMenuExpanded = isMenuFocused,
+                            onNavigate = { onNavigate(NavDestination.Profile) },
                             modifier = Modifier
                                 .focusRequester(drawerRequesters[NavDestination.Profile]!!)
                                 .onPreviewKeyEvent {
                                     if (it.type == KeyEventType.KeyDown) {
-                                        when (it.key) {
-                                            Key.DirectionLeft -> {
-                                                openDrawer()
-                                                true
-                                            }
-                                
-                                            Key.DirectionRight -> {
-                                                isDrawerOpen = false
-                                                onClose()
-                                                true
-                                            }
-                                
-                                            Key.Back -> {
-                                                isDrawerOpen = false
-                                                onClose()
-                                                true
-                                            }
-                                
-                                            else -> false
+                                        if (it.key == Key.DirectionRight || it.key == Key.Back) {
+                                            onClose()
+                                            true
+                                        } else {
+                                            false
                                         }
                                     } else {
                                         false
@@ -304,12 +245,18 @@ fun NavDrawer(
 
                 // Middle Items
                 DrawerItem(NavDestination.Home)
-                Spacer(modifier = Modifier.height(4.dp))
-                DrawerItem(NavDestination.Movies)
-                Spacer(modifier = Modifier.height(4.dp))
-                DrawerItem(NavDestination.Series)
-                Spacer(modifier = Modifier.height(4.dp))
-                DrawerItem(NavDestination.Watchlist)
+                if (currentProfile?.menuMoviesEnabled != false) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    DrawerItem(NavDestination.Movies)
+                }
+                if (currentProfile?.menuSeriesEnabled != false) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    DrawerItem(NavDestination.Series)
+                }
+                if (currentProfile?.menuWatchlistEnabled != false) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    DrawerItem(NavDestination.Watchlist)
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -318,12 +265,9 @@ fun NavDrawer(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (isMenuExpanded) {
+                    // Settings (Invisible when collapsed)
+                    Box(modifier = Modifier.graphicsLayer { alpha = extraItemsAlpha }) {
                         DrawerItem(NavDestination.Settings)
-                
-                        Spacer(modifier = Modifier.height(4.dp))
-                
-                        DrawerItem(NavDestination.Exit)
                     }
                 }
             }
@@ -352,32 +296,39 @@ fun SidebarItem(
         label = "contentColor"
     )
 
-    val iconStartPadding = 23.dp
+    val iconStartPadding = 20.dp
 
     val indicatorWidth by animateDpAsState(
         targetValue = if (showIndicator) 4.dp else 0.dp,
         label = "IndicatorWidth"
     )
 
-    val textScale = 1f
+    val textScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.15f else 1.0f,
+        label = "TextScale"
+    )
 
     val textAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
-        animationSpec = if (isMenuExpanded) tween(160) else snap(),
+        animationSpec = tween(300),
         label = "TextAlpha"
     )
-    val textOffset = 0f
+    val textOffset by animateFloatAsState(
+        targetValue = if (isMenuExpanded) 0f else -20f,
+        animationSpec = tween(300),
+        label = "TextOffset"
+    )
 
-    val displayText = customLabel ?: screen.label
+    val displayText = customLabel ?: stringResource(screen.labelRes)
 
     Box(
-        modifier = Modifier
-            .height(44.dp)
+        modifier = modifier
+            .height(50.dp)
             .fillMaxWidth()
     ) {
         Surface(
             onClick = { onNavigate(screen) },
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .onFocusChanged { isFocused = it.isFocused },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -406,8 +357,7 @@ fun SidebarItem(
 
                 Text(
                     text = displayText,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
                     color = contentColor,
                     maxLines = 1,
                     softWrap = false,
@@ -464,8 +414,16 @@ fun ProfileAvatarItem(
         label = "borderColor"
     )
     
-    val avatarScale = 1f
-    val textScale = 1f
+    val avatarScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.15f else 1.0f,
+        animationSpec = tween(200),
+        label = "avatarScale"
+    )
+    
+    val textScale by animateFloatAsState(
+        targetValue = if (isFocused) 1.15f else 1.0f,
+        label = "TextScale"
+    )
     
     // Text only appears when profile item is focused
     val textAlpha by animateFloatAsState(
@@ -474,19 +432,23 @@ fun ProfileAvatarItem(
         label = "TextAlpha"
     )
     
-    val textOffset = 0f
+    val textOffset by animateFloatAsState(
+        targetValue = if (isFocused) 0f else -20f,
+        animationSpec = tween(200),
+        label = "TextOffset"
+    )
     
     val avatarSource = profile?.let { ProfileAssets.getAvatarSource(it.avatarRef) }
-    val displayName = profile?.name ?: "Profile"
+    val displayName = profile?.name ?: stringResource(R.string.nav_profile)
     
     Box(
-        modifier = Modifier
-            .height(44.dp)
+        modifier = modifier
+            .height(50.dp)
             .fillMaxWidth()
     ) {
         Surface(
             onClick = onNavigate,
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .onFocusChanged { isFocused = it.isFocused },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -507,8 +469,8 @@ fun ProfileAvatarItem(
                 // Avatar circle with border on focus
                 Box(
                     modifier = Modifier
-                        .padding(start = 21.dp)
-                        .size(26.dp)
+                        .padding(start = 15.dp)
+                        .size(30.dp)
                         .graphicsLayer {
                             scaleX = avatarScale
                             scaleY = avatarScale
@@ -522,9 +484,9 @@ fun ProfileAvatarItem(
                             model = ImageRequest.Builder(context)
                                 .data(avatarSource)
                                 .size(100, 100)
-                                .crossfade(false)
+                                .crossfade(true)
                                 .build(),
-                            contentDescription = "Profile Avatar",
+                            contentDescription = stringResource(R.string.profile_avatar_content_desc),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -546,18 +508,15 @@ fun ProfileAvatarItem(
                 ) {
                     Text(
                         text = displayName,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
                         color = contentColor,
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Visible
                     )
-                    
                     Text(
-                        text = "Change Profile",
+                        text = stringResource(R.string.change_profile),
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
                         color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
                         softWrap = false,
