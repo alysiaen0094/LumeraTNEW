@@ -141,7 +141,7 @@ fun NavDrawer(
         ) {
             Box(
                 modifier = Modifier
-                    .width(width)
+                    .width(width + 14.dp)
                     .fillMaxHeight()
                     .background(
                         Brush.horizontalGradient(
@@ -166,11 +166,11 @@ fun NavDrawer(
         // LAYER 4: Interactive Drawer
         Box(
             modifier = Modifier
-                .width(width)
+                .width(width + 14.dp)
                 .fillMaxHeight()
                 .zIndex(2f)
                 .onFocusChanged { isMenuFocused = it.hasFocus }
-                .padding(top = 30.dp, bottom = 30.dp)
+                .padding(start = 14.dp, top = 30.dp, bottom = 30.dp))
         ) {
             Column(
                 modifier = Modifier
