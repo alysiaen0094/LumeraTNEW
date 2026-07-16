@@ -1083,18 +1083,7 @@ class MainActivity : ComponentActivity() {
                     LocalHubRoundCorners provides hubRoundCorners
                 ) {
                 LumeraBackground {
-    if (!isActivated) {
-        LumeraTheme(theme = DefaultThemes.VOID) {
-            ActivationScreen(
-                onActivated = {
-                    isActivated = true
-                },
-                onExit = {
-                    finishAffinity()
-                }
-            )
-        }
-    } else if (currentProfile == null) {
+    if (currentProfile == null) {
         // Double-back-to-exit on profile selection
         var lastBackPressMs by remember { mutableStateOf(0L) }
         BackHandler {
