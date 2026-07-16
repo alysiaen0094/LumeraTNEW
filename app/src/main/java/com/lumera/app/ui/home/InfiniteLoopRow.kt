@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -119,6 +120,7 @@ fun InfiniteLoopRow(
     rowHeight: Dp = 210.dp,
     upKeyDebouncer: UpKeyDebouncer,
     repeatGate: DpadRepeatGate,
+    onOpenSidebar: () -> Unit = {},
     pivotFocusRequester: FocusRequester? = null,
     isLandscapeCards: Boolean = false,
     enrichedItems: Map<String, MetaItem> = emptyMap()
@@ -143,12 +145,12 @@ fun InfiniteLoopRow(
     }
     
     // Create pivot spec with skip provider and dynamic stiffness
-    val pivotSpec = remember(paddingPx) {
+    val pivotSpec = remember(paddingPx) { 
         FocusPivotSpec(
             customOffset = paddingPx,
             skipScrollProvider = { skipBringIntoViewScroll },
-            stiffnessProvider = { Spring.StiffnessMediumLow }
-        )
+            stiffnessProvider = { Spring.StiffnessLow }
+        ) 
     }
 
     // Calculate end padding to allow last item to align to left (pivot position)
@@ -211,6 +213,7 @@ fun InfiniteLoopRow(
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
                         repeatGate = repeatGate,
+                        onOpenSidebar = onOpenSidebar,
                         pivotFocusRequester = pivotFocusRequester,
                         isLandscapeCards = isLandscapeCards,
                         enrichedItems = enrichedItems,
@@ -243,6 +246,7 @@ fun InfiniteLoopRow(
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
                         repeatGate = repeatGate,
+                        onOpenSidebar = onOpenSidebar,
                         pivotFocusRequester = pivotFocusRequester
                     )
                 }
@@ -270,6 +274,7 @@ fun InfiniteLoopRow(
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
                         repeatGate = repeatGate,
+                        onOpenSidebar = onOpenSidebar,
                         pivotFocusRequester = pivotFocusRequester
                     )
                 }
@@ -306,6 +311,7 @@ private fun LinearContent(
     rowHeight: Dp,
     upKeyDebouncer: UpKeyDebouncer,
     repeatGate: DpadRepeatGate,
+    onOpenSidebar: () -> Unit = {},
     pivotFocusRequester: FocusRequester? = null,
     isLandscapeCards: Boolean = false,
     enrichedItems: Map<String, MetaItem> = emptyMap(),
@@ -327,6 +333,16 @@ private fun LinearContent(
     // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
     val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
     val navbarEscapeDebounceMs = 300L // Only allow escape if 300ms since last LEFT press
+
+    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
+    // Scrolls forward 3 items and back in ~2 frames (invisible at 60fps)
+    LaunchedEffect(Unit) {
+        withFrameNanos { } // Wait for initial layout
+        val idx = listState.firstVisibleItemIndex
+        val off = listState.firstVisibleItemScrollOffset
+        listState.scrollToItem(idx + 3)
+        listState.scrollToItem(idx, off)
+    }
 
     LazyRow(
         state = listState,
@@ -373,7 +389,8 @@ private fun LinearContent(
                                     leftKeyDebouncer.lastTime = now
 
                                     if (isFirstItem) {
-                                        true // Block LEFT at first item. Back opens navigation.
+                                        onOpenSidebar()
+                                        true
                                     } else {
                                         false
                                     }
@@ -388,7 +405,7 @@ private fun LinearContent(
                                         if (isFirstRow) {
                                             // Only escape to navbar if slow press
                                             if (timeSinceLastUp > 300L) {
-                                                drawerRequester.requestFocus()
+                                                onOpenSidebar()
                                             }
                                             true // Block default
                                         } else {
@@ -496,6 +513,7 @@ private fun InfiniteGridContent(
     rowHeight: Dp,
     upKeyDebouncer: UpKeyDebouncer,
     repeatGate: DpadRepeatGate,
+    onOpenSidebar: () -> Unit = {},
     pivotFocusRequester: FocusRequester? = null
 ) {
     val context = LocalContext.current
@@ -538,6 +556,15 @@ private fun InfiniteGridContent(
                  withoutPrefix.substringBeforeLast("_")
              }
         }
+    }
+
+    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        val idx = listState.firstVisibleItemIndex
+        val off = listState.firstVisibleItemScrollOffset
+        listState.scrollToItem(idx + 3)
+        listState.scrollToItem(idx, off)
     }
 
     LazyRow(
@@ -610,7 +637,8 @@ private fun InfiniteGridContent(
                                             leftKeyDebouncer.lastTime = now
                                             
                                             if (isLoopStart) {
-                                                true // Block LEFT at loop start. Back opens navigation.
+                                                onOpenSidebar()
+                                                true
                                             } else {
                                                 false
                                             }
@@ -624,7 +652,7 @@ private fun InfiniteGridContent(
 
                                                 if (isFirstRow) {
                                                     if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
+                                                        onOpenSidebar()
                                                     }
                                                     true
                                                 } else {
@@ -732,6 +760,7 @@ private fun FiniteGridContent(
     rowHeight: Dp,
     upKeyDebouncer: UpKeyDebouncer,
     repeatGate: DpadRepeatGate,
+    onOpenSidebar: () -> Unit = {},
     pivotFocusRequester: FocusRequester? = null
 ) {
     val context = LocalContext.current
@@ -750,6 +779,15 @@ private fun FiniteGridContent(
     // Build finite list: [Movie 0 ... Movie N, ViewMoreItem]
     val dataList: List<GridRowItem> = remember(truncatedMovies) {
         truncatedMovies.map { GridRowItem.MovieItem(it) } + GridRowItem.ViewMoreItem
+    }
+
+    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        val idx = listState.firstVisibleItemIndex
+        val off = listState.firstVisibleItemScrollOffset
+        listState.scrollToItem(idx + 3)
+        listState.scrollToItem(idx, off)
     }
 
     LazyRow(
@@ -806,11 +844,8 @@ private fun FiniteGridContent(
                                             leftKeyDebouncer.lastTime = now
                                             
                                             if (isFirstItem) {
-                                                // Only escape to navbar if this is a deliberate press (not rapid long-press repeat)
-                                                if (!isTopNav && timeSinceLastLeft > navbarEscapeDebounceMs) {
-                                                    drawerRequester.requestFocus()
-                                                }
-                                                true // Consume at first item to prevent focus escaping
+                                                onOpenSidebar()
+                                                true
                                             } else {
                                                 false // Let normal navigation happen
                                             }
@@ -824,7 +859,7 @@ private fun FiniteGridContent(
 
                                                 if (isFirstRow) {
                                                     if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
+                                                        onOpenSidebar()
                                                     }
                                                     true
                                                 } else {
@@ -875,7 +910,7 @@ private fun FiniteGridContent(
 
                                                 if (isFirstRow) {
                                                     if (timeSinceLastUp > 300L) {
-                                                        drawerRequester.requestFocus()
+                                                        onOpenSidebar()
                                                     }
                                                     true
                                                 } else {
