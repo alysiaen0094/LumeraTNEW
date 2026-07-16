@@ -65,7 +65,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
@@ -268,22 +267,26 @@ fun DetailsScreen(
         }
     }
 
-    // Smooth content reveal: animate alpha from 0→1 when content becomes ready
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (contentReady) 1f else 0f,
-        animationSpec = tween(durationMillis = 400),
-        label = "content_reveal"
-    )
-
     Box(modifier = Modifier.fillMaxSize().background(bg)) {
-        // Loading sweep — solid bg with subtle light sweep while data loads
         if (!contentReady) {
-            com.lumera.app.ui.components.DetailsLoadingSweep()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bg),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = accentColor,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
         }
+    
         if (showMovieContent && !tmdbPending) {
             val currentMovie = requireNotNull(movie)
             val bgImage = currentMovie.background ?: currentMovie.poster
-            Box(modifier = Modifier.alpha(contentAlpha)) {
+            Box {
             AsyncImage(
                 model = bgImage,
                 contentDescription = null,
@@ -446,14 +449,15 @@ fun DetailsScreen(
                 Text(
                     text = currentMovie.description ?: "",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 15.5.sp,
-                        lineHeight = 19.5.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 15.sp,
+                        lineHeight = 21.sp,
+                        fontWeight = FontWeight.Normal,
+                        letterSpacing = 0.1.sp
                     ),
-                    color = textColor.copy(alpha = 0.86f),
+                    color = textColor.copy(alpha = 0.78f),
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(560.dp)
+                    modifier = Modifier.width(590.dp)
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
