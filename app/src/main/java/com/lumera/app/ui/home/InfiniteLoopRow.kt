@@ -23,7 +23,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -144,12 +143,12 @@ fun InfiniteLoopRow(
     }
     
     // Create pivot spec with skip provider and dynamic stiffness
-    val pivotSpec = remember(paddingPx) { 
+    val pivotSpec = remember(paddingPx) {
         FocusPivotSpec(
             customOffset = paddingPx,
             skipScrollProvider = { skipBringIntoViewScroll },
-            stiffnessProvider = { Spring.StiffnessLow }
-        ) 
+            stiffnessProvider = { Spring.StiffnessMediumLow }
+        )
     }
 
     // Calculate end padding to allow last item to align to left (pivot position)
@@ -328,16 +327,6 @@ private fun LinearContent(
     // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
     val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
     val navbarEscapeDebounceMs = 300L // Only allow escape if 300ms since last LEFT press
-
-    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
-    // Scrolls forward 3 items and back in ~2 frames (invisible at 60fps)
-    LaunchedEffect(Unit) {
-        withFrameNanos { } // Wait for initial layout
-        val idx = listState.firstVisibleItemIndex
-        val off = listState.firstVisibleItemScrollOffset
-        listState.scrollToItem(idx + 3)
-        listState.scrollToItem(idx, off)
-    }
 
     LazyRow(
         state = listState,
@@ -551,15 +540,6 @@ private fun InfiniteGridContent(
         }
     }
 
-    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        val idx = listState.firstVisibleItemIndex
-        val off = listState.firstVisibleItemScrollOffset
-        listState.scrollToItem(idx + 3)
-        listState.scrollToItem(idx, off)
-    }
-
     LazyRow(
         state = listState,
         modifier = Modifier
@@ -770,15 +750,6 @@ private fun FiniteGridContent(
     // Build finite list: [Movie 0 ... Movie N, ViewMoreItem]
     val dataList: List<GridRowItem> = remember(truncatedMovies) {
         truncatedMovies.map { GridRowItem.MovieItem(it) } + GridRowItem.ViewMoreItem
-    }
-
-    // Pre-scroll warmup: compose off-screen items to populate recycler + compile GPU shaders
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        val idx = listState.firstVisibleItemIndex
-        val off = listState.firstVisibleItemScrollOffset
-        listState.scrollToItem(idx + 3)
-        listState.scrollToItem(idx, off)
     }
 
     LazyRow(
