@@ -288,7 +288,8 @@ private fun ActivationKeyButton(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = if (isFocused) 1.045f else 1f,
+        animationSpec = tween(durationMillis = 90),
         label = "activationKeyScale"
     )
 
@@ -298,6 +299,7 @@ private fun ActivationKeyButton(
             isFocused -> Color.White.copy(alpha = 0.96f)
             else -> Color.White.copy(alpha = 0.11f)
         },
+        animationSpec = tween(durationMillis = 80),
         label = "activationKeyBackground"
     )
 
@@ -307,6 +309,7 @@ private fun ActivationKeyButton(
             isFocused -> Color.Black.copy(alpha = 0.94f)
             else -> Color.White.copy(alpha = 0.88f)
         },
+        animationSpec = tween(durationMillis = 80),
         label = "activationKeyContent"
     )
 
@@ -333,7 +336,7 @@ private fun ActivationKeyButton(
             .onPreviewKeyEvent { event ->
                 if (
                     enabled &&
-                    event.type == KeyEventType.KeyDown &&
+                    event.type == KeyEventType.KeyUp &&
                     (
                         event.key == Key.Enter ||
                             event.key == Key.DirectionCenter ||
