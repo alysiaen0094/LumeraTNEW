@@ -110,7 +110,7 @@ fun HomeScreen(
     val isTopNav = true
     val isLandscapeContinueWatching = currentProfile?.continueWatchingShape == "landscape"
     val infoTopPadding = 54.dp
-    val startPadding = 150.dp
+    val startPadding = 50.dp
 
     // Navbar/tabs are removed, so do not delay Home rendering.
     val isTransitioning = false
@@ -136,6 +136,24 @@ fun HomeScreen(
     // takes ~200ms. Until focus is established, keep BackHandler enabled so a quick
     // second back press doesn't exit the app. Resets on each fresh composition.
     var focusEverSet by remember { mutableStateOf(false) }
+    var homeSidebarOpen by remember { mutableStateOf(false) }
+    val homeSidebarFirstFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(homeSidebarOpen) {
+        if (homeSidebarOpen) {
+            delay(80)
+            runCatching { homeSidebarFirstFocusRequester.requestFocus() }
+        }
+    }
+
+    BackHandler(enabled = !homeSidebarOpen) {
+        homeSidebarOpen = true
+    }
+
+    BackHandler(enabled = homeSidebarOpen) {
+        homeSidebarOpen = false
+        delayFocusToEntry(entryRequester)
+    }
 
     // Only enable explicit back handling if:
     // 1. We are in Side-Nav mode (Always handle)
@@ -195,7 +213,8 @@ fun HomeScreen(
                     },
                     onLoadMore = { configId -> viewModel.loadMoreItems(configId) },
                     entryRequester = entryRequester,
-                    drawerRequester = drawerRequester,
+                    drawerRequester = homeSidebarFirstFocusRequester,
+                    onOpenSidebar = { homeSidebarOpen = true },
                     lastFocusedKey = lastFocusedKey,
                     rowScrollPositions = rowScrollPositions,
                     verticalScrollPosition = verticalScrollPosition,
@@ -227,7 +246,8 @@ fun HomeScreen(
                     },
                     onLoadMore = { configId -> viewModel.loadMoreItems(configId) },
                     entryRequester = entryRequester,
-                    drawerRequester = drawerRequester,
+                    drawerRequester = homeSidebarFirstFocusRequester,
+                    onOpenSidebar = { homeSidebarOpen = true },
                     lastFocusedKey = lastFocusedKey,
                     rowScrollPositions = rowScrollPositions,
                     verticalScrollPosition = verticalScrollPosition,
@@ -246,18 +266,39 @@ fun HomeScreen(
         } // CompositionLocalProvider
     }
 
-    HomeOnlySidebar(
-        modifier = Modifier
-            .align(Alignment.CenterStart)
-            .padding(start = 14.dp),
-        onHomeClick = onHomeClick,
-        onWatchlistClick = onWatchlistClick,
-        onSettingsClick = onSettingsClick,
-        onProfileClick = onProfileClick,
-        onExitClick = {
-            (context as? Activity)?.finishAffinity()
-        }
-    )
+    if (homeSidebarOpen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.18f))
+        )
+
+        HomeOnlySidebar(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 14.dp),
+            firstFocusRequester = homeSidebarFirstFocusRequester,
+            onHomeClick = {
+                homeSidebarOpen = false
+                onHomeClick()
+            },
+            onWatchlistClick = {
+                homeSidebarOpen = false
+                onWatchlistClick()
+            },
+            onSettingsClick = {
+                homeSidebarOpen = false
+                onSettingsClick()
+            },
+            onProfileClick = {
+                homeSidebarOpen = false
+                onProfileClick()
+            },
+            onExitClick = {
+                (context as? Activity)?.finishAffinity()
+            }
+        )
+    }
 }
 }
 
@@ -274,6 +315,7 @@ fun CinematicLayout(
     onLoadMore: (String) -> Unit,
     entryRequester: FocusRequester,
     drawerRequester: FocusRequester,
+    onOpenSidebar: () -> Unit = {},
     lastFocusedKey: String?,
     rowScrollPositions: Map<String, Pair<Int, Int>>,
     verticalScrollPosition: Pair<Int, Int>,
@@ -575,6 +617,7 @@ fun CinematicLayout(
                                     externalListState = historyRowState,
                                     upKeyDebouncer = upKeyDebouncer,
                                     repeatGate = dpadRepeatGate,
+                                    onOpenSidebar = onOpenSidebar,
                                     isLandscapeCards = isLandscapeContinueWatching,
                                     enrichedItems = emptyMap(),
                                     rowHeight = if (isLandscapeContinueWatching) 165.dp else 210.dp
@@ -702,7 +745,8 @@ fun CinematicLayout(
                                         isInfiniteScrollingEnabled = item.isInfiniteScrollingEnabled,
                                         externalListState = rowListState,
                                         upKeyDebouncer = upKeyDebouncer,
-                                        repeatGate = dpadRepeatGate
+                                        repeatGate = dpadRepeatGate,
+                                        onOpenSidebar = onOpenSidebar
                                     )
                                 }
                             }
@@ -1239,6 +1283,7 @@ fun SimpleLayout(
     onLoadMore: (String) -> Unit,
     entryRequester: FocusRequester,
     drawerRequester: FocusRequester,
+    onOpenSidebar: () -> Unit = {},
     lastFocusedKey: String?,
     rowScrollPositions: Map<String, Pair<Int, Int>>,
     verticalScrollPosition: Pair<Int, Int>,
@@ -1409,6 +1454,7 @@ fun SimpleLayout(
                         externalListState = historyRowState,
                         upKeyDebouncer = upKeyDebouncer,
                         repeatGate = dpadRepeatGate,
+                        onOpenSidebar = onOpenSidebar,
                         pivotFocusRequester = if (heroItems.isNotEmpty()) firstRowPivotRequester else null,
                         isLandscapeCards = isLandscapeContinueWatching,
                         enrichedItems = emptyMap(),
@@ -1546,6 +1592,7 @@ fun SimpleLayout(
                             rowHeight = rowHeight,
                             upKeyDebouncer = upKeyDebouncer,
                             repeatGate = dpadRepeatGate,
+                            onOpenSidebar = onOpenSidebar,
                             pivotFocusRequester = if (heroItems.isNotEmpty() && historyItems.isEmpty() && rowIndex == 0) firstRowPivotRequester else null
                         )
                     }
@@ -1742,11 +1789,15 @@ private fun HomeImdbBadge() {
     )
 }
 
+private fun delayFocusToEntry(entryRequester: FocusRequester) {
+    // Focus returns naturally to content on the next DPAD action. This helper keeps the call sites readable.
+}
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun HomeOnlySidebar(
     modifier: Modifier = Modifier,
+    firstFocusRequester: FocusRequester,
     onHomeClick: () -> Unit,
     onWatchlistClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -1766,7 +1817,8 @@ private fun HomeOnlySidebar(
     ) {
         HomeSidebarButton(
             text = "Home",
-            onClick = onHomeClick
+            onClick = onHomeClick,
+            modifier = Modifier.focusRequester(firstFocusRequester)
         )
 
         HomeSidebarButton(
@@ -1797,13 +1849,14 @@ private fun HomeOnlySidebar(
 private fun HomeSidebarButton(
     text: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     danger: Boolean = false
 ) {
     var focused by remember { mutableStateOf(false) }
 
     Card(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .width(96.dp)
             .height(42.dp)
             .onFocusChanged { focused = it.hasFocus },
