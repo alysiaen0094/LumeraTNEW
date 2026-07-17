@@ -472,7 +472,7 @@ private fun LinearContent(
  * 5. Image prefetching for smooth loading
  * ============================================================================
  */
-private const val INFINITE_LOOP_GENERATIONS = 100000 // 100,000 repetitions = practically infinite
+private const val INFINITE_LOOP_GENERATIONS = 200 // 100,000 repetitions = practically infinite
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
