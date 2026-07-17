@@ -178,7 +178,7 @@ fun InfiniteLoopRow(
         }
     }
 
-    Column(modifier = Modifier.graphicsLayer { clip = false }) {
+    Column {
         Text(
             text = title,
             color = Color.White.copy(0.9f),
@@ -331,7 +331,7 @@ private fun LinearContent(
     LazyRow(
         state = listState,
         modifier = Modifier
-            .height(rowHeight)
+            .height(rowHeight),
             .graphicsLayer { clip = false },
         contentPadding = PaddingValues(start = startPadding, end = endPadding),
         horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)
@@ -417,7 +417,6 @@ private fun LinearContent(
                         progress = item.progress,
                         hasNewEpisode = item.hasNewEpisode,
                         onFocused = {
-                            ImagePrefetcher.prefetchAroundLandscape(context, imageUrls, index)
                             onFocused(item, uniqueKey)
                         },
                         modifier = Modifier.then(
@@ -438,7 +437,6 @@ private fun LinearContent(
                         isWatched = rowIndex != -1 && item.id in watchedIds,
                         hasNewEpisode = item.hasNewEpisode,
                         onFocused = {
-                            ImagePrefetcher.prefetchAround(context, imageUrls, index)
                             onFocused(item, uniqueKey)
                         },
                         modifier = Modifier.then(
@@ -647,10 +645,6 @@ private fun InfiniteGridContent(
                             isWatched = rowIndex != -1 && item.movie.id in watchedIds,
                             onFocused = {
                                 currentFocusedIndex = scrollIndex
-                                val logicalIndex = scrollIndex % sectionSize
-                                if (logicalIndex < imageUrls.size) {
-                                    ImagePrefetcher.prefetchAround(context, imageUrls, logicalIndex)
-                                }
                                 onFocused(item.movie, uniqueKey)
                             },
                             modifier = Modifier.then(
