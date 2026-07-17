@@ -62,10 +62,11 @@ import com.lumera.app.domain.layoutFor
 import com.lumera.app.ui.components.LumeraBackground
 import com.lumera.app.ui.components.LumeraCard
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
 private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 180L
-private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 80L
+private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 110L
 private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 150L
 
 private class HomeFocusTimingTracker {
@@ -653,14 +654,22 @@ fun CinematicLayout(
                                     // Use snapshotFlow to avoid reading layoutInfo during composition
                                     val itemId = item.id
                                     val itemSize = item.items.size
-                                    LaunchedEffect(rowListState, itemId) {
+                                    LaunchedEffect(rowListState, itemId, itemSize) {
                                         snapshotFlow {
-                                            rowListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                                        }.collect { lastVisibleIndex ->
-                                            if (itemSize > 0 && lastVisibleIndex >= itemSize - 4) {
-                                                onLoadMore(itemId)
-                                            }
+                                            rowListState.layoutInfo.visibleItemsInfo
+                                                .lastOrNull()
+                                                ?.index
+                                                ?: 0
                                         }
+                                            .distinctUntilChanged()
+                                            .collect { lastVisibleIndex ->
+                                                if (
+                                                    itemSize > 0 &&
+                                                    lastVisibleIndex >= itemSize - 4
+                                                ) {
+                                                    onLoadMore(itemId)
+                                                }
+                                            }
                                     }
 
                                     InfiniteLoopRow(
@@ -1488,14 +1497,22 @@ fun SimpleLayout(
                         // Use snapshotFlow to avoid reading layoutInfo during composition
                         val itemId = item.id
                         val itemSize = item.items.size
-                        LaunchedEffect(rowListState, itemId) {
+                        LaunchedEffect(rowListState, itemId, itemSize) {
                             snapshotFlow {
-                                rowListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                            }.collect { lastVisibleIndex ->
-                                if (itemSize > 0 && lastVisibleIndex >= itemSize - 4) {
-                                    onLoadMore(itemId)
-                                }
+                                rowListState.layoutInfo.visibleItemsInfo
+                                    .lastOrNull()
+                                    ?.index
+                                    ?: 0
                             }
+                                .distinctUntilChanged()
+                                .collect { lastVisibleIndex ->
+                                    if (
+                                        itemSize > 0 &&
+                                        lastVisibleIndex >= itemSize - 4
+                                    ) {
+                                        onLoadMore(itemId)
+                                    }
+                                }
                         }
                         
                         // Custom row height: 193dp for last row in Top Nav, 210dp standard
@@ -1549,22 +1566,34 @@ private fun PersistLazyListPosition(
     minOffsetDeltaPx: Int = 32,
     onPositionChanged: (Pair<Int, Int>) -> Unit
 ) {
-    var lastIndex by remember(key, listState) { mutableIntStateOf(Int.MIN_VALUE) }
-    var lastOffset by remember(key, listState) { mutableIntStateOf(Int.MIN_VALUE) }
+    var lastIndex by remember(key, listState) {
+        mutableIntStateOf(Int.MIN_VALUE)
+    }
+
+    var lastOffset by remember(key, listState) {
+        mutableIntStateOf(Int.MIN_VALUE)
+    }
+
+    val latestOnPositionChanged by rememberUpdatedState(onPositionChanged)
 
     LaunchedEffect(key, listState) {
         snapshotFlow {
-            Pair(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
-        }.collect { (index, offset) ->
-            val shouldEmit =
-                lastIndex == Int.MIN_VALUE ||
-                    index != lastIndex ||
-                    kotlin.math.abs(offset - lastOffset) >= minOffsetDeltaPx
+            listState.isScrollInProgress
+        }.collect { isScrolling ->
+            if (!isScrolling) {
+                val index = listState.firstVisibleItemIndex
+                val offset = listState.firstVisibleItemScrollOffset
 
-            if (shouldEmit) {
-                lastIndex = index
-                lastOffset = offset
-                onPositionChanged(Pair(index, offset))
+                val shouldSave =
+                    lastIndex == Int.MIN_VALUE ||
+                        index != lastIndex ||
+                        kotlin.math.abs(offset - lastOffset) >= minOffsetDeltaPx
+
+                if (shouldSave) {
+                    lastIndex = index
+                    lastOffset = offset
+                    latestOnPositionChanged(index to offset)
+                }
             }
         }
     }
@@ -1573,8 +1602,14 @@ private fun PersistLazyListPosition(
         onDispose {
             val finalIndex = listState.firstVisibleItemIndex
             val finalOffset = listState.firstVisibleItemScrollOffset
-            if (finalIndex != lastIndex || finalOffset != lastOffset) {
-                onPositionChanged(Pair(finalIndex, finalOffset))
+
+            if (
+                finalIndex != lastIndex ||
+                finalOffset != lastOffset
+            ) {
+                latestOnPositionChanged(
+                    finalIndex to finalOffset
+                )
             }
         }
     }
