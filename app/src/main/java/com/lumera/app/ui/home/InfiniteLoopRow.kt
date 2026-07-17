@@ -35,7 +35,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -47,7 +46,6 @@ import com.lumera.app.data.model.stremio.MetaItem
 import com.lumera.app.ui.components.LumeraCard
 import com.lumera.app.ui.components.LocalWatchedIds
 import com.lumera.app.ui.components.LumeraLandscapeCard
-import com.lumera.app.ui.utils.ImagePrefetcher
 import kotlinx.coroutines.delay
 
 /**
@@ -311,27 +309,12 @@ private fun LinearContent(
     enrichedItems: Map<String, MetaItem> = emptyMap(),
     effectiveItemWidth: Dp = ITEM_WIDTH
 ) {
-    val context = LocalContext.current
-
-    // Prefetch image URLs list (cached to avoid allocation during 
-    val imageUrls = remember(items, isLandscapeCards) {
-        if (isLandscapeCards) {
-            items.map { item ->
-                item.background ?: item.poster
-            }
-        } else {
-            items.map { it.poster }
-        }
-    }
-
     // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
     val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
-    val navbarEscapeDebounceMs = 300L // Only allow escape if 300ms since last LEFT press
-
     LazyRow(
         state = listState,
         modifier = Modifier
-            .height(rowHeight),
+            .height(rowHeight)
             .graphicsLayer { clip = false },
         contentPadding = PaddingValues(start = startPadding, end = endPadding),
         horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING)
@@ -470,7 +453,7 @@ private fun LinearContent(
  * 5. Image prefetching for smooth loading
  * ============================================================================
  */
-private const val INFINITE_LOOP_GENERATIONS = 200 // 100,000 repetitions = practically infinite
+private const val INFINITE_LOOP_GENERATIONS = 200
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -496,8 +479,6 @@ private fun InfiniteGridContent(
     repeatGate: DpadRepeatGate,
     pivotFocusRequester: FocusRequester? = null
 ) {
-    val context = LocalContext.current
-
     val truncatedMovies = remember(items, visibleItemCount) { 
         items.take(visibleItemCount.coerceIn(5, 50)) 
     }
@@ -511,9 +492,6 @@ private fun InfiniteGridContent(
     // Calculate total items and start position
     val totalItems = sectionSize * INFINITE_LOOP_GENERATIONS
 
-    // Prefetch image URLs list
-    val imageUrls = remember(truncatedMovies) { truncatedMovies.map { it.poster } }
-    
     // Track focused index for ViewMore card's directional alpha
     var currentFocusedIndex by remember(listState) { 
         mutableIntStateOf(listState.firstVisibleItemIndex) 
@@ -728,14 +706,9 @@ private fun FiniteGridContent(
     repeatGate: DpadRepeatGate,
     pivotFocusRequester: FocusRequester? = null
 ) {
-    val context = LocalContext.current
-    
     val truncatedMovies = remember(items, visibleItemCount) { 
         items.take(visibleItemCount.coerceIn(5, 50)) 
     }
-    
-    // Prefetch image URLs list
-    val imageUrls = remember(truncatedMovies) { truncatedMovies.map { it.poster } }
     
     // Debounce navbar escape: track last LEFT key time to prevent escape during long-press
     val leftKeyDebouncer = remember { RowKeyRepeatDebouncer() }
@@ -839,7 +812,6 @@ private fun FiniteGridContent(
                             progress = item.movie.progress,
                             isWatched = rowIndex != -1 && item.movie.id in watchedIds,
                             onFocused = {
-                                ImagePrefetcher.prefetchAround(context, imageUrls, index)
                                 onFocused(item.movie, uniqueKey)
                             },
                             modifier = Modifier.then(
