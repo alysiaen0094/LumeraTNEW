@@ -20,6 +20,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.delay
 
 @Singleton
 class AddonRepository @Inject constructor(
@@ -41,17 +42,51 @@ class AddonRepository @Inject constructor(
     private val CATALOG_TIMEOUT_MS = 10_000L // 10 seconds per catalog request
     private val STREAM_TIMEOUT_MS = 20_000L  // 20 seconds per stream request (torrent addons need more time)
 
+    private suspend fun fetchCatalogWithRetry(
+        url: String,
+        timeoutMs: Long,
+        attempts: Int = 2
+    ): List<MetaItem> {
+        repeat(attempts.coerceAtLeast(1)) { attempt ->
+            val result = try {
+                withTimeout(timeoutMs) {
+                    api.getCatalog(url)
+                }.metas.orEmpty().sanitize()
+            } catch (_: Exception) {
+                emptyList()
+            }
+    
+            if (result.isNotEmpty()) {
+                return result
+            }
+    
+            if (attempt < attempts - 1) {
+                kotlinx.coroutines.delay(500L)
+            }
+        }
+    
+        return emptyList()
+    }
+
     /**
      * Fetches a single page of catalog items at the given skip offset.
      * Used for on-demand lazy loading as the user scrolls.
      */
-    suspend fun fetchNextCatalogPage(baseUrl: String, skip: Int): List<MetaItem> = withContext(Dispatchers.IO) {
-        try {
-            val url = if (skip == 0) baseUrl else {
-                baseUrl.replace(".json", "/skip=$skip.json")
-            }
-            withTimeout(CATALOG_TIMEOUT_MS) { api.getCatalog(url) }.metas.orEmpty().sanitize()
-        } catch (e: Exception) { emptyList() }
+    suspend fun fetchNextCatalogPage(
+        baseUrl: String,
+        skip: Int
+    ): List<MetaItem> = withContext(Dispatchers.IO) {
+        val url = if (skip == 0) {
+            baseUrl
+        } else {
+            baseUrl.replace(".json", "/skip=$skip.json")
+        }
+    
+        fetchCatalogWithRetry(
+            url = url,
+            timeoutMs = CATALOG_TIMEOUT_MS,
+            attempts = 2
+        )
     }
 
 
@@ -167,13 +202,20 @@ class AddonRepository @Inject constructor(
         maxConfigs: Int = Int.MAX_VALUE,
         catalogTimeoutMs: Long = CATALOG_TIMEOUT_MS
     ): List<HomeRow> = withContext(Dispatchers.IO) {
-        val addons = dao.getAllAddons().firstOrNull()?.filter { it.isEnabled } ?: emptyList()
-        val configs = dao.getAllCatalogConfigs().firstOrNull() ?: emptyList()
+        val addons = dao.getAllAddons()
+            .firstOrNull()
+            ?.filter { it.isEnabled }
+            .orEmpty()
+    
+        val configs = dao.getAllCatalogConfigs()
+            .firstOrNull()
+            .orEmpty()
+    
         val addonMap = addons.associateBy { it.transportUrl }
-
+    
         val filteredConfigs = configs
             .filter { config ->
-                when(screen) {
+                when (screen) {
                     "home" -> config.showInHome
                     "movies" -> config.showInMovies
                     "series" -> config.showInSeries
@@ -181,7 +223,7 @@ class AddonRepository @Inject constructor(
                 }
             }
             .sortedBy { config ->
-                when(screen) {
+                when (screen) {
                     "home" -> config.homeOrder
                     "movies" -> config.moviesOrder
                     "series" -> config.seriesOrder
@@ -189,43 +231,76 @@ class AddonRepository @Inject constructor(
                 }
             }
             .drop(skipConfigs.coerceAtLeast(0))
-            .let { sliced ->
-                if (maxConfigs == Int.MAX_VALUE) sliced else sliced.take(maxConfigs.coerceAtLeast(0))
+            .let { rows ->
+                if (maxConfigs == Int.MAX_VALUE) {
+                    rows
+                } else {
+                    rows.take(maxConfigs.coerceAtLeast(0))
+                }
             }
-
-        val deferredJobs = filteredConfigs.mapNotNull { config ->
-            val addon = addonMap[config.transportUrl] ?: return@mapNotNull null
+    
+        val deferredJobs = filteredConfigs.map { config ->
             async {
-                try {
-                    val url = "${config.transportUrl}/catalog/${config.catalogType}/${config.catalogId}.json"
-                    // Fetch only the first page for fast initial load
-                    val rawMetas = try { withTimeout(catalogTimeoutMs) { api.getCatalog(url) }.metas.orEmpty().sanitize() } catch (e: Exception) { emptyList() }
-                    if (rawMetas.isNotEmpty()) {
-                        val metas = rawMetas.map { it.copy(addonBaseUrl = config.transportUrl) }
-                        val typeSuffix = config.catalogType.replaceFirstChar { it.uppercase() }
-                        val defaultTitle = if (config.catalogName != null) "${config.catalogName} - ${typeSuffix}" else "${config.addonName} - ${config.catalogId.replaceFirstChar { it.uppercase() }}"
-                        val finalTitle = config.customTitle ?: defaultTitle
-                        HomeRow(
-                            configId = config.uniqueId,
-                            title = finalTitle,
-                            items = metas,
-                            catalogUrl = url,
-                            isInfiniteLoopEnabled = config.isInfiniteLoopEnabled,
-                            visibleItemCount = config.visibleItemCount,
-                            isInfiniteScrollingEnabled = config.isInfiniteScrollingEnabled,
-                            order = when(screen) {
-                                "home" -> config.homeOrder
-                                "movies" -> config.moviesOrder
-                                "series" -> config.seriesOrder
-                                else -> 999
-                            },
-                            supportsSkip = catalogSupportsSkip(addon, config.catalogType, config.catalogId)
-                        )
-                    } else null
-                } catch (e: Exception) { null }
+                val addon = addonMap[config.transportUrl]
+                    ?: return@async null
+    
+                val url =
+                    "${config.transportUrl}/catalog/${config.catalogType}/${config.catalogId}.json"
+    
+                val rawMetas = fetchCatalogWithRetry(
+                    url = url,
+                    timeoutMs = catalogTimeoutMs,
+                    attempts = 2
+                )
+    
+                if (rawMetas.isEmpty()) {
+                    return@async null
+                }
+    
+                val metas = rawMetas.map { item ->
+                    item.copy(addonBaseUrl = config.transportUrl)
+                }
+    
+                val typeSuffix = config.catalogType
+                    .replaceFirstChar { it.uppercase() }
+    
+                val defaultTitle = if (config.catalogName != null) {
+                    "${config.catalogName} - $typeSuffix"
+                } else {
+                    "${config.addonName} - ${
+                        config.catalogId.replaceFirstChar { it.uppercase() }
+                    }"
+                }
+    
+                val finalTitle = config.customTitle ?: defaultTitle
+    
+                HomeRow(
+                    configId = config.uniqueId,
+                    title = finalTitle,
+                    items = metas,
+                    catalogUrl = url,
+                    isInfiniteLoopEnabled = config.isInfiniteLoopEnabled,
+                    visibleItemCount = config.visibleItemCount,
+                    isInfiniteScrollingEnabled = config.isInfiniteScrollingEnabled,
+                    order = when (screen) {
+                        "home" -> config.homeOrder
+                        "movies" -> config.moviesOrder
+                        "series" -> config.seriesOrder
+                        else -> 999
+                    },
+                    supportsSkip = catalogSupportsSkip(
+                        addon = addon,
+                        catalogType = config.catalogType,
+                        catalogId = config.catalogId
+                    )
+                )
             }
         }
-        deferredJobs.awaitAll().filterNotNull()
+    
+        deferredJobs
+            .awaitAll()
+            .filterNotNull()
+            .sortedBy { it.order }
     }
 
     /**
