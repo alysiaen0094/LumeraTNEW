@@ -61,7 +61,7 @@ class AddonRepository @Inject constructor(
             }
     
             if (attempt < attempts - 1) {
-                kotlinx.coroutines.delay(500L)
+                delay(500L)
             }
         }
     
