@@ -99,7 +99,7 @@ class HomeViewModel @Inject constructor(
     private val metadataRequestsInFlight = mutableSetOf<String>()
     private val hubInitialLoadCount = 100
     private val initialDashboardBatchSize = 6
-    private val initialDashboardTimeoutMs = 5_000L
+    private val initialDashboardTimeoutMs = 7_000L
 
     // UI batching: per-row pending buffers and dedup tracking
     companion object {
