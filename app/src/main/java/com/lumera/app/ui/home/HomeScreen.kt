@@ -2,7 +2,6 @@ package com.lumera.app.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -65,8 +64,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
 private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 180L
-private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 110L
-private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 150L
+private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 70L
+private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 100L
 
 private class HomeFocusTimingTracker {
     var previous: Long = 0L
@@ -1600,82 +1599,151 @@ private fun PersistLazyListPosition(
 
 @Composable
 fun CinematicBackground(item: MetaItem?) {
-    // Use the theme's actual background color
-    val backgroundColor = androidx.compose.material3.MaterialTheme.colorScheme.background
-    
-    // Only fade LEFT and BOTTOM edges - top/right are at screen edge
-    val leftFade = Brush.horizontalGradient(
-        colorStops = arrayOf(
-            0.0f to backgroundColor,
-            0.1f to backgroundColor.copy(0.95f),
-            0.2f to backgroundColor.copy(0.85f),
-            0.3f to backgroundColor.copy(0.72f),
-            0.4f to backgroundColor.copy(0.55f),
-            0.55f to backgroundColor.copy(0.35f),
-            0.7f to backgroundColor.copy(0.18f),
-            0.85f to backgroundColor.copy(0.07f),
-            1.0f to Color.Transparent
-        ),
-        startX = 0f,
-        endX = 500f
-    )
-    
-    // Bottom fade: blend into the rows area
-    val bottomFade = Brush.verticalGradient(
-        colorStops = arrayOf(
-            0.0f to Color.Transparent,
-            0.2f to backgroundColor.copy(0.05f),
-            0.35f to backgroundColor.copy(0.15f),
-            0.45f to backgroundColor.copy(0.25f),
-            0.55f to backgroundColor.copy(0.38f),
-            0.65f to backgroundColor.copy(0.52f),
-            0.75f to backgroundColor.copy(0.68f),
-            0.85f to backgroundColor.copy(0.82f),
-            0.92f to backgroundColor.copy(0.92f),
-            1.0f to backgroundColor
-        )
-    )
+    val context = LocalContext.current
+    val backgroundColor =
+        androidx.compose.material3.MaterialTheme.colorScheme.background
 
-    Box(modifier = Modifier.fillMaxSize().zIndex(0f)) {
-        Box(modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.65f).fillMaxHeight(0.65f)) {
-            Crossfade(
-                targetState = item,
-                animationSpec = tween(0),
-                label = "HeroBg"
-            ) { currentItem ->
-                if (currentItem != null) {
-                    val image = currentItem.background ?: currentItem.poster
-                    val context = LocalContext.current
-                    val imageRequest = remember(image) {
-                        ImageRequest.Builder(context)
-                            .data(image)
-                            .crossfade(false)
-                            .size(1280, 720)
-                            .build()
-                    }
+    val requestedImage =
+        item?.background
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: item?.poster
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        AsyncImage(
-                            model = imageRequest,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        // Left and bottom edge fades only
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .drawWithCache {
-                                    onDrawWithContent {
-                                        drawRect(brush = leftFade)
-                                        drawRect(brush = bottomFade)
-                                    }
-                                }
-                        )
-                        // Noise overlay disabled for smoother Home scrolling.
-                    }
-                }
+    /*
+     * Keep the old image visible while the next image loads.
+     * This prevents the black/background flash between posters.
+     */
+    var displayedImage by remember {
+        mutableStateOf<String?>(requestedImage)
+    }
+
+    var loadingImage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(requestedImage) {
+        when {
+            requestedImage == null -> {
+                // Do not clear the existing image during a temporary null update.
+                loadingImage = null
             }
+
+            displayedImage == null -> {
+                // First image can load directly.
+                loadingImage = requestedImage
+            }
+
+            requestedImage != displayedImage -> {
+                // Keep displayedImage visible until this one succeeds.
+                loadingImage = requestedImage
+            }
+        }
+    }
+
+    val leftFade = remember(backgroundColor) {
+        Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0.0f to backgroundColor,
+                0.1f to backgroundColor.copy(alpha = 0.95f),
+                0.2f to backgroundColor.copy(alpha = 0.85f),
+                0.3f to backgroundColor.copy(alpha = 0.72f),
+                0.4f to backgroundColor.copy(alpha = 0.55f),
+                0.55f to backgroundColor.copy(alpha = 0.35f),
+                0.7f to backgroundColor.copy(alpha = 0.18f),
+                0.85f to backgroundColor.copy(alpha = 0.07f),
+                1.0f to Color.Transparent
+            ),
+            startX = 0f,
+            endX = 500f
+        )
+    }
+
+    val bottomFade = remember(backgroundColor) {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.0f to Color.Transparent,
+                0.45f to Color.Transparent,
+                0.65f to backgroundColor.copy(alpha = 0.18f),
+                0.78f to backgroundColor.copy(alpha = 0.45f),
+                0.9f to backgroundColor.copy(alpha = 0.78f),
+                1.0f to backgroundColor
+            )
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(0f)
+    ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxWidth(0.65f)
+                .fillMaxHeight(0.65f)
+        ) {
+            // Current image remains visible while the next image downloads.
+            displayedImage?.let { imageUrl ->
+                val displayedRequest = remember(context, imageUrl) {
+                    ImageRequest.Builder(context)
+                        .data(imageUrl)
+                        .crossfade(false)
+                        .size(1280, 720)
+                        .allowHardware(true)
+                        .build()
+                }
+
+                AsyncImage(
+                    model = displayedRequest,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Load the next image over the current one.
+            loadingImage?.let { imageUrl ->
+                val loadingRequest = remember(context, imageUrl) {
+                    ImageRequest.Builder(context)
+                        .data(imageUrl)
+                        .crossfade(false)
+                        .size(1280, 720)
+                        .allowHardware(true)
+                        .build()
+                }
+
+                AsyncImage(
+                    model = loadingRequest,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    onSuccess = {
+                        if (loadingImage == imageUrl) {
+                            displayedImage = imageUrl
+                            loadingImage = null
+                        }
+                    },
+                    onError = {
+                        // Keep the old background when the new image fails.
+                        if (loadingImage == imageUrl) {
+                            loadingImage = null
+                        }
+                    }
+                )
+            }
+
+            Spacer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithCache {
+                        onDrawWithContent {
+                            drawRect(brush = leftFade)
+                            drawRect(brush = bottomFade)
+                        }
+                    }
+            )
         }
     }
 }
