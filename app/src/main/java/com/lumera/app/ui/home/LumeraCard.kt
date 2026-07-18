@@ -93,8 +93,8 @@ fun LumeraCard(
                 focusedShape = cardShape
             ),
             scale = ClickableSurfaceDefaults.scale(
-                focusedScale = 1.05f,
-                pressedScale = 1.02f
+                focusedScale = 1.015f,
+                pressedScale = 1.01f
             ),
             colors = ClickableSurfaceDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.surface,
