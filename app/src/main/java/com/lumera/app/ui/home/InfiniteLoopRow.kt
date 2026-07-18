@@ -142,12 +142,12 @@ fun InfiniteLoopRow(
     }
     
     // Create pivot spec with skip provider and dynamic stiffness
-    val pivotSpec = remember(paddingPx) { 
+    val pivotSpec = remember(paddingPx) {
         FocusPivotSpec(
             customOffset = paddingPx,
             skipScrollProvider = { skipBringIntoViewScroll },
-            stiffnessProvider = { Spring.StiffnessMediumLow }
-        ) 
+            stiffnessProvider = { Spring.StiffnessLow }
+        )
     }
 
     // Calculate end padding to allow last item to align to left (pivot position)
