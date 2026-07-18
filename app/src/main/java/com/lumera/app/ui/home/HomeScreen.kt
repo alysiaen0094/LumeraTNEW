@@ -296,22 +296,44 @@ fun CinematicLayout(
             historyItems = historyItems
         )
     }
-    val renderedPreviewItem = remember(displayedItem, state.mixedRows, state.heroRow, historyItems, state.enrichedMeta) {
+    // Resolve the newly focused item independently from the currently displayed hero.
+    // This avoids a circular dependency where displayedItem waits for TMDB readiness,
+    // while TMDB readiness was previously calculated from displayedItem.
+    val pendingPreviewItem = remember(
+        instantFocusItem,
+        state.mixedRows,
+        state.heroRow,
+        historyItems,
+        state.enrichedMeta
+    ) {
         resolveLatestPreviewItem(
-            current = displayedItem,
+            current = instantFocusItem,
             state = state,
             historyItems = historyItems
         )
     }
 
-    val tmdbPreviewItem = remember(renderedPreviewItem, state.tmdbEnabled, state.tmdbEnrichedIds) {
-        if (renderedPreviewItem == null) {
+    val readyPreviewItem = remember(
+        instantFocusItem,
+        pendingPreviewItem,
+        state.tmdbEnabled,
+        state.tmdbEnrichedIds
+    ) {
+        val focused = instantFocusItem
+        val pending = pendingPreviewItem
+
+        if (focused == null || pending == null) {
             null
         } else {
-            val key = "${renderedPreviewItem.type}:${renderedPreviewItem.id}"
-            val tmdbReady = !state.tmdbEnabled || state.tmdbEnrichedIds.contains(key)
-    
-            if (tmdbReady) renderedPreviewItem else null
+            val sameItem =
+                focused.id == pending.id &&
+                    focused.type == pending.type
+
+            val key = "${focused.type}:${focused.id}"
+            val enrichmentReady =
+                !state.tmdbEnabled || state.tmdbEnrichedIds.contains(key)
+
+            if (sameItem && enrichmentReady) pending else null
         }
     }
 
@@ -326,8 +348,12 @@ fun CinematicLayout(
             }
             instantFocusItem = first
             
-            if (!state.tmdbEnabled) {
-                displayedItem = first
+            if (!state.tmdbEnabled && first != null) {
+                displayedItem = resolveLatestPreviewItem(
+                    current = first,
+                    state = state,
+                    historyItems = historyItems
+                )
             }
             
         }
@@ -366,11 +392,11 @@ fun CinematicLayout(
     LaunchedEffect(
         instantFocusItem?.id,
         instantFocusItem?.type,
-        tmdbPreviewItem
+        readyPreviewItem
     ) {
         val focused = instantFocusItem ?: return@LaunchedEffect
-        val ready = tmdbPreviewItem ?: return@LaunchedEffect
-    
+        val ready = readyPreviewItem ?: return@LaunchedEffect
+
         if (
             ready.id == focused.id &&
             ready.type == focused.type
