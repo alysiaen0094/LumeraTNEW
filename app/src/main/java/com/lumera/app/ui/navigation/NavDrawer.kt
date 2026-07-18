@@ -161,11 +161,15 @@ fun NavDrawer(
                             .focusRequester(drawerRequesters[dest]!!)
                             .onPreviewKeyEvent {
                                 if (it.type == KeyEventType.KeyDown) {
-                                    if (it.key == Key.DirectionRight || it.key == Key.Back) {
-                                        onClose()
-                                        true
-                                    } else {
-                                        false
+                                    when (it.key) {
+                                        Key.DirectionLeft,
+                                        Key.DirectionRight,
+                                        Key.Back -> {
+                                            onClose()
+                                            true
+                                        }
+                                    
+                                        else -> false
                                     }
                                 } else {
                                     false
