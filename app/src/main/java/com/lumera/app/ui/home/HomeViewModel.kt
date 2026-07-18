@@ -72,10 +72,12 @@ class HomeViewModel @Inject constructor(
 
     fun getVerticalScrollPosition(): Pair<Int, Int> = verticalScrollPositionMemory
 
+    fun getLastFocusedKey(): String? = lastFocusedKeyMemory
+
     fun setLastFocusedKey(key: String?) {
         if (lastFocusedKeyMemory == key) return
+        // Keep focus local/in-memory so horizontal movement does not recompose the whole Home screen.
         lastFocusedKeyMemory = key
-        _state.value = _state.value.copy(lastFocusedKey = key)
     }
     
     fun setRowScrollPosition(rowKey: String, position: Pair<Int, Int>) {
@@ -457,14 +459,14 @@ class HomeViewModel @Inject constructor(
                 }
 
                 val fallback = MetadataFallback(
-                    poster = null, // Keep addon poster
+                    poster = null,
                     background = enrichment.backdrop,
-                    logo = enrichment.logo,
-                    description = enrichment.description,
-                    releaseInfo = enrichment.releaseInfo,
-                    imdbRating = enrichment.rating?.let { String.format("%.1f", it) },
-                    runtime = enrichment.runtimeMinutes?.let { "${it}m" },
-                    genres = enrichment.genres.ifEmpty { null }
+                    logo = null,
+                    description = null,
+                    releaseInfo = null,
+                    imdbRating = null,
+                    runtime = null,
+                    genres = null
                 )
 
                 applyTmdbEnrichmentToState(item.type, item.id, fallback, item)
@@ -482,8 +484,8 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Applies TMDB enrichment to state — overwrites fields (unlike addon fallback which only fills blanks).
-     * This ensures localized content from TMDB takes priority.
+     * Applies TMDB enrichment to state. Only the hero backdrop is replaced;
+     * title, synopsis, rating and all other metadata remain addon-owned.
      */
     private fun applyTmdbEnrichmentToState(type: String, id: String, fallback: MetadataFallback, sourceItem: MetaItem) {
         _state.update { current ->
@@ -492,13 +494,7 @@ class HomeViewModel @Inject constructor(
             fun overwriteMeta(meta: MetaItem): MetaItem {
                 if (meta.type != type || meta.id != id) return meta
                 val updated = meta.copy(
-                    background = fallback.background ?: meta.background,
-                    logo = fallback.logo ?: meta.logo,
-                    description = fallback.description ?: meta.description,
-                    releaseInfo = fallback.releaseInfo ?: meta.releaseInfo,
-                    imdbRating = fallback.imdbRating ?: meta.imdbRating,
-                    runtime = fallback.runtime ?: meta.runtime,
-                    genres = fallback.genres ?: meta.genres
+                    background = fallback.background ?: meta.background
                 )
                 if (updated != meta) rowsChanged = true
                 return updated
@@ -526,13 +522,7 @@ class HomeViewModel @Inject constructor(
             val enrichedKey = "$type:$id"
             val base = current.enrichedMeta[enrichedKey] ?: sourceItem
             val enriched = base.copy(
-                background = fallback.background ?: base.background,
-                logo = fallback.logo ?: base.logo,
-                description = fallback.description ?: base.description,
-                releaseInfo = fallback.releaseInfo ?: base.releaseInfo,
-                imdbRating = fallback.imdbRating ?: base.imdbRating,
-                runtime = fallback.runtime ?: base.runtime,
-                genres = fallback.genres ?: base.genres
+                background = fallback.background ?: base.background
             )
             val updatedEnrichedMeta = if (enriched != base || !current.enrichedMeta.containsKey(enrichedKey)) {
                 current.enrichedMeta + (enrichedKey to enriched)
