@@ -41,6 +41,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.size.Scale
 import com.lumera.app.ui.theme.LocalRoundCorners
+import androidx.compose.ui.text.font.FontWeight
 
 /**
  * ============================================================================
