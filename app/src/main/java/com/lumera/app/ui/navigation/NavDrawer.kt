@@ -74,17 +74,14 @@ fun NavDrawer(
 ) {
     var isMenuFocused by remember { mutableStateOf(false) }
 
-    val width by animateDpAsState(
-        targetValue = if (isMenuFocused) 200.dp else 80.dp,
-        label = "NavWidth",
-        animationSpec = tween(300)
-    )
+    val drawerWidth =
+        if (isMenuFocused) 214.dp else 94.dp
 
     // VISIBILITY ANIMATION:
     val extraItemsAlpha by animateFloatAsState(
         targetValue = if (isMenuFocused) 1f else 0f,
         label = "ExtraItemsAlpha",
-        animationSpec = tween(300)
+        animationSpec = tween(100)
     )
 
     // Standard BackHandler for when the drawer container is focused
@@ -132,41 +129,10 @@ fun NavDrawer(
             )
         }
 
-        // LAYER 3: Interactive Drawer Background (solid on focus/expand)
-        androidx.compose.animation.AnimatedVisibility(
-            visible = isMenuFocused,
-            enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)),
-            exit = androidx.compose.animation.fadeOut(animationSpec = tween(300)),
-            modifier = Modifier.zIndex(1.5f)
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(width + 14.dp)
-                    .fillMaxHeight()
-                    .background(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0.0f to backgroundColor.copy(alpha = 0.98f),
-                                0.2f to backgroundColor.copy(alpha = 0.96f),
-                                0.4f to backgroundColor.copy(alpha = 0.92f),
-                                0.6f to backgroundColor.copy(alpha = 0.85f),
-                                0.8f to backgroundColor.copy(alpha = 0.70f),
-                                0.9f to backgroundColor.copy(alpha = 0.40f),
-                                1.0f to Color.Transparent
-                            ),
-                            startX = 0f
-                        )
-                    )
-            )
-        }
-
-        // Noise overlay to reduce gradient banding on budget panels
-        com.lumera.app.ui.components.NoiseOverlay(modifier = Modifier.zIndex(1.6f))
-
         // LAYER 4: Interactive Drawer
         Box(
             modifier = Modifier
-                .width(width + 14.dp)
+                .width(drawerWidth)
                 .fillMaxHeight()
                 .zIndex(2f)
                 .onFocusChanged { isMenuFocused = it.hasFocus }
@@ -285,31 +251,30 @@ fun SidebarItem(
 
     val showIndicator = if (isDrawerActive) isFocused else isSelected
 
-    val contentColor by animateColorAsState(
-        targetValue = if (showIndicator) Color.White else Color(0xFF8E9099),
-        label = "contentColor"
-    )
-
+    val contentColor =
+        if (showIndicator) {
+            Color.White
+        } else {
+            Color(0xFF8E9099)
+        }
+    
     val iconStartPadding = 20.dp
-
-    val indicatorWidth by animateDpAsState(
-        targetValue = if (showIndicator) 4.dp else 0.dp,
-        label = "IndicatorWidth"
-    )
-
-    val textScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        label = "TextScale"
-    )
-
+    
+    val indicatorWidth =
+        if (showIndicator) 4.dp else 0.dp
+    
+    val textScale =
+        if (isFocused) 1.05f else 1f
+    
     val textAlpha by animateFloatAsState(
         targetValue = if (isMenuExpanded) 1f else 0f,
-        animationSpec = tween(300),
+        animationSpec = tween(100),
         label = "TextAlpha"
     )
+    
     val textOffset by animateFloatAsState(
-        targetValue = if (isMenuExpanded) 0f else -20f,
-        animationSpec = tween(300),
+        targetValue = if (isMenuExpanded) 0f else -12f,
+        animationSpec = tween(100),
         label = "TextOffset"
     )
 
@@ -397,42 +362,44 @@ fun ProfileAvatarItem(
     
     val showIndicator = if (isDrawerActive) isFocused else false
     
-    val contentColor by animateColorAsState(
-        targetValue = if (showIndicator) Color.White else Color(0xFF8E9099),
-        label = "contentColor"
-    )
+    val contentColor =
+        if (showIndicator) {
+            Color.White
+        } else {
+            Color(0xFF8E9099)
+        }
     
-    val borderColor by animateColorAsState(
-        targetValue = if (showIndicator) accentColor else Color.Transparent,
-        animationSpec = tween(200),
-        label = "borderColor"
-    )
+    val borderColor =
+        if (showIndicator) accentColor else Color.Transparent
     
-    val avatarScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        animationSpec = tween(200),
-        label = "avatarScale"
-    )
+    val avatarScale =
+        if (isFocused) 1.05f else 1f
     
-    val textScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
-        label = "TextScale"
-    )
+    val textScale =
+        if (isFocused) 1.05f else 1f
     
-    // Text only appears when profile item is focused
     val textAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(200),
+        targetValue = if (isMenuExpanded) 1f else 0f,
+        animationSpec = tween(100),
         label = "TextAlpha"
     )
     
     val textOffset by animateFloatAsState(
-        targetValue = if (isFocused) 0f else -20f,
-        animationSpec = tween(200),
+        targetValue = if (isMenuExpanded) 0f else -12f,
+        animationSpec = tween(100),
         label = "TextOffset"
     )
     
     val avatarSource = profile?.let { ProfileAssets.getAvatarSource(it.avatarRef) }
+
+    val avatarRequest = remember(context, avatarSource) {
+        ImageRequest.Builder(context)
+            .data(avatarSource)
+            .size(100, 100)
+            .crossfade(false)
+            .build()
+    }
+    
     val displayName = profile?.name ?: "Profile"
     
     Box(
@@ -475,11 +442,7 @@ fun ProfileAvatarItem(
                 ) {
                     if (avatarSource != null) {
                         AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(avatarSource)
-                                .size(100, 100)
-                                .crossfade(true)
-                                .build(),
+                            model = avatarRequest,
                             contentDescription = "Profile avatar",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
