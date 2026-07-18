@@ -64,8 +64,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
 private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 180L
-private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 70L
-private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 100L
+private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 150L
+private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 150L
 
 private class HomeFocusTimingTracker {
     var previous: Long = 0L
