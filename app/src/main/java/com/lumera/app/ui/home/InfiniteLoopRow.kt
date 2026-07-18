@@ -79,7 +79,7 @@ import kotlinx.coroutines.delay
  */
 
 private val ITEM_WIDTH = 120.dp
-private val ITEM_SPACING = 10.dp
+private val ITEM_SPACING = 20.dp
 
 sealed class GridRowItem {
     data class MovieItem(val movie: MetaItem) : GridRowItem()
@@ -123,12 +123,6 @@ fun InfiniteLoopRow(
 ) {
     val density = LocalDensity.current
     val paddingPx = remember(density, startPadding) { with(density) { startPadding.toPx() } }
-
-    // Match DetailsScreen RecommendationRow: every row owns its own repeat timing.
-    // Do not share repeat state between different Home rows.
-    val rowRepeatGate = remember {
-        DpadRepeatGate(horizontalRepeatIntervalMs = 150L)
-    }
     
     // Detect if this is a restoration (coming back from details screen)
     // We check if we have a local focus target AND a saved scroll position
@@ -214,7 +208,7 @@ fun InfiniteLoopRow(
                         isFirstRow = isFirstRow,
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = rowRepeatGate,
+                        repeatGate = repeatGate,
                         pivotFocusRequester = pivotFocusRequester,
                         isLandscapeCards = isLandscapeCards,
                         enrichedItems = enrichedItems,
@@ -246,7 +240,7 @@ fun InfiniteLoopRow(
                         isRestoredState = externalListState != null,
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = rowRepeatGate,
+                        repeatGate = repeatGate,
                         pivotFocusRequester = pivotFocusRequester
                     )
                 }
@@ -273,7 +267,7 @@ fun InfiniteLoopRow(
                         isFirstRow = isFirstRow,
                         rowHeight = rowHeight,
                         upKeyDebouncer = upKeyDebouncer,
-                        repeatGate = rowRepeatGate,
+                        repeatGate = repeatGate,
                         pivotFocusRequester = pivotFocusRequester
                     )
                 }
