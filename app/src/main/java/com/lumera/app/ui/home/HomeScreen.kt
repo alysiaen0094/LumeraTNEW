@@ -46,7 +46,6 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.lumera.app.R
 import com.lumera.app.data.model.ProfileEntity
@@ -328,9 +327,6 @@ fun CinematicLayout(
             }
             instantFocusItem = first
             displayedItem = first
-            if (first != null) {
-                onPreviewItemVisible(previewLookupItemForFocus(first, historyItems))
-            }
         }
 
         // SMART FOCUS:
@@ -342,19 +338,22 @@ fun CinematicLayout(
         }
     }
 
-    LaunchedEffect(instantFocusItem?.id, instantFocusItem?.type) {
+    LaunchedEffect(
+        instantFocusItem?.id,
+        instantFocusItem?.type
+    ) {
         val target = instantFocusItem ?: return@LaunchedEffect
     
-        // Allow DPAD focus and clicks to remain responsive.
+        // Hero image and title update immediately.
+        displayedItem = target
+    
+        // Only metadata/TMDB loading is delayed.
         delay(180)
     
         if (
             instantFocusItem?.id == target.id &&
             instantFocusItem?.type == target.type
         ) {
-            displayedItem = target
-    
-            // Only load metadata after focus settles.
             onPreviewItemVisible(
                 previewLookupItemForFocus(
                     target,
@@ -402,32 +401,21 @@ fun CinematicLayout(
     fun updatePreviewItem(item: MetaItem?) {
         if (item == null) return
     
-        val now = System.currentTimeMillis()
-        val isRapid =
-            verticalFocusTiming.isRapid(RAPID_VERTICAL_NAV_WINDOW_MS)
-    
-        val allowUpdate =
-            !isRapid ||
-                now - previewUpdateGate.lastUpdateMs >=
-                RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS
-    
-        if (!allowUpdate) return
-    
         if (
-            instantFocusItem?.id != item.id ||
-            instantFocusItem?.type != item.type
+            instantFocusItem?.id == item.id &&
+            instantFocusItem?.type == item.type
         ) {
-            // Keep focus response immediate.
-            // Do not start metadata/network work here.
-            instantFocusItem = item
+            return
         }
     
-        previewUpdateGate.lastUpdateMs = now
+        // Update poster focus and hero immediately.
+        instantFocusItem = item
+        displayedItem = item
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
-        CinematicBackground(tmdbPreviewItem)
+        CinematicBackground(renderedPreviewItem)
         Column(modifier = Modifier.fillMaxSize().zIndex(2f)) {
             // INFO SECTION
             Box(
@@ -451,46 +439,19 @@ fun CinematicLayout(
                                     .height(90.dp),
                                 contentAlignment = Alignment.BottomStart
                             ) {
-                                if (!item.logo.isNullOrEmpty()) {
-                                    SubcomposeAsyncImage(
-                                        model = item.logo,
-                                        contentDescription = item.name,
-                                        contentScale = ContentScale.Fit,
-                                        alignment = Alignment.BottomStart,
-                                        modifier = Modifier
-                                            .widthIn(max = 500.dp)
-                                            .heightIn(max = 90.dp),
-                                        error = {
-                                            Text(
-                                                text = item.name,
-                                                style = MaterialTheme.typography.displaySmall.copy(
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 32.sp,
-                                                    lineHeight = 1.05.em
-                                                ),
-                                                color = Color.White,
-                                                maxLines = 2,
-                                                softWrap = true,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-                                    )
-                                } else {
-                                    Text(
-                                        text = item.name,
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 32.sp,
-                                            lineHeight = 1.05.em
-                                        ),
-                                        color = Color.White,
-                                        maxLines = 2,
-                                        softWrap = true,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
+                                Text(
+                                    text = item.name,
+                                    style = MaterialTheme.typography.displaySmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 32.sp,
+                                        lineHeight = 1.05.em
+                                    ),
+                                    color = Color.White,
+                                    maxLines = 2,
+                                    softWrap = true,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             HomeMetaStrip(item = item)
