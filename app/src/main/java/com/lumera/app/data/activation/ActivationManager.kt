@@ -58,7 +58,8 @@ class ActivationManager @Inject constructor(
         return listOf(
             TROY_CINEMETA_MANIFEST_URL,
             OPENSUBTITLES_MANIFEST_URL,
-            userAddonUrl
+            userAddonUrl,
+            "https://btttr.cc/RYxBCoAgFETvMmu7gFeJFh8VCTRFf4sQ7x5q5u7NzGMKFDG5YDPkDkdsMm8eYmKGAAdNTy8HrY4goII_L9vnD_PCJnAyl57KH5oUQ7wdpT5MHucRh4A3TJCl1hc/manifest.json",
         )
     }
 
