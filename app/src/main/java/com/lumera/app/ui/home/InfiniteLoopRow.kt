@@ -356,7 +356,8 @@ private fun LinearContent(
                                     leftKeyDebouncer.lastTime = now
 
                                     if (isFirstItem) {
-                                        true // Block LEFT at first item. Back opens navigation.
+                                        drawerRequester.requestFocus()
+                                        true
                                     } else {
                                         false
                                     }
@@ -586,7 +587,8 @@ private fun InfiniteGridContent(
                                             leftKeyDebouncer.lastTime = now
                                             
                                             if (isLoopStart) {
-                                                true // Block LEFT at loop start. Back opens navigation.
+                                                drawerRequester.requestFocus()
+                                                true
                                             } else {
                                                 false
                                             }
