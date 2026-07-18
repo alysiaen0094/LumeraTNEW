@@ -1267,7 +1267,12 @@ class MainActivity : ComponentActivity() {
                                 onNavigate = { destination ->
                                     when (destination) {
                                         NavDestination.Home -> {
-                                            homeEntryRequester.requestFocus()
+                                            uiScope.launch {
+                                                delay(80)
+                                                runCatching {
+                                                    homeEntryRequester.requestFocus()
+                                                }
+                                            }
                                         }
                                         NavDestination.Search -> {
                                             currentNav = NavDestination.Search
@@ -1288,7 +1293,12 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onClose = {
-                                    homeEntryRequester.requestFocus()
+                                    uiScope.launch {
+                                        delay(80)
+                                        runCatching {
+                                            homeEntryRequester.requestFocus()
+                                        }
+                                    }
                                 }
                             ) {
                                 HomeScreen(
