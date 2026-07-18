@@ -342,12 +342,25 @@ fun CinematicLayout(
         }
     }
 
-    LaunchedEffect(instantFocusItem) {
+    LaunchedEffect(instantFocusItem?.id, instantFocusItem?.type) {
         val target = instantFocusItem ?: return@LaunchedEffect
-        delay(220)
-
-        if (instantFocusItem?.id == target.id && instantFocusItem?.type == target.type) {
+    
+        // Allow DPAD focus and clicks to remain responsive.
+        delay(180)
+    
+        if (
+            instantFocusItem?.id == target.id &&
+            instantFocusItem?.type == target.type
+        ) {
             displayedItem = target
+    
+            // Only load metadata after focus settles.
+            onPreviewItemVisible(
+                previewLookupItemForFocus(
+                    target,
+                    historyItems
+                )
+            )
         }
     }
 
@@ -387,21 +400,30 @@ fun CinematicLayout(
     }
 
     fun updatePreviewItem(item: MetaItem?) {
-    if (item == null) return
-
-    val now = System.currentTimeMillis()
-    val isRapid = verticalFocusTiming.isRapid(RAPID_VERTICAL_NAV_WINDOW_MS)
-    val allowUpdate = !isRapid || now - previewUpdateGate.lastUpdateMs >= RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS
-
-    if (!allowUpdate) return
-
-    if (instantFocusItem?.id != item.id || instantFocusItem?.type != item.type) {
-        instantFocusItem = item
-        onPreviewItemVisible(previewLookupItemForFocus(item, historyItems))
+        if (item == null) return
+    
+        val now = System.currentTimeMillis()
+        val isRapid =
+            verticalFocusTiming.isRapid(RAPID_VERTICAL_NAV_WINDOW_MS)
+    
+        val allowUpdate =
+            !isRapid ||
+                now - previewUpdateGate.lastUpdateMs >=
+                RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS
+    
+        if (!allowUpdate) return
+    
+        if (
+            instantFocusItem?.id != item.id ||
+            instantFocusItem?.type != item.type
+        ) {
+            // Keep focus response immediate.
+            // Do not start metadata/network work here.
+            instantFocusItem = item
+        }
+    
+        previewUpdateGate.lastUpdateMs = now
     }
-
-    previewUpdateGate.lastUpdateMs = now
-}
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
