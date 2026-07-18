@@ -79,19 +79,22 @@ fun LumeraCard(
 
     Box(
         modifier = modifier
-            .width(140.dp)
+            .fillMaxWidth()
             .aspectRatio(2f / 3f)
-            .zIndex(if (isFocused) 10f else 0f)
-            .graphicsLayer { clip = false }
+            .zIndex(if (isFocused) 1f else 0f)
     ) {
         Surface(
             onClick = onClick,
             modifier = Modifier
                 .fillMaxSize()
-                .onFocusChanged {
-                    isFocused = it.isFocused
-                    if (it.isFocused) onFocused?.invoke()
-                },
+                .onFocusChanged { focusState ->
+                    val becameFocused = focusState.isFocused && !isFocused
+                    isFocused = focusState.isFocused
+                
+                    if (becameFocused) {
+                        onFocused?.invoke()
+                    }
+                }
             shape = ClickableSurfaceDefaults.shape(
                 shape = cardShape,
                 focusedShape = focusedCardShape
@@ -115,14 +118,14 @@ fun LumeraCard(
             val context = LocalContext.current
             
             // Remembered ImageRequest to prevent recreation during recomposition
-            val imageRequest = remember(posterUrl) {
+            val imageRequest = remember(context, posterUrl) {
                 ImageRequest.Builder(context)
                     .data(posterUrl)
                     .crossfade(false) // No crossfade - eliminates animation overhead during scroll
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
                     .scale(Scale.FILL)
-                    .size(280, 420) // Fixed size for consistent cache hits
+                    .size(240, 360)
                     .allowHardware(true) // GPU-accelerated bitmaps
                     .build()
             }
