@@ -62,8 +62,6 @@ import com.lumera.app.ui.components.LumeraCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-private const val RAPID_VERTICAL_NAV_WINDOW_MS = 220L
-private const val RAPID_PREVIEW_UPDATE_MIN_INTERVAL_MS = 180L
 private const val DPAD_REPEAT_INTERVAL_HORIZONTAL_MS = 150L
 private const val DPAD_REPEAT_INTERVAL_VERTICAL_MS = 150L
 
@@ -77,10 +75,6 @@ private class HomeFocusTimingTracker {
     }
 
     fun isRapid(windowMs: Long): Boolean = current - previous in 1..windowMs
-}
-
-private class PreviewUpdateGate {
-    var lastUpdateMs: Long = 0L
 }
 
 @Composable
@@ -262,7 +256,6 @@ fun CinematicLayout(
     var instantFocusItem by remember { mutableStateOf<MetaItem?>(null) }
     var displayedItem by remember { mutableStateOf<MetaItem?>(null) }
     var hasRequestedFocus by remember { mutableStateOf(false) }
-    val previewUpdateGate = remember { PreviewUpdateGate() }
 
     // Cache the history items transformation to avoid allocating new list on every recomposition
     // Stable key: only rebuild when items/order/watched-state change, not when images update
@@ -296,70 +289,22 @@ fun CinematicLayout(
             historyItems = historyItems
         )
     }
-    // Resolve the newly focused item independently from the currently displayed hero.
-    // This avoids a circular dependency where displayedItem waits for TMDB readiness,
-    // while TMDB readiness was previously calculated from displayedItem.
-    val pendingPreviewItem = remember(
-        instantFocusItem,
-        state.mixedRows,
-        state.heroRow,
-        historyItems,
-        state.enrichedMeta
-    ) {
-        resolveLatestPreviewItem(
-            current = instantFocusItem,
-            state = state,
-            historyItems = historyItems
-        )
-    }
-
-    val readyPreviewItem = remember(
-        instantFocusItem,
-        pendingPreviewItem,
-        state.tmdbEnabled,
-        state.tmdbEnrichedIds
-    ) {
-        val focused = instantFocusItem
-        val pending = pendingPreviewItem
-
-        if (focused == null || pending == null) {
-            null
-        } else {
-            val sameItem =
-                focused.id == pending.id &&
-                    focused.type == pending.type
-
-            val key = "${focused.type}:${focused.id}"
-            val enrichmentReady =
-                !state.tmdbEnabled || state.tmdbEnrichedIds.contains(key)
-
-            if (sameItem && enrichmentReady) pending else null
-        }
-    }
-
     LaunchedEffect(state.rows, state.history, restoredPreviewItem, effectiveLastFocusedKey) {
         if (instantFocusItem == null) {
             val first = when {
                 restoredPreviewItem != null -> restoredPreviewItem
-                // Returning from details with a saved focus key: avoid showing the wrong
-                // poster while focus restoration is still in progress.
                 effectiveLastFocusedKey != null -> null
                 else -> historyItems.firstOrNull() ?: state.rows.firstOrNull()?.items?.firstOrNull()
             }
+
             instantFocusItem = first
-            
-            if (!state.tmdbEnabled && first != null) {
-                displayedItem = resolveLatestPreviewItem(
-                    current = first,
-                    state = state,
-                    historyItems = historyItems
-                )
-            }
-            
+            displayedItem = resolveLatestPreviewItem(
+                current = first,
+                state = state,
+                historyItems = historyItems
+            )
         }
 
-        // SMART FOCUS:
-        // We are now safe to request focus because HomeScreen ensures we only reach here when data is ready.
         if (!hasRequestedFocus && (historyItems.isNotEmpty() || state.mixedRows.isNotEmpty())) {
             delay(100)
             entryRequester.requestFocus()
@@ -372,10 +317,8 @@ fun CinematicLayout(
         instantFocusItem?.type
     ) {
         val target = instantFocusItem ?: return@LaunchedEffect
-    
-        // Avoid starting enrichment for posters skipped during fast navigation.
-        delay(150)
-    
+        delay(120)
+
         if (
             instantFocusItem?.id == target.id &&
             instantFocusItem?.type == target.type
@@ -386,23 +329,6 @@ fun CinematicLayout(
                     historyItems
                 )
             )
-        }
-    }
-
-    LaunchedEffect(
-        instantFocusItem?.id,
-        instantFocusItem?.type,
-        readyPreviewItem
-    ) {
-        val focused = instantFocusItem ?: return@LaunchedEffect
-        val ready = readyPreviewItem ?: return@LaunchedEffect
-
-        if (
-            ready.id == focused.id &&
-            ready.type == focused.type
-        ) {
-            // Commit background, title, metadata and synopsis together.
-            displayedItem = ready
         }
     }
 
@@ -443,17 +369,20 @@ fun CinematicLayout(
 
     fun updatePreviewItem(item: MetaItem?) {
         if (item == null) return
-    
+
         if (
             instantFocusItem?.id == item.id &&
             instantFocusItem?.type == item.type
         ) {
             return
         }
-    
-        // Poster focus moves immediately.
-        // Keep the existing complete hero visible.
+
         instantFocusItem = item
+        displayedItem = resolveLatestPreviewItem(
+            current = item,
+            state = state,
+            historyItems = historyItems
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
