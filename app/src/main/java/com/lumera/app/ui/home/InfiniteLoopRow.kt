@@ -136,18 +136,17 @@ fun InfiniteLoopRow(
     // Reset skip flag after restoration is complete (focus is established)
     LaunchedEffect(isRestoration) {
         if (isRestoration) {
-            delay(180)
             skipBringIntoViewScroll = false
         }
     }
     
     // Create pivot spec with skip provider and dynamic stiffness
-    val pivotSpec = remember(paddingPx) {
+    val pivotSpec = remember(paddingPx) { 
         FocusPivotSpec(
             customOffset = paddingPx,
             skipScrollProvider = { skipBringIntoViewScroll },
-            stiffnessProvider = { Spring.StiffnessLow }
-        )
+            stiffnessProvider = { Spring.StiffnessMediumLow }
+        ) 
     }
 
     // Calculate end padding to allow last item to align to left (pivot position)
@@ -340,15 +339,7 @@ private fun LinearContent(
                     .width(effectiveItemWidth)
                     .graphicsLayer { clip = false }
                     .onPreviewKeyEvent { keyEvent ->
-                       val isDirectionalKey =
-                            keyEvent.key == Key.DirectionLeft ||
-                                keyEvent.key == Key.DirectionRight ||
-                                keyEvent.key == Key.DirectionUp ||
-                                keyEvent.key == Key.DirectionDown
-                        
-                        if (isDirectionalKey && repeatGate.shouldConsume(keyEvent)) {
-                            return@onPreviewKeyEvent true
-                        }
+                        if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
                         if (keyEvent.type == KeyEventType.KeyDown) {
                             when {
                                 keyEvent.key == Key.DirectionRight -> {
@@ -579,15 +570,7 @@ private fun InfiniteGridContent(
                             .width(ITEM_WIDTH)
                             .graphicsLayer { clip = false }
                             .onPreviewKeyEvent { keyEvent ->
-                                val isDirectionalKey =
-                                    keyEvent.key == Key.DirectionLeft ||
-                                        keyEvent.key == Key.DirectionRight ||
-                                        keyEvent.key == Key.DirectionUp ||
-                                        keyEvent.key == Key.DirectionDown
-                                
-                                if (isDirectionalKey && repeatGate.shouldConsume(keyEvent)) {
-                                    return@onPreviewKeyEvent true
-                                }
+                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
                                 if (keyEvent.type == KeyEventType.KeyDown) {
                                     when {
                                         keyEvent.key == Key.DirectionRight -> {
@@ -780,15 +763,7 @@ private fun FiniteGridContent(
                             .width(ITEM_WIDTH)
                             .graphicsLayer { clip = false }
                             .onPreviewKeyEvent { keyEvent ->
-                                val isDirectionalKey =
-                                    keyEvent.key == Key.DirectionLeft ||
-                                        keyEvent.key == Key.DirectionRight ||
-                                        keyEvent.key == Key.DirectionUp ||
-                                        keyEvent.key == Key.DirectionDown
-                                
-                                if (isDirectionalKey && repeatGate.shouldConsume(keyEvent)) {
-                                    return@onPreviewKeyEvent true
-                                }
+                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
                                 if (keyEvent.type == KeyEventType.KeyDown) {
                                     when {
                                         keyEvent.key == Key.DirectionLeft -> {
@@ -854,15 +829,7 @@ private fun FiniteGridContent(
                             .width(ITEM_WIDTH)
                             .graphicsLayer { clip = false }
                             .onPreviewKeyEvent { keyEvent ->
-                                val isDirectionalKey =
-                                    keyEvent.key == Key.DirectionLeft ||
-                                        keyEvent.key == Key.DirectionRight ||
-                                        keyEvent.key == Key.DirectionUp ||
-                                        keyEvent.key == Key.DirectionDown
-                                
-                                if (isDirectionalKey && repeatGate.shouldConsume(keyEvent)) {
-                                    return@onPreviewKeyEvent true
-                                }
+                                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
                                 if (keyEvent.type == KeyEventType.KeyDown) {
                                     when (keyEvent.key) {
                                         Key.DirectionRight -> true // Block RIGHT at ViewMore (end of list)
@@ -948,15 +915,7 @@ private fun InfiniteViewMoreCard(
                 alpha = animatedAlpha
             }
             .onPreviewKeyEvent { keyEvent ->
-                val isDirectionalKey =
-                    keyEvent.key == Key.DirectionLeft ||
-                        keyEvent.key == Key.DirectionRight ||
-                        keyEvent.key == Key.DirectionUp ||
-                        keyEvent.key == Key.DirectionDown
-                
-                if (isDirectionalKey && repeatGate.shouldConsume(keyEvent)) {
-                    return@onPreviewKeyEvent true
-                }
+                if (repeatGate.shouldConsume(keyEvent)) return@onPreviewKeyEvent true
                 if (keyEvent.type == KeyEventType.KeyDown) {
                     when (keyEvent.key) {
                         Key.DirectionRight -> {
