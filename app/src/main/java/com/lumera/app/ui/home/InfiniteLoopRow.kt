@@ -79,7 +79,7 @@ import kotlinx.coroutines.delay
  */
 
 private val ITEM_WIDTH = 120.dp
-private val ITEM_SPACING = 20.dp
+private val ITEM_SPACING = 10.dp
 
 sealed class GridRowItem {
     data class MovieItem(val movie: MetaItem) : GridRowItem()
