@@ -70,12 +70,28 @@ fun LumeraCard(
     onFocused: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
+
     val glowColor = MaterialTheme.colorScheme.primary
     val roundCorners = LocalRoundCorners.current
-    
-    // Shape based on user preference
-    val cardShape = if (roundCorners) RoundedCornerShape(12.dp) else RectangleShape
+
+    val cardShape =
+        if (roundCorners) RoundedCornerShape(12.dp)
+        else RectangleShape
+
     val focusedCardShape = cardShape
+    val context = LocalContext.current
+
+    val imageRequest = remember(context, posterUrl) {
+        ImageRequest.Builder(context)
+            .data(posterUrl)
+            .crossfade(false)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .scale(Scale.FILL)
+            .size(240, 360)
+            .allowHardware(true)
+            .build()
+    }
 
     Box(
         modifier = modifier
@@ -88,13 +104,15 @@ fun LumeraCard(
             modifier = Modifier
                 .fillMaxSize()
                 .onFocusChanged { focusState ->
-                    val becameFocused = focusState.isFocused && !isFocused
+                    val becameFocused =
+                        focusState.isFocused && !isFocused
+
                     isFocused = focusState.isFocused
-                
+
                     if (becameFocused) {
                         onFocused?.invoke()
                     }
-                }
+                },
             shape = ClickableSurfaceDefaults.shape(
                 shape = cardShape,
                 focusedShape = focusedCardShape
@@ -110,28 +128,17 @@ fun LumeraCard(
             ),
             border = ClickableSurfaceDefaults.border(
                 focusedBorder = Border(
-                    border = BorderStroke(2.dp, glowColor),
+                    border = BorderStroke(
+                        width = 2.dp,
+                        color = glowColor
+                    ),
                     shape = focusedCardShape
                 )
             )
         ) {
-            val context = LocalContext.current
-            
-            // Remembered ImageRequest to prevent recreation during recomposition
-            val imageRequest = remember(context, posterUrl) {
-                ImageRequest.Builder(context)
-                    .data(posterUrl)
-                    .crossfade(false) // No crossfade - eliminates animation overhead during scroll
-                    .memoryCachePolicy(CachePolicy.ENABLED)
-                    .diskCachePolicy(CachePolicy.ENABLED)
-                    .scale(Scale.FILL)
-                    .size(240, 360)
-                    .allowHardware(true) // GPU-accelerated bitmaps
-                    .build()
-            }
-            
-            Box(modifier = Modifier.fillMaxSize()) {
-                // AsyncImage is lighter than SubcomposeAsyncImage - no subcomposition overhead
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 AsyncImage(
                     model = imageRequest,
                     contentDescription = title,
@@ -142,67 +149,93 @@ fun LumeraCard(
                         .background(MaterialTheme.colorScheme.surface)
                 )
 
-                // Watched badge — corner triangle with checkmark
                 if (isWatched) {
-                    val badgeColor = MaterialTheme.colorScheme.primary
+                    val badgeColor =
+                        MaterialTheme.colorScheme.primary
+
                     Canvas(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .size(28.dp)
                     ) {
-                        val path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(size.width, 0f)
-                            lineTo(0f, 0f)
-                            lineTo(size.width, size.height)
-                            close()
-                        }
-                        drawPath(path, badgeColor)
+                        val path =
+                            androidx.compose.ui.graphics.Path().apply {
+                                moveTo(size.width, 0f)
+                                lineTo(0f, 0f)
+                                lineTo(size.width, size.height)
+                                close()
+                            }
+
+                        drawPath(
+                            path = path,
+                            color = badgeColor
+                        )
                     }
+
                     Text(
-                        "✓",
+                        text = "✓",
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(top = 1.dp, end = 2.dp)
+                            .padding(
+                                top = 1.dp,
+                                end = 2.dp
+                            )
                     )
                 }
 
-                // New episode badge for next-up items
                 if (hasNewEpisode) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(
+                                horizontal = 6.dp,
+                                vertical = 2.dp
+                            )
                     ) {
                         Text(
-                            "+1",
+                            text = "+1",
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            fontWeight =
+                                androidx.compose.ui.text.font.FontWeight.Bold
                         )
                     }
                 }
 
-                // Progress bar overlay for Continue Watching items
                 if (progress > 0f) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .padding(horizontal = 6.dp, vertical = 5.dp)
+                            .padding(
+                                horizontal = 6.dp,
+                                vertical = 5.dp
+                            )
                             .height(3.dp)
                             .clip(RoundedCornerShape(1.5.dp))
-                            .background(Color.White.copy(0.3f))
+                            .background(
+                                Color.White.copy(alpha = 0.3f)
+                            )
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                                .clip(RoundedCornerShape(1.5.dp))
-                                .background(MaterialTheme.colorScheme.primary)
+                                .fillMaxWidth(
+                                    progress.coerceIn(0f, 1f)
+                                )
+                                .clip(
+                                    RoundedCornerShape(1.5.dp)
+                                )
+                                .background(
+                                    MaterialTheme.colorScheme.primary
+                                )
                         )
                     }
                 }
