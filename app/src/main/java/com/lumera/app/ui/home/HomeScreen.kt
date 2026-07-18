@@ -325,7 +325,11 @@ fun CinematicLayout(
                 else -> historyItems.firstOrNull() ?: state.rows.firstOrNull()?.items?.firstOrNull()
             }
             instantFocusItem = first
-            displayedItem = first
+            
+            if (!state.tmdbEnabled) {
+                displayedItem = first
+            }
+            
         }
 
         // SMART FOCUS:
@@ -343,11 +347,8 @@ fun CinematicLayout(
     ) {
         val target = instantFocusItem ?: return@LaunchedEffect
     
-        // Hero image and title update immediately.
-        displayedItem = target
-    
-        // Only metadata/TMDB loading is delayed.
-        delay(180)
+        // Avoid starting enrichment for posters skipped during fast navigation.
+        delay(150)
     
         if (
             instantFocusItem?.id == target.id &&
@@ -359,6 +360,23 @@ fun CinematicLayout(
                     historyItems
                 )
             )
+        }
+    }
+
+    LaunchedEffect(
+        instantFocusItem?.id,
+        instantFocusItem?.type,
+        tmdbPreviewItem
+    ) {
+        val focused = instantFocusItem ?: return@LaunchedEffect
+        val ready = tmdbPreviewItem ?: return@LaunchedEffect
+    
+        if (
+            ready.id == focused.id &&
+            ready.type == focused.type
+        ) {
+            // Commit background, title, metadata and synopsis together.
+            displayedItem = ready
         }
     }
 
@@ -407,14 +425,14 @@ fun CinematicLayout(
             return
         }
     
-        // Update poster focus and hero immediately.
+        // Poster focus moves immediately.
+        // Keep the existing complete hero visible.
         instantFocusItem = item
-        displayedItem = item
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Only show background when TMDB enrichment is done (or disabled) to prevent flash
-        CinematicBackground(renderedPreviewItem)
+        CinematicBackground(displayedItem)
         Column(modifier = Modifier.fillMaxSize().zIndex(2f)) {
             // INFO SECTION
             Box(
@@ -425,7 +443,7 @@ fun CinematicLayout(
                 contentAlignment = Alignment.TopStart
             ) {
                 AnimatedContent(
-                    targetState = tmdbPreviewItem,
+                    targetState = displayedItem,
                     transitionSpec = { fadeIn(tween(0)).togetherWith(fadeOut(tween(0))) },
                     label = "Info"    
                 ) { item ->
