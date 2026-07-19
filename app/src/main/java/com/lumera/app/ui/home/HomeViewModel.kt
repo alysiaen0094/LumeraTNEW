@@ -78,12 +78,6 @@ class HomeViewModel @Inject constructor(
         if (lastFocusedKeyMemory == key) return
         lastFocusedKeyMemory = key
     }
-
-    fun setLastFocusedKey(key: String?) {
-        if (lastFocusedKeyMemory == key) return
-        // Keep focus local/in-memory so horizontal movement does not recompose the whole Home screen.
-        lastFocusedKeyMemory = key
-    }
     
     fun setRowScrollPosition(rowKey: String, position: Pair<Int, Int>) {
         if (rowScrollPositionsMemory[rowKey] == position) return
