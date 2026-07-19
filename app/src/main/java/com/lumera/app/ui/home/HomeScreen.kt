@@ -385,9 +385,20 @@ fun CinematicLayout(
         // SMART FOCUS:
         // We are now safe to request focus because HomeScreen ensures we only reach here when data is ready.
         if (!hasRequestedFocus && (historyItems.isNotEmpty() || state.mixedRows.isNotEmpty())) {
-            delay(100)
-            entryRequester.requestFocus()
-            hasRequestedFocus = true
+            delay(150)
+        
+            repeat(3) { attempt ->
+                val success = runCatching {
+                    entryRequester.requestFocus()
+                }.isSuccess
+        
+                if (success) {
+                    hasRequestedFocus = true
+                    return@LaunchedEffect
+                }
+        
+                delay(100L * (attempt + 1))
+            }
         }
     }
 
@@ -1331,11 +1342,22 @@ fun SimpleLayout(
     // Focus requester for the first row's pivot item (used by hero carousel DOWN key)
     val firstRowPivotRequester = remember { FocusRequester() }
 
-    LaunchedEffect(state.rows, historyItems) {
+    LaunchedEffect(state.rows, historyItems, effectiveLastFocusedKey) {
         if (!hasRequestedFocus && (state.rows.isNotEmpty() || historyItems.isNotEmpty())) {
-            delay(100)
-            entryRequester.requestFocus()
-            hasRequestedFocus = true
+            delay(150)
+    
+            repeat(3) { attempt ->
+                val success = runCatching {
+                    entryRequester.requestFocus()
+                }.isSuccess
+    
+                if (success) {
+                    hasRequestedFocus = true
+                    return@LaunchedEffect
+                }
+    
+                delay(100L * (attempt + 1))
+            }
         }
     }
 
