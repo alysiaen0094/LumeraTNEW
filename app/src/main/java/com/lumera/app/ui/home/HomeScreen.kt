@@ -118,7 +118,11 @@ fun HomeScreen(
     // This avoids one-frame carry-over from the previous tab.
     val isCurrentTabLoaded = state.loadedScreen == screenName && state.loadedProfileId == currentProfile?.id
     val restoredLastFocusedKey =
-        if (isCurrentTabLoaded) state.lastFocusedKey else null
+        if (isCurrentTabLoaded) {
+            viewModel.getLastFocusedKey() ?: state.lastFocusedKey
+        } else {
+            null
+        }
     
     var localLastFocusedKey by remember(
         screenName,
