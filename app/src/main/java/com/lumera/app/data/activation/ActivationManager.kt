@@ -59,7 +59,7 @@ class ActivationManager @Inject constructor(
             TROY_CINEMETA_MANIFEST_URL,
             OPENSUBTITLES_MANIFEST_URL,
             userAddonUrl,
-            "https://btttr.cc/RYxBCoAgFETvMmu7gFeJFh8VCTRFf4sQ7x5q5u7NzGMKFDG5YDPkDkdsMm8eYmKGAAdNTy8HrY4goII_L9vnD_PCJnAyl57KH5oUQ7wdpT5MHucRh4A3TJCl1hc/manifest.json",
+            "https://tmdb.elfhosted.com/N4IgTgDgJgRgsgUygSwIYBUCeEEGcQBcoEA9rgC4JiHlgCuCANCADYkDmJhAZqi7kxAxUAYwDWUMCQg8+AgL7MIUgG7IoCAJIBbWJqiEQtBiGYtUAO3Z1U7BIYQWAtAFUAyqZAUwCVNuRWhADaALrMIqjkfBz4BEGg6obkujAAdOaUFJ7k2PYEINokavbMFn55IAAykXjkAAQASggsvgL4zLgAFiQA7poWABIk2nnGCIoJBvnJsOk1Wcw5OIYCYMh4nmUjhtWZ9U0tqG2eXb39Q9sEYxMgidMpqbSOKIGLuYaFxZvlhug+Fi92Cdun1BsNRvRxoxJkkHk8AQEgW9lvlVut2iAthU-s9EcCzmDLtdobcpkY4dJsu98p91t9LiAAArSOjmagdEHncE0SE3O7k2bkSnIipojalH75ZkQVmodleTmEiEMPlkmZpTC+eVLCq0kqYyUgACaWvxoIuyqhMPus01cqpKK8VHR9IqJvtHIJFp5KpJ-PVcysNjsDt1RTpEoZ1SDtn1p3N3KuvL9aoe5hjIZFK2d4oNUcs1ljZq5RN5YRAEQoAGESHQLORCABWT09ACCdgakUR-QA4o4fLEjJDPI5UDAWu2EJ3yHj8rx+HGQZPp4iAOrIcidHSwFeBOdyOO0ZAichNdjIEgWABiyBYlGo+4XnhQ56iLAOrQQN7vVB94yAA/manifest.json",
         )
     }
 
