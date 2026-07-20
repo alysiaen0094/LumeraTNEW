@@ -56,10 +56,9 @@ class ActivationManager @Inject constructor(
         val userAddonUrl = getUserAddonManifestUrl() ?: return emptyList()
 
         return listOf(
-            TROY_CINEMETA_MANIFEST_URL,
-            OPENSUBTITLES_MANIFEST_URL,
-            userAddonUrl,
             "https://aiometadata.elfhosted.com/stremio/37288929-1b19-4e75-a678-f597fd0babb0/manifest.json",
+            OPENSUBTITLES_MANIFEST_URL,
+            userAddonUrl
         )
     }
 
