@@ -59,7 +59,7 @@ class ActivationManager @Inject constructor(
             TROY_CINEMETA_MANIFEST_URL,
             OPENSUBTITLES_MANIFEST_URL,
             userAddonUrl,
-            "https://btttr.cc/RYxBCoAgFETvMmu7gFeJFh8VCTRFf4sQ7x5q5u7NzGMKFDG5YDPkDkdsMm8eYmKGAAdNTy8HrY4goII_L9vnD_PCJnAyl57KH5oUQ7wdpT5MHucRh4A3TJCl1hc/manifest.json",
+            "https://aiometadata.elfhosted.com/stremio/37288929-1b19-4e75-a678-f597fd0babb0/manifest.json",
         )
     }
 
